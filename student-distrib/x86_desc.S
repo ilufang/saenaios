@@ -14,7 +14,6 @@
 
 .align 4
 
-
 tss_size:
     .long tss_bottom - tss - 1
 
@@ -22,6 +21,11 @@ ldt_size:
     .long ldt_bottom - ldt - 1
 
     .word 0 # Padding
+
+gdt_desc:
+    .word gdt_bottom - gdt - 1
+    .long gdt
+
 ldt_desc:
     .word KERNEL_LDT
     .long ldt

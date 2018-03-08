@@ -24,6 +24,8 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Clear the screen. */
     clear();
 
+    printf("Hello world!\n");
+
     /* Am I booted by a Multiboot-compliant boot loader? */
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
         printf("Invalid magic number: 0x%#x\n", (unsigned)magic);
