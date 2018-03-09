@@ -10,6 +10,7 @@
 #include "tests.h"
 
 #include "boot/idt.h"
+#include "boot/page_table_init.h"
 
 #define RUN_TESTS
 
@@ -143,6 +144,8 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Construct IDT */
     idt_construct(idt);
     lidt(idt_desc_ptr);
+
+    page_init();
 
     /* Init the PIC */
     i8259_init();

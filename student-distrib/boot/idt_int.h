@@ -97,6 +97,6 @@ void idt_int_of_handler(int eax);
 
 void idt_int_usr_handler(int eax);
 
-void idt_int_panic(char *msg);
+void idt_int_panic(char *msg, int info);
 
 #endif

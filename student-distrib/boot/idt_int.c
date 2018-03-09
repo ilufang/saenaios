@@ -9,7 +9,7 @@ void idt_int_of_handler(int eax) {
 
 }
 
-void idt_int_panic(char *msg) {
+void idt_int_panic(char *msg, int info) {
 	printf("[CAT] Received fatal exception: \n");
 	printf(msg);
 

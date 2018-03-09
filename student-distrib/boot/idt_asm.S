@@ -87,6 +87,8 @@ idt_int_gp:
 	pushl	$idt_int_msg_gp
 	call	idt_int_panic
 idt_int_pf:
+	movl 	%cr2, %eax
+	pushl	%eax
 	pushl	$idt_int_msg_pf
 	call	idt_int_panic
 idt_int_mf:
