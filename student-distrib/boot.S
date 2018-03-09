@@ -27,6 +27,24 @@ continue:
     # Load the GDT
     lgdt    gdt_desc
 
+    pushl    %eax
+    # # Load the Page Directory 
+    # leal    page_directory, %eax
+    # movl    %eax, %cr3
+
+    # # enable 4KB 4MB mixing pages by setting PSE flag, bit 4 of CR4
+    # movl    %cr4, %eax
+    # orl     $0x00000010, %eax
+    # movl    %eax, %cr4
+
+    # enable paging by modifying PG flag, 31 bit of CR0
+    movl    %cr0, %eax
+    orl     $0x80000000, %eax
+    movl    %eax, %cr0
+
+    popl    %eax
+
+
     # Load CS with the new descriptor value
     ljmp    $KERNEL_CS, $keep_going
 
