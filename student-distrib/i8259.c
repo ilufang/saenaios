@@ -14,8 +14,10 @@ uint8_t slave_mask = 0xFF;  /* IRQs 8-15 */
 
 /* Initialize the 8259 PIC */
 void i8259_init(void) {
+
+    outb(0xFF, MASTER_8259_DATA);
+    outb(0xFF, SLAVE_8259_DATA);
     
-    cli();
     outb(ICW1, MASTER_8259_PORT);
     outb(ICW1, SLAVE_8259_PORT);
     
@@ -32,8 +34,6 @@ void i8259_init(void) {
     
     outb(master_mask, MASTER_8259_DATA);
     outb(slave_mask, SLAVE_8259_DATA);
-    
-    sti();
 
 }
 
@@ -53,6 +53,7 @@ void enable_irq(uint32_t irq_num) {
         mask = mask << (irq_num - 8);
         mask = ~mask;
         slave_mask &= mask;
+        enable_irq(SLAVE_PORT);
         outb(slave_mask, SLAVE_8259_DATA);
     }
     
@@ -71,6 +72,7 @@ void disable_irq(uint32_t irq_num) {
     else{
         mask = mask << (irq_num - 8);
         slave_mask |= mask;
+        disable_irq(SLAVE_PORT);
         outb(slave_mask, SLAVE_8259_DATA);
     }
     

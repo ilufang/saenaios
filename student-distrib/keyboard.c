@@ -57,10 +57,10 @@ void keyboard_init(){
 }
 
 void keyboard_handler(){
-    
+
+    send_eoi(KBD_IRQ_NUM);
     unsigned char scancode;
     scancode = inb(DATA_REG);
     if(!(scancode & 0x80))putc(kbdus[scancode]);
-    send_eoi(KBD_IRQ_NUM);
 
 }
