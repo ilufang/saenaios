@@ -19,7 +19,7 @@
 .globl idt_int_usr
 
 idt_int_msg_de:
-	.string "Divide Error"
+	.string "Divide Error at %x"
 idt_int_msg_nmi:
 	.string "NMI"
 idt_int_msg_bp:
@@ -27,94 +27,146 @@ idt_int_msg_bp:
 idt_int_msg_of:
 	.string "Overflow"
 idt_int_msg_br:
-	.string "Bound Range Exceeded"
+	.string "Bound Range Exceeded at %x"
 idt_int_msg_ud:
-	.string "Undefined Opcode"
+	.string "Undefined Opcode at %x"
 idt_int_msg_nm:
-	.string "No Math Coprocessor"
+	.string "No Math Coprocessor at %x"
 idt_int_msg_df:
 	.string "Double Fault"
 idt_int_msg_ts:
-	.string "Invalid TSS"
+	.string "Invalid TSS at %x (err=%x)"
 idt_int_msg_np:
-	.string "Segment Not Present"
+	.string "Segment Not Present at %x (err=%x)"
 idt_int_msg_ss:
-	.string "Stack-Segment Fault"
+	.string "Stack-Segment Fault at %x (err=%x)"
 idt_int_msg_gp:
-	.string "General Protection Fault"
+	.string "General Protection Fault at %x (err=%x)"
 idt_int_msg_pf:
-	.string "Page Fault"
+	.string "Page Fault at %x (err=%x, addr=%x)"
 idt_int_msg_mf:
-	.string "Math Fault"
+	.string "Math Fault at %x"
 idt_int_msg_ac:
-	.string "Alignment Check"
+	.string "Alignment Check at %x"
 idt_int_msg_mc:
 	.string "Machine Check"
 idt_int_msg_xf:
-	.string "SIMD Floating Point Exception"
+	.string "SIMD Floating Point Exception at %x"
 idt_int_msg_reserved:
 	.string "Reserved Interrupt"
 
 
 idt_int_de:
+	pushl	(%esp)
 	pushl	$idt_int_msg_de
 	call	idt_int_panic
+	addl	$8, %esp
+	iret
 idt_int_nmi:
 	pushl	$idt_int_msg_nmi
 	call	idt_int_panic
+	addl	$4, %esp
+	iret
+idt_int_bp:
+	call	idt_int_bp_handler
+	iret
+idt_int_of:
+	call	idt_int_of_handler
+	iret
 idt_int_br:
+	pushl	(%esp)
 	pushl	$idt_int_msg_br
 	call	idt_int_panic
+	addl	$8, %esp
+	iret
 idt_int_ud:
+	pushl	(%esp)
 	pushl	$idt_int_msg_ud
 	call	idt_int_panic
+	addl	$8, %esp
+	iret
 idt_int_nm:
+	pushl	(%esp)
 	pushl	$idt_int_msg_nm
 	call	idt_int_panic
+	addl	$8, %esp
+	iret
 idt_int_df:
 	pushl	$idt_int_msg_df
 	call	idt_int_panic
+	addl	$4, %esp
+	iret
 idt_int_ts:
+	pushl	(%esp)	// Err code
+	pushl	4(%esp)	// EIP
 	pushl	$idt_int_msg_ts
 	call	idt_int_panic
+	addl	$16, %esp // 3 args + 1 err code
+	iret
 idt_int_np:
+	pushl	(%esp)	// Err code
+	pushl	4(%esp)	// EIP
 	pushl	$idt_int_msg_np
 	call	idt_int_panic
+	addl	$16, %esp // 3 args + 1 err code
+	iret
 idt_int_ss:
+	pushl	(%esp)	// Err code
+	pushl	4(%esp)	// EIP
 	pushl	$idt_int_msg_ss
 	call	idt_int_panic
+	addl	$16, %esp // 3 args + 1 err code
+	iret
 idt_int_gp:
+	pushl	(%esp)	// Err code
+	pushl	4(%esp)	// EIP
 	pushl	$idt_int_msg_gp
 	call	idt_int_panic
+	addl	$16, %esp // 3 args + 1 err code
+	iret
 idt_int_pf:
+	movl	%cr2, %eax
+	pushl	%eax	// Faulting address
+	movl	(%esp), %eax
+	andl	$0xf, %eax
+	pushl	%eax	// Err code (masked)
+	pushl	4(%esp)	// EIP
 	pushl	$idt_int_msg_pf
 	call	idt_int_panic
+	addl	$20, %esp // 4 args + 1 err code
+	iret
 idt_int_mf:
+	pushl	(%esp)	// Err code
+	pushl	4(%esp)	// EIP
 	pushl	$idt_int_msg_mf
 	call	idt_int_panic
+	addl	$16, %esp // 3 args + 1 err code
+	iret
 idt_int_ac:
+	pushl	(%esp)	// Err code
+	pushl	4(%esp)	// EIP
 	pushl	$idt_int_msg_ac
 	call	idt_int_panic
+	addl	$8, %esp // 1 arg + 1 err code
+	iret
 idt_int_mc:
 	pushl	$idt_int_msg_mc
 	call	idt_int_panic
+	addl	$4, %esp
+	iret
 idt_int_xf:
+	pushl	(%esp)	// Err code
+	pushl	4(%esp)	// EIP
 	pushl	$idt_int_msg_xf
 	call	idt_int_panic
+	addl	$8, %esp // 1 arg + 1 err code
+	iret
 idt_int_reserved:
 	pushl	$idt_int_msg_reserved
 	call	idt_int_panic
+	addl	$4, %esp
+	iret
 
-idt_int_bp:
-	pushl	%eax
-	call	idt_int_bp_handler
-	addl	$4, %esp
-	iret
-idt_int_of:
-	pushl	%eax
-	call	idt_int_of_handler
-	addl	$4, %esp
-	iret
 idt_int_usr:
 	pushl	%eax
 	call	idt_int_usr_handler

@@ -91,12 +91,12 @@ void idt_int_xf();
  */
 void idt_int_reserved();
 
-void idt_int_bp_handler(int eax);
+void idt_int_bp_handler();
 
-void idt_int_of_handler(int eax);
+void idt_int_of_handler();
 
 void idt_int_usr_handler(int eax);
 
-void idt_int_panic(char *msg);
+void idt_int_panic(char *msg, int a, int b, int c, int d);
 
 #endif
