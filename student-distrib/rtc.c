@@ -18,6 +18,6 @@ void rtc_init(){
 
 /* interrupt handler(for now) */
 void rtc_handler(){
-    send_eoi(RTC_IRQ_NUM);
     test_interrupts();
+    send_eoi(RTC_IRQ_NUM);
 }

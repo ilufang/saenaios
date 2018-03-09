@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "lib.h"
 
+
 /* keycode reference: Bran's Kernel development tutorial */
 unsigned char kbdus[128] =
 {
@@ -59,6 +60,7 @@ void keyboard_handler(){
     
     unsigned char scancode;
     scancode = inb(DATA_REG);
-    putc(kbdus[scancode]);
+    if(!(scancode & 0x80))putc(kbdus[scancode]);
     send_eoi(KBD_IRQ_NUM);
+
 }
