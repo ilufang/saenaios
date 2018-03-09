@@ -1,0 +1,71 @@
+gcc  -nostdinc -g  -c -o boot/idt_asm.o boot/idt_asm.S
+boot/../types.h: Assembler messages:
+boot/../types.h:15: Error: no such instruction: `typedef int int32_t'
+boot/../types.h:16: Error: no such instruction: `typedef unsigned int uint32_t'
+boot/../types.h:18: Error: no such instruction: `typedef short int16_t'
+boot/../types.h:19: Error: no such instruction: `typedef unsigned short uint16_t'
+boot/../types.h:21: Error: no such instruction: `typedef char int8_t'
+boot/../types.h:22: Error: no such instruction: `typedef unsigned char uint8_t'
+boot/../i8259.h:33: Error: no such instruction: `void i8259_init(void)'
+boot/../i8259.h:35: Error: no such instruction: `void enable_irq(uint32_t irq_num)'
+boot/../i8259.h:37: Error: no such instruction: `void disable_irq(uint32_t irq_num)'
+boot/../i8259.h:39: Error: no such instruction: `void send_eoi(uint32_t irq_num)'
+boot/../lib.h:10: Error: invalid character '_' in mnemonic
+boot/../lib.h:11: Error: no such instruction: `void putc(uint8_t c)'
+boot/../lib.h:12: Error: invalid character '_' in mnemonic
+boot/../lib.h:13: Error: invalid character '_' in mnemonic
+boot/../lib.h:14: Error: invalid character '_' in mnemonic
+boot/../lib.h:15: Error: invalid character '_' in mnemonic
+boot/../lib.h:16: Error: no such instruction: `void clear(void)'
+boot/../lib.h:18: Error: invalid character '*' in mnemonic
+boot/../lib.h:19: Error: invalid character '*' in mnemonic
+boot/../lib.h:20: Error: invalid character '*' in mnemonic
+boot/../lib.h:21: Error: invalid character '*' in mnemonic
+boot/../lib.h:22: Error: invalid character '*' in mnemonic
+boot/../lib.h:23: Error: invalid character '_' in mnemonic
+boot/../lib.h:24: Error: invalid character '_' in mnemonic
+boot/../lib.h:25: Error: invalid character '_' in mnemonic
+boot/../lib.h:28: Error: invalid character '_' in mnemonic
+boot/../lib.h:29: Error: invalid character '_' in mnemonic
+boot/../lib.h:32: Error: no such instruction: `void test_interrupts(void)'
+boot/../lib.h:37: Error: no such instruction: `static inline uint32_t inb(port){'
+boot/../lib.h:38: Error: invalid character '_' in mnemonic
+boot/../lib.h:39: Error: no such instruction: `asm volatile ("             \n            xorl %0, %0         \n            inb  (%w1), %b0     \n            "'
+boot/../lib.h:43: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:44: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:45: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:46: Error: junk at end of line, first unrecognized character is `)'
+boot/../lib.h:47: Error: no such instruction: `return val'
+boot/../lib.h:48: Error: junk at end of line, first unrecognized character is `}'
+boot/../lib.h:53: Error: no such instruction: `static inline uint32_t inw(port){'
+boot/../lib.h:54: Error: invalid character '_' in mnemonic
+boot/../lib.h:55: Error: no such instruction: `asm volatile ("             \n            xorl %0, %0         \n            inw  (%w1), %w0     \n            "'
+boot/../lib.h:59: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:60: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:61: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:62: Error: junk at end of line, first unrecognized character is `)'
+boot/../lib.h:63: Error: no such instruction: `return val'
+boot/../lib.h:64: Error: junk at end of line, first unrecognized character is `}'
+boot/../lib.h:68: Error: no such instruction: `static inline uint32_t inl(port){'
+boot/../lib.h:69: Error: invalid character '_' in mnemonic
+boot/../lib.h:70: Error: no such instruction: `asm volatile ("inl (%w1), %0"'
+boot/../lib.h:71: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:72: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:73: Error: junk at end of line, first unrecognized character is `:'
+boot/../lib.h:74: Error: junk at end of line, first unrecognized character is `)'
+boot/../lib.h:75: Error: no such instruction: `return val'
+boot/../lib.h:76: Error: junk at end of line, first unrecognized character is `}'
+boot/../keyboard.h:20: Error: no such instruction: `void keyboard_init()'
+boot/../keyboard.h:22: Error: no such instruction: `void keyboard_handler()'
+boot/../rtc.h:28: Error: no such instruction: `void rtc_init()'
+boot/../rtc.h:30: Error: no such instruction: `void rtc_handler()'
+boot/idt_int.h:85: Error: no such instruction: `void idt_int_mc()'
+boot/idt_int.h:90: Error: no such instruction: `void idt_int_xf()'
+boot/idt_int.h:95: Error: no such instruction: `void idt_int_reserved()'
+boot/idt_int.h:97: Error: no such instruction: `void idt_int_bp_handler(int eax)'
+boot/idt_int.h:99: Error: no such instruction: `void idt_int_of_handler(int eax)'
+boot/idt_int.h:101: Error: no such instruction: `void idt_int_usr_handler(int eax)'
+boot/idt_int.h:103: Error: no such instruction: `void idt_int_panic(char *msg)'
+boot/idt_int.h:105: Error: no such instruction: `extern void idt_int_rtc()'
+boot/idt_int.h:106: Error: no such instruction: `extern void idt_int_keyboard()'
+make: *** [boot/idt_asm.o] Error 1

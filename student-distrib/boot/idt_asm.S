@@ -18,6 +18,21 @@
 .globl idt_int_reserved
 .globl idt_int_usr
 
+.globl idt_int_rtc
+.globl idt_int_keyboard
+
+idt_int_rtc:
+    pushal
+    call    rtc_handler
+    popal
+    iret
+
+idt_int_keyboard:
+    pushal
+    call    keyboard_handler
+    popal
+    iret
+
 idt_int_msg_de:
 	.string "Divide Error"
 idt_int_msg_nmi:

@@ -1,6 +1,9 @@
 #ifndef BOOT_IDT_INT_H
 #define BOOT_IDT_INT_H
 
+#include "../keyboard.h"
+#include "../rtc.h"
+
 /**
  *	Divide Error Handler
  */
@@ -98,5 +101,8 @@ void idt_int_of_handler(int eax);
 void idt_int_usr_handler(int eax);
 
 void idt_int_panic(char *msg);
+
+void idt_int_rtc();
+void idt_int_keyboard();
 
 #endif

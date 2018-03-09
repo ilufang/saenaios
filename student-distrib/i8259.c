@@ -29,6 +29,10 @@ void i8259_init(void) {
     
     outb(ICW4, MASTER_8259_DATA);
     outb(ICW4, SLAVE_8259_DATA);
+    
+    outb(master_mask, MASTER_8259_DATA);
+    outb(slave_mask, SLAVE_8259_DATA);
+    
     sti();
 
 }
@@ -37,6 +41,7 @@ void i8259_init(void) {
 void enable_irq(uint32_t irq_num) {
     
     uint32_t mask = 0x1;
+    uint32_t ms_mask = 0x1;
     
     if(0<=irq_num && irq_num<=7){
         mask = mask << irq_num;
@@ -79,6 +84,7 @@ void send_eoi(uint32_t irq_num) {
     }
     else{
         outb(EOI|(irq_num-8), SLAVE_8259_PORT);
+        //outb(EOI|SLAVE_PORT, MASTER_8259_PORT);
     }
     
 }

@@ -6,6 +6,8 @@
 #include "x86_desc.h"
 #include "lib.h"
 #include "i8259.h"
+#include "keyboard.h"
+#include "rtc.h"
 #include "debug.h"
 #include "tests.h"
 
@@ -149,6 +151,8 @@ void entry(unsigned long magic, unsigned long addr) {
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */
+    keyboard_init();
+    rtc_init();
 
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
