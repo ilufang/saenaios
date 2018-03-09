@@ -3,6 +3,9 @@
 
 #include "../x86_desc.h"
 
+#define KEYBOARD_VEC    0x21
+#define RTC_VEC         0x28
+
 /**
  *	Construct IDT table
  */

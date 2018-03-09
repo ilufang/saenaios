@@ -2,20 +2,17 @@
 
 #include "../lib.h"
 
-void idt_int_bp_handler(int eax) {
+void idt_int_bp_handler() {
+	printf("Breakpoint\n");
 }
 
-void idt_int_of_handler(int eax) {
-
+void idt_int_of_handler() {
+	printf("Overflow\n");
 }
 
-void idt_int_panic(char *msg, int info) {
+void idt_int_panic(char *msg, int a, int b, int c, int d) {
 	printf("[CAT] Received fatal exception: \n");
-	printf(msg);
-
-	while(1) {
-		asm volatile ("hlt");
-	}
+	printf(msg, a, b, c, d);
 }
 
 void idt_int_usr_handler(int eax) {
