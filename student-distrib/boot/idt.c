@@ -52,7 +52,10 @@ void idt_construct(idt_desc_t *idt) {
 	for (i = 0x14; i < 0x20; i++) {
 		idt_make_trap(idt + i, &(idt_int_reserved), IDT_DPL_KERNEL);
 	}
+
 	idt_make_trap(idt + 0x80, &(idt_int_usr), IDT_DPL_USER);
+    idt_make_interrupt(idt + RTC_VEC, &(idt_int_rtc), IDT_DPL_KERNEL);
+    idt_make_interrupt(idt + KEYBOARD_VEC, &(idt_int_keyboard), IDT_DPL_KERNEL);
 }
 
 void idt_make_entry(idt_desc_t *idte, void *handler, int dpl) {
