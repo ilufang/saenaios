@@ -113,28 +113,28 @@ idt_int_df:
 	iret
 idt_int_ts:
 	pushl	(%esp)	// Err code
-	pushl	4(%esp)	// EIP
+	pushl	8(%esp)	// EIP
 	pushl	$idt_int_msg_ts
 	call	idt_int_panic
 	addl	$16, %esp // 3 args + 1 err code
 	iret
 idt_int_np:
 	pushl	(%esp)	// Err code
-	pushl	4(%esp)	// EIP
+	pushl	8(%esp)	// EIP
 	pushl	$idt_int_msg_np
 	call	idt_int_panic
 	addl	$16, %esp // 3 args + 1 err code
 	iret
 idt_int_ss:
 	pushl	(%esp)	// Err code
-	pushl	4(%esp)	// EIP
+	pushl	8(%esp)	// EIP
 	pushl	$idt_int_msg_ss
 	call	idt_int_panic
 	addl	$16, %esp // 3 args + 1 err code
 	iret
 idt_int_gp:
 	pushl	(%esp)	// Err code
-	pushl	4(%esp)	// EIP
+	pushl	8(%esp)	// EIP
 	pushl	$idt_int_msg_gp
 	call	idt_int_panic
 	addl	$16, %esp // 3 args + 1 err code
@@ -142,24 +142,24 @@ idt_int_gp:
 idt_int_pf:
 	movl	%cr2, %eax
 	pushl	%eax	// Faulting address
-	movl	(%esp), %eax
+	movl	4(%esp), %eax
 	andl	$0xf, %eax
 	pushl	%eax	// Err code (masked)
-	pushl	4(%esp)	// EIP
+	pushl	12(%esp)// EIP
 	pushl	$idt_int_msg_pf
 	call	idt_int_panic
 	addl	$20, %esp // 4 args + 1 err code
 	iret
 idt_int_mf:
 	pushl	(%esp)	// Err code
-	pushl	4(%esp)	// EIP
+	pushl	8(%esp)	// EIP
 	pushl	$idt_int_msg_mf
 	call	idt_int_panic
 	addl	$16, %esp // 3 args + 1 err code
 	iret
 idt_int_ac:
 	pushl	(%esp)	// Err code
-	pushl	4(%esp)	// EIP
+	pushl	8(%esp)	// EIP
 	pushl	$idt_int_msg_ac
 	call	idt_int_panic
 	addl	$8, %esp // 1 arg + 1 err code
@@ -171,7 +171,7 @@ idt_int_mc:
 	iret
 idt_int_xf:
 	pushl	(%esp)	// Err code
-	pushl	4(%esp)	// EIP
+	pushl	8(%esp)	// EIP
 	pushl	$idt_int_msg_xf
 	call	idt_int_panic
 	addl	$8, %esp // 1 arg + 1 err code
