@@ -34,14 +34,18 @@ int idt_test(){
 
 	int i;
 	int result = PASS;
-	for (i = 0; i < 10; ++i){
+	for (i = 0; i < 0x20; ++i){
 		if ((idt[i].offset_15_00 == NULL) &&
 			(idt[i].offset_31_16 == NULL)){
 			assertion_failure();
 			result = FAIL;
 		}
 	}
-
+	if ((idt[0x80].offset_15_00 == NULL) &&
+		(idt[0x80].offset_31_16 == NULL)){
+		assertion_failure();
+		result = FAIL;
+	}
 	return result;
 }
 

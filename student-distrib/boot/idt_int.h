@@ -155,6 +155,14 @@ void idt_int_mc();
 void idt_int_xf();
 
 /**
+ *	System call entry point
+ *
+ *	@note This is an entry label that handles interrupt handler setup and
+ *		  teardown.
+ */
+void idt_int_usr();
+
+/**
  *	Reserved Interrupt entry point
  *
  *	@note This is an entry label that handles interrupt handler setup and
@@ -194,7 +202,20 @@ void idt_int_usr_handler(int eax);
  */
 void idt_int_panic(char *msg, int a, int b, int c, int d);
 
+/**
+ *	RTC interrupt entry point
+ *
+ *	@note This is an entry label that handles interrupt handler setup and
+ *		  teardown.
+ */
 void idt_int_rtc();
+
+/**
+ *	Keyboard interrupt entry point
+ *
+ *	@note This is an entry label that handles interrupt handler setup and
+ *		  teardown.
+ */
 void idt_int_keyboard();
 
 #endif

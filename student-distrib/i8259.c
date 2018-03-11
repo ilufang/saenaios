@@ -48,7 +48,7 @@ void i8259_init(void) {
 void enable_irq(uint32_t irq_num) {
 
 	uint32_t mask = BIT_MASK;
-	uint32_t ms_mask = BIT_MASK;
+	// uint32_t ms_mask = BIT_MASK;
 
 	/* the irq line is on master PIC */
 	if(0<=irq_num && irq_num<=SLAVE_OFFSET){
