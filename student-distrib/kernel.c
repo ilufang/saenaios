@@ -12,6 +12,7 @@
 #include "tests.h"
 
 #include "boot/idt.h"
+#include "boot/page_table_init.h"
 
 #define RUN_TESTS
 
@@ -22,7 +23,6 @@
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
 void entry(unsigned long magic, unsigned long addr) {
-
 	multiboot_info_t *mbi;
 
 	/* Clear the screen. */
@@ -145,6 +145,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Construct IDT */
 	idt_construct(idt);
 	lidt(idt_desc_ptr);
+
+	/* Initialize Paging */
+	page_init();
 
 	/* Init the PIC */
 	i8259_init();

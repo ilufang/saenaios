@@ -51,6 +51,34 @@ int idt_test(){
 
 // add more tests here
 
+/*
+ *	paging_test
+ *		Inputs: None
+ *		Outputs: Pass/Fail
+ *		Side Effects: May crash the system
+ *		Coverage: Page initialization
+ */
+int paging_test(){
+	TEST_HEADER;
+
+	int temp;
+	// kernel space paging test
+	temp = *(int*)(0x600000);
+	// video memory paging test
+	temp = *(int*)(0xB8500);
+	printf("kernel memory & video memory paging test passed\n");
+
+	// memory from 0 to the beginning of video memory crashing test
+	//printf("crashing 0 - 0xB7FFF space!\n");
+	//temp = *(int*)(0x10000);
+	// memory after video memory to the beginning of kernel memory crashing test
+	//printf("crashing 0xB9000 - 0x3FFFFF space!\n");
+	//temp = *(int*)(0xBA000);
+	// memory after kernel memory crashing test
+	printf("crashing 0x800000 - 4GB space!\n");
+	temp = *(int*)(0x900000);
+}
+
 /* Checkpoint 2 tests */
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
@@ -61,5 +89,5 @@ int idt_test(){
 void launch_tests(){
 	TEST_OUTPUT("idt_test", idt_test());
 	// launch your tests here
-
+	TEST_OUTPUT("paging_test", paging_test());
 }
