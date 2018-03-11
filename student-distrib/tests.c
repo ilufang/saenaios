@@ -76,7 +76,9 @@ int paging_test(){
 	//temp = *(int*)(0xBA000);
 	// memory after kernel memory crashing test
 	printf("crashing 0x800000 - 4GB space!\n");
-	temp = *(int*)(0x900000);
+	temp = *(int*)(0x800000);
+
+	return PASS; // Although not going to hit...
 }
 
 /* Checkpoint 2 tests */
