@@ -8,23 +8,30 @@
 
 /**
  *	Create an IDT entry template
+ *
+ *	@param idte: Pointer to IDT entry to write to
+ *	@param handler: Address of handler
+ *	@param dpl: Descriptor privilege level
  */
 void idt_make_entry(idt_desc_t *idte, void *handler, int dpl);
 
 /**
  *	Create an IDT interrupt gate
+ *
+ *	@param idte: Pointer to IDT entry to write to
+ *	@param handler: Address of handler
+ *	@param dpl: Descriptor privilege level
  */
 void idt_make_interrupt(idt_desc_t *idte, void *handler, int dpl);
 
 /**
  *	Create an IDT trap gate
+ *
+ *	@param idte: Pointer to IDT entry to write to
+ *	@param handler: Address of handler
+ *	@param dpl: Descriptor privilege level
  */
 void idt_make_trap(idt_desc_t *idte, void *handler, int dpl);
-
-/**
- *	User interrupt (INT 0x80) handler
- */
-void idt_int_usr();
 
 void idt_construct(idt_desc_t *idt) {
 	printf("Initializing IDT...\n");
