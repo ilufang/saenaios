@@ -1,5 +1,9 @@
-/* rtc.h - Header file for rtc driver
- * vim:ts=4 noexpandtab
+/**
+ *	@file rtc.h
+ *
+ *	Header file for rtc driver
+ *
+ *	vim:ts=4 noexpandtab
  */
 
 #ifndef _RTC_H
@@ -26,11 +30,19 @@
 
 #define BIT_SIX     0x40
 
-/* Externally-visible functions */
-
-/* Initialize the rtc */
+/**
+ *	Initialize the rtc
+ *
+ *	Writes to rtc control register, enables irq8 on PIC
+ */
 void rtc_init();
-/* interrupt handler */
+
+/**
+ *	Temporary rtc interrupt handler
+ *
+ *	Currently only calls test_interrupte() to make sure that we are able to
+ *	receive interrupt. Changes video memory content
+ */
 void rtc_handler();
 
 #endif /* _RTC_H */

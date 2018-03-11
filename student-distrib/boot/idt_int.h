@@ -1,6 +1,7 @@
 /**
-*	@file boot/idt_int.h
- *	@brief Interrupt handlers
+ *	@file boot/idt_int.h
+ *
+ *	Interrupt handlers
  *
  *	This file defines the interrupt handlers and related functions to handle
  *	interrupts from the processor. These functions are used in the IDT.

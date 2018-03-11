@@ -1,6 +1,7 @@
 /**
-*	@file boot/idt.h
- *	@brief IDT functionalities
+ *	@file boot/idt.h
+ *
+ *	IDT functionalities
  *
  *	This file provides functions to edit IDT entries, including constructing
  *	the data structure of Interrupt Gates and Trap Gates and the initialization
@@ -20,7 +21,7 @@
 #define RTC_VEC         0x28
 
 /**
- *	Construct IDT table
+ *	Construct IDT table.
  *
  *	This function will initialize the system exceptions (first 32 interrupts)
  *	and the system call handlers.
