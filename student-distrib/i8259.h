@@ -22,7 +22,7 @@
 #define ICW3_SLAVE          0x02
 #define ICW4                0x01
 
-#define SLAVE_PORT          4
+#define SLAVE_PORT          2
 
 /* End-of-interrupt byte.  This gets OR'd with
  * the interrupt number and sent out to the PIC

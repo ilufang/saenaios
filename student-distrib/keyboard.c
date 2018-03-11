@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "lib.h"
 
+#define RELEASE_OFFSET 0x80
 
 /* keycode reference: Bran's Kernel development tutorial */
 unsigned char kbdus[128] =
@@ -47,20 +48,32 @@ unsigned char kbdus[128] =
     0,	/* All other keys are undefined */
 };
 
-/* keyboard_init: initializes keyboard by enabling corresponding irq
- * input: none
- * output: none
- * side effect: enable irq1 on PIC
+/* keyboard_init
+ * DESCRIPTION: initializes keyboard by enabling corresponding irq
+ * INPUTS: none
+ * OUTPUTS: none
+ * RETURN VALUES: none
+ * SIDE EFFECT: enable irq1 on PIC
  */
 void keyboard_init(){
     enable_irq(KBD_IRQ_NUM);
 }
 
+/* keyboard_handler
+ * DESCRIPTION: temporary keyboard interrupt handler, only
+ * echoes numbers and lower case letter on screen
+ * INPUTS: none
+ * OUTPUTS: the character pressed
+ * RETURN VALUES: none
+ * SIDE EFFECT: output characters to screen
+ */
 void keyboard_handler(){
-    
-    unsigned char scancode;
-    scancode = inb(DATA_REG);
-    if(!(scancode & 0x80))putc(kbdus[scancode]);
+
     send_eoi(KBD_IRQ_NUM);
+    unsigned char scancode;
+    /* reads scancode */
+    scancode = inb(DATA_REG);
+    /* put the corresponding character on screen */
+    if(!(scancode & RELEASE_OFFSET))putc(kbdus[scancode]);
 
 }
