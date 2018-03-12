@@ -18,16 +18,22 @@
 
 #define KBD_IRQ_NUM 1
 
+#define RELEASE_OFFSET 0x80
 
 /**
- *	Initializes keyboard by enabling corresponding irq
+ *	Scan code to character mapping
+ */
+extern unsigned char kbdus[128];
+
+/**
+ *	Initializes keyboard
  */
 void keyboard_init();
 
 /**
  *	Keyboard Handler
  *
- *	Output characters to screen. Temporary keyboard interrupt handler.
+ *	Output characters to screen.
  *	@note only echoes numbers and lower case letter on screen
  */
 void keyboard_handler();

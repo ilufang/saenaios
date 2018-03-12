@@ -15,8 +15,7 @@
 #ifndef BOOT_IDT_INT_H
 #define BOOT_IDT_INT_H
 
-#include "../keyboard.h"
-#include "../rtc.h"
+#include "idt.h"
 
 /**
  *	Divide Error entry point
@@ -217,5 +216,35 @@ void idt_int_rtc();
  *		  teardown.
  */
 void idt_int_keyboard();
+
+/**
+ *	PIC interrupt entry point
+ *
+ *	@note This function only serves as a symbol to retrieve the address of IRQ
+ *		  entry points in the linked binary. Starting at this address is 16
+ *		  consecutive equally-sized entry point code for the 16 interrupts from
+ *		  the PIC.
+ */
+void idt_int_irq();
+
+/**
+ *	Size of each IRQ entry point code. Used for address calculation
+ */
+extern int idt_int_irq_size;
+
+/**
+ *	PIC IRQ handlers
+ *
+ *	@note This symbol is defined in idt_asm.S and contains 16 entries initially
+ *		  set to `idt_int_irq_default`
+ */
+extern irq_listener idt_int_irq_listeners[16];
+
+/**
+ *	Default handler for unhandled IRQ
+ *
+ *	@param irq: The IRQ number
+ */
+void idt_int_irq_default(int irq);
 
 #endif

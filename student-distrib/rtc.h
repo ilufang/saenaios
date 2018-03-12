@@ -45,4 +45,11 @@ void rtc_init();
  */
 void rtc_handler();
 
+/**
+ *	Set rate of RTC interrupts
+ *
+ *	@param rate: The RTC interrupt rate (divisions)
+ */
+void rtc_setrate(int rate);
+
 #endif /* _RTC_H */

@@ -31,4 +31,39 @@
  */
 void idt_construct(idt_desc_t *idt);
 
+/**
+ *	An IRQ listener
+ *
+ *	Takes no argument and returns nothing
+ */
+typedef void (*irq_listener)();
+
+/**
+ *	Set IRQ handler for a given IRQ number
+ *
+ *	@param type: IRQ number to listen
+ *	@param listener: pointer to handler
+ *	@return 0 on success. -1 if the IRQ is already handled by another listener
+ *	@note This call will also enable incoming IRQ from the specified IRQ number
+ */
+int idt_addEventListener(unsigned type, irq_listener listener);
+
+/**
+ *	Remove IRQ handler for the given IRQ number
+ *
+ *	@param type: IRQ number to unlisten
+ *	@return 0 on success. -1 if the IRQ is not being listened
+ *	@note This call will also disable incoming IRQ from the specified IRQ number
+ */
+int idt_removeEventListener(unsigned type);
+
+/**
+ *	Retrieve the current IRQ listener for the given IRQ number
+ *
+ *	@param type: IRQ number
+ *	@return The address of the currently registered handler function, or NULL if
+ *			the IRQ is not being listened to.
+ */
+irq_listener idt_getEventListener(unsigned type);
+
 #endif

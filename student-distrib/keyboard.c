@@ -3,9 +3,8 @@
  */
 
 #include "keyboard.h"
+#include "boot/idt.h"
 #include "lib.h"
-
-#define RELEASE_OFFSET 0x80
 
 /* keycode reference: Bran's Kernel development tutorial */
 unsigned char kbdus[128] =
@@ -49,11 +48,10 @@ unsigned char kbdus[128] =
 };
 
 void keyboard_init(){
-	enable_irq(KBD_IRQ_NUM);
+	idt_addEventListener(KBD_IRQ_NUM, &keyboard_handler);
 }
 
 void keyboard_handler(){
-
 	send_eoi(KBD_IRQ_NUM);
 	unsigned char scancode;
 	/* reads scancode */
