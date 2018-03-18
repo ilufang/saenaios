@@ -44,6 +44,9 @@ void rtc_setrate(int rate) {
 	enable_irq(RTC_IRQ_NUM);
 }
 
+/* need to virtualization rtc behaviors */
+//TODO
+
 int rtc_open() {
 	char prev;
 	/* avoid new interrupts come in */
@@ -90,6 +93,8 @@ int rtc_read() {
 	/* turns off bit 6 of register B to disable PIE */
 	outb(prev & ~BIT_SIX, CMOS_PORT);
 	/* enable new interrupts come in */
+	outb(REG_C, RTC_PORT);
+	inb(CMOS_PORT);
 	enable_irq(RTC_IRQ_NUM);
 	/* set block to 1 */
 	block = 1;
