@@ -95,8 +95,13 @@ int rtc_read() {
 	block = 1;
 	/* wait until new interrupts come in */
 	while(1) {
-		if (block == 0)
-			return  0;
+		if (block == 0) {						/* re-enable PIE and return 0 */
+			outb(REG_B_NMI, RTC_PORT);
+			prev = inb(CMOS_PORT);
+			outb(REG_B_NMI, RTC_PORT);
+			outb(prev | BIT_SIX, CMOS_PORT);
+			return 0;
+		}
 	}
 }
 
