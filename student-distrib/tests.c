@@ -131,7 +131,7 @@ void kb_test_handler() {
 	scancode = inb(DATA_REG);
 	/* put the corresponding character on screen */
 	if(!(scancode & RELEASE_OFFSET)) {
-		kb_test_last_key = kbdus[scancode];
+		kb_test_last_key = kbdreg[scancode];
 		putc(kb_test_last_key);
 	}
 }
@@ -214,19 +214,19 @@ void launch_tests() {
 	// IDT tests
 	TEST_OUTPUT("idt_test", idt_test());
 	// The following test should trigger a fault
-	TEST_OUTPUT("idt_test_de", idt_test_de());
+	//TEST_OUTPUT("idt_test_de", idt_test_de());
 	// The following test should not trigger any fault
 	TEST_OUTPUT("idt_test_usr", idt_test_usr());
 
 	// Paging test
 	// The following test should trigger a fault
-	TEST_OUTPUT("paging_test", paging_test());
+	//TEST_OUTPUT("paging_test", paging_test());
 
 	// KB test
-	TEST_OUTPUT("kb_test", kb_test());
+	//TEST_OUTPUT("kb_test", kb_test());
 
 	// RTC test
-	TEST_OUTPUT("rtc_test", rtc_test());
+	//TEST_OUTPUT("rtc_test", rtc_test());
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);
