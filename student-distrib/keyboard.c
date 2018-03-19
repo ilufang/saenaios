@@ -5,9 +5,14 @@
 #include "keyboard.h"
 #include "boot/idt.h"
 #include "lib.h"
+
 #define PRESSED     1
 #define UNPRESSED   0
 #define KEY_BUF_SIZE    128
+
+#define SEQ_BSB     0
+#define SEQ_CLR     1
+#define SEQ_ENTER   2
 
 enum key_mode{regular, caps, shift, caps_shift};
 
@@ -16,16 +21,19 @@ volatile uint8_t ctrl_status = UNPRESSED;
 volatile uint8_t shift_status = UNPRESSED;
 volatile uint8_t alt_status = UNPRESSED;
 
-volatile uint32_t curr_buf_size = 0;
-volatile uint32_t prev_enter = 0;
-volatile unsigned char kbd_buf[KEY_BUF_SIZE];
+volatile uint32_t curr_char_ptr = 0;
+volatile uint32_t prev_enter = -1;
+volatile uint8_t * kbd_buf[KEY_BUF_SIZE];
 
-/* control sequences, 0 - backspace, 1 - ctrl + l */
-char* ctrl_seq[2] = {"^[8", "^[12"};
+/* control sequences, 0 - backspace, 1 - ctrl + l, 2 - enter */
+const uint8_t** ctrl_seq[3] = {{'^','[','8'},
+                               {'^','[','1', '2'},
+                               {'^','[','1', '3'}};
+
 
 
 /* keycode reference: Bran's Kernel development tutorial */
-unsigned char kbdreg[128] =
+uint8_t kbdreg[128] =
 {
 	0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
   '9', '0', '-', '=', '\b',	/* Backspace */
@@ -65,7 +73,7 @@ unsigned char kbdreg[128] =
 	0,	/* All other keys are undefined */
 };
 
-unsigned char kbdcaps[128] =
+uint8_t kbdcaps[128] =
 {
 	0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
   '9', '0', '-', '=', '\b',	/* Backspace */
@@ -105,7 +113,7 @@ unsigned char kbdcaps[128] =
 	0,	/* All other keys are undefined */
 };
 
-unsigned char kbdshift[128] =
+uint8_t kbdshift[128] =
 {
 	0,  27, '!', '@', '#', '$', '%', '^', '&', '*',	/* 9 */
   '(', ')', '_', '+', '\b',	/* Backspace */
@@ -145,7 +153,7 @@ unsigned char kbdshift[128] =
 	0,	/* All other keys are undefined */
 };
 
-unsigned char kbdcs[128] =
+uint8_t kbdcs[128] =
 {
 	0,  27, '!', '@', '#', '$', '%', '^', '&', '*',	/* 9 */
   '(', ')', '_', '+', '\b',	/* Backspace */
@@ -185,13 +193,13 @@ unsigned char kbdcs[128] =
 	0,	/* All other keys are undefined */
 };
 
-void buf_push(unsigned char c){
-    if(curr_buf_size < KEY_BUF_SIZE - 1){
-        curr_buf_size++;
-        kbd_buf[curr_buf_size] = c;   
-    }else if(c == ENTER_P && curr_buf_size == KEY_BUF_SIZE){
-        curr_buf_size++;
-        kbd_buf[curr_buf_size] = c;
+void buf_push(uint8_t c){
+    if(curr_char_ptr < KEY_BUF_SIZE - 1){
+        curr_char_ptr++;
+        kbd_buf[curr_char_ptr] = c;   
+    }else if(c == ENTER_P && curr_char_ptr == KEY_BUF_SIZE){
+        curr_char_ptr++;
+        kbd_buf[curr_char_ptr] = c;
     }
     return;
 }
@@ -201,43 +209,56 @@ void clear_buf(){
     for(i = 0; i < KEY_BUF_SIZE; i++){
         kbd_buf[i] = NULL_CHAR;
     }
+    curr_char_ptr = 0;
+    prev_enter = -1;
 }
 
 void shift_buf(int num_bytes){
     int i;
-    curr_buf_size -= num_bytes;
+    curr_char_ptr -= num_bytes;
     prev_enter -= num_bytes;
     
-    if(curr_buf_size <= 0){
-        prev_enter = 0;
-        curr_buf_size = 0;
+    if(curr_char_ptr < 0){
+        prev_enter = -1;
+        curr_char_ptr = 0;
         clear_buf();
         return;
     }
     
-    char elements[curr_buf_size];
+    uint8_t elements[curr_char_ptr];
     
-    for(i = 0; i < curr_buf_size; i++){
+    for(i = 0; i < curr_char_ptr; i++){
         elements[i] = kbd_buf[num_bytes + i];
     }
     
     clear_buf();
     
-    for(i = 0; i < curr_buf_size; i++){
+    for(i = 0; i < curr_char_ptr; i++){
         kbd_buf[i] = elements[i];
     }
 }
 
 void enter(){
-    curr_buf_size++;
-    prev_enter = curr_buf_size;
+    int i = 0;\
+    prev_enter = curr_char_ptr;
     buf_push('\n');
+    int fd = 1;
+    //(void)write(fd, ctrl_seq[2], 4);
+    //terminal_out_write(ctrl_seq[2],4);
 }
 
 void backspace(){
-    kbd_buf[curr_buf_size] = NULL_CHAR;
-    curr_buf_size--;
-    (void)terminal_write(0, ctrl_seq[0], 3);
+    curr_char_ptr--;
+    kbd_buf[curr_char_ptr] = NULL_CHAR;
+    int fd = 1;
+    //(void)write(fd, ctrl_seq[0], 3);
+    //terminal_out_write(ctrl_seq[0],3);
+}
+
+void ctrl_l(){
+    int fd = 1;
+    //(void)write(fd, ctrl_seq[1], 4);  
+    //terminal_out_write(ctrl_seq[1],4);
 }
 
 
@@ -245,30 +266,43 @@ void keyboard_init(){
 	idt_addEventListener(KBD_IRQ_NUM, &keyboard_handler);
 }
 
-int32_t keyboard_read(int32_t fd, void* buf, int32_t nbytes){
+int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes){
     int i = 0;
-    int8_t * charbuf = (int8_t*)buf;
-    for(i = 0; i < prev_enter; i++){
-        charbuf[i] = kbd_buf[i];
+    for(i = 0; i <= prev_enter; i++){
+        buf[i] = kbd_buf[i];
     }
     shift_buf(prev_enter);
     return i;
 }
 
-void regular_key(unsigned char scancode){
+int32_t keyboard_write(int32_t fd, void* buf, int32_t nbytes){
+    return -1;
+}
+
+int32_t keyboard_open(const uint8_t* filename){
+    clear_buf();
+    return 0;
+}
+
+int32_t keyboard_close(int32_t fd){
+    clear_buf();
+    return 0;
+}
+
+void regular_key(uint8_t scancode){
     if(ctrl_status == PRESSED){
         if(scancode == L_P){
             /* todo: clear screen */
             /*
             set_cursor(0,0);
-            clear_buf(curr_buf_size);
+            clear_buf(curr_char_ptr);
             clear();
             */
-            (void)terminal_write(0, ctrl_seq[2], 3);
+            ctrl_l();
             return;
         }
     }
-    unsigned char scanchar;
+    uint8_t scanchar;
     if(scancode&0x80) return;
     switch(curr_mode){
         case regular:
@@ -286,10 +320,14 @@ void regular_key(unsigned char scancode){
     }
     buf_push(scanchar);
     //putc(scanchar);
-    (void)terminal_write(1, &scanchar, 1);
+    int fd = 1;
+    uint8_t* keybuf[1];
+    keybuf[0] = scanchar;
+    //(void)write(fd, keybuf, 1);
+    //terminal_out_write(keybuf,1);
 }
 
-void update_mode(unsigned char scancode){
+void update_mode(uint8_t scancode){
         switch(scancode){
             case LSHIFT_P:
             case RSHIFT_P:
@@ -334,7 +372,7 @@ void update_mode(unsigned char scancode){
 
 
 void keyboard_handler(){
-	unsigned char scancode;
+	uint8_t scancode;
 	/* reads scancode */
 	scancode = inb(DATA_REG);
 	/* put the corresponding character on screen */

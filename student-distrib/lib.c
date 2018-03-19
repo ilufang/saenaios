@@ -12,6 +12,12 @@ static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
 
+void disable_cursor(){
+    
+	outb(0x0A, 0x3D4);
+	outb(0x20, 0x3D5);
+}
+
 /* set cursor to (x,y) */
 void set_cursor(int x, int y){
     screen_x = x;

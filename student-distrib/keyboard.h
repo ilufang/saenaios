@@ -55,21 +55,25 @@ void keyboard_init();
  */
 void keyboard_handler();
 
-void buf_push(unsigned char c);
+void buf_push(uint8_t c);
 
-void update_mode(unsigned char scancode);
+void update_mode(uint8_t scancode);
 
-void regular_key(unsigned char scancode);
+void regular_key(uint8_t scancode);
 
 void backspace();
+
+void ctrl_l();
 
 void enter();
 
 void shift_buf(int num_bytes);
 void clear_buf();
 
-int32_t keyboard_read(int32_t fd, void* buf, int32_t nbytes);
-
+int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes);
+int32_t keyboard_write(int32_t fd, void* buf, int32_t nbytes);
+int32_t keyboard_open(const uint8_t* filename);
+int32_t keyboard_close(int32_t fd);
 
 
 #endif /* _RTC_H */
