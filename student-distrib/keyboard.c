@@ -27,9 +27,9 @@ volatile uint8_t kbd_buf[KEY_BUF_SIZE];
 
 /* control sequences, 0 - backspace, 1 - ctrl + l, 2 - enter */
 //const char* ctrl_seq[3] = {"^[8", "^[12", "^[13"};
-const uint8_t seq_backspace[3] = {'^', '[', '8'};
-const uint8_t seq_ctrl_l[4] = {'^', '[', '1','2'};
-const uint8_t seq_enter[4] = {'^', '[', '1', '3'};
+const uint8_t seq_backspace[3] = {'^', '[', 8};
+const uint8_t seq_ctrl_l[3] = {'^', '[', 12};
+const uint8_t seq_enter[3] = {'^', '[', 13};
 
 
 
@@ -243,8 +243,8 @@ void enter(){
     prev_enter = curr_char_ptr;
     buf_push('\n');
     int fd = 1;
-    //(void)write(fd, seq_enter, 4);
-    //terminal_out_write(seq_enter, 4);
+    //(void)write(fd, seq_enter, 3);
+    //terminal_out_write(seq_enter, 3);
 }
 
 void backspace(){
@@ -257,8 +257,8 @@ void backspace(){
 
 void ctrl_l(){
     int fd = 1;
-    //(void)write(fd, seq_ctrl_l, 4);  
-    //terminal_out_write(seq_ctrl_l,4);
+    //(void)write(fd, seq_ctrl_l, 3);  
+    //terminal_out_write(seq_ctrl_l,3);
 }
 
 
