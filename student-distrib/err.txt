@@ -1,0 +1,16 @@
+gcc -MM -nostdinc -g boot.S x86_desc.S i8259.c kernel.c keyboard.c lib.c rtc.c tests.c boot/idt_asm.S boot/page_table_init.S boot/idt.c boot/idt_int.c > Makefile.dep
+gcc  -nostdinc -g  -c -o boot.o boot.S
+gcc  -nostdinc -g  -c -o x86_desc.o x86_desc.S
+gcc  -nostdinc -g  -c -o boot/idt_asm.o boot/idt_asm.S
+gcc  -nostdinc -g  -c -o boot/page_table_init.o boot/page_table_init.S
+gcc -Wall -fno-builtin -fno-stack-protector -nostdlib -nostdinc -g  -c -o i8259.o i8259.c
+gcc -Wall -fno-builtin -fno-stack-protector -nostdlib -nostdinc -g  -c -o kernel.o kernel.c
+gcc -Wall -fno-builtin -fno-stack-protector -nostdlib -nostdinc -g  -c -o keyboard.o keyboard.c
+gcc -Wall -fno-builtin -fno-stack-protector -nostdlib -nostdinc -g  -c -o lib.o lib.c
+gcc -Wall -fno-builtin -fno-stack-protector -nostdlib -nostdinc -g  -c -o rtc.o rtc.c
+gcc -Wall -fno-builtin -fno-stack-protector -nostdlib -nostdinc -g  -c -o tests.o tests.c
+gcc -Wall -fno-builtin -fno-stack-protector -nostdlib -nostdinc -g  -c -o boot/idt.o boot/idt.c
+gcc -Wall -fno-builtin -fno-stack-protector -nostdlib -nostdinc -g  -c -o boot/idt_int.o boot/idt_int.c
+rm -f bootimg
+gcc -nostdlib -static boot.o x86_desc.o boot/idt_asm.o boot/page_table_init.o i8259.o kernel.o keyboard.o lib.o rtc.o tests.o boot/idt.o boot/idt_int.o -Ttext=0x400000 -o bootimg
+sudo ./debug.sh

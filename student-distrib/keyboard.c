@@ -23,12 +23,13 @@ volatile uint8_t alt_status = UNPRESSED;
 
 volatile uint32_t curr_char_ptr = 0;
 volatile uint32_t prev_enter = -1;
-volatile uint8_t * kbd_buf[KEY_BUF_SIZE];
+volatile uint8_t kbd_buf[KEY_BUF_SIZE];
 
 /* control sequences, 0 - backspace, 1 - ctrl + l, 2 - enter */
-const uint8_t** ctrl_seq[3] = {{'^','[','8'},
-                               {'^','[','1', '2'},
-                               {'^','[','1', '3'}};
+//const char* ctrl_seq[3] = {"^[8", "^[12", "^[13"};
+const uint8_t seq_backspace[3] = {'^', '[', '8'};
+const uint8_t seq_ctrl_l[4] = {'^', '[', '1','2'};
+const uint8_t seq_enter[4] = {'^', '[', '1', '3'};
 
 
 
@@ -239,26 +240,25 @@ void shift_buf(int num_bytes){
 }
 
 void enter(){
-    int i = 0;\
     prev_enter = curr_char_ptr;
     buf_push('\n');
     int fd = 1;
-    //(void)write(fd, ctrl_seq[2], 4);
-    //terminal_out_write(ctrl_seq[2],4);
+    //(void)write(fd, seq_enter, 4);
+    //terminal_out_write(seq_enter, 4);
 }
 
 void backspace(){
     curr_char_ptr--;
     kbd_buf[curr_char_ptr] = NULL_CHAR;
     int fd = 1;
-    //(void)write(fd, ctrl_seq[0], 3);
-    //terminal_out_write(ctrl_seq[0],3);
+    //(void)write(fd, seq_backspace, 3);
+    //terminal_out_write(seq_backspace,3);
 }
 
 void ctrl_l(){
     int fd = 1;
-    //(void)write(fd, ctrl_seq[1], 4);  
-    //terminal_out_write(ctrl_seq[1],4);
+    //(void)write(fd, seq_ctrl_l, 4);  
+    //terminal_out_write(seq_ctrl_l,4);
 }
 
 
@@ -321,7 +321,7 @@ void regular_key(uint8_t scancode){
     buf_push(scanchar);
     //putc(scanchar);
     int fd = 1;
-    uint8_t* keybuf[1];
+    uint8_t keybuf[1];
     keybuf[0] = scanchar;
     //(void)write(fd, keybuf, 1);
     //terminal_out_write(keybuf,1);
