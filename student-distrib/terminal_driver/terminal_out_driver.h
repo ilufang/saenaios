@@ -22,4 +22,6 @@ void terminal_out_scroll_down();
 
 void terminal_out_open();
 
+void terminal_set_cursor();
+
 #endif

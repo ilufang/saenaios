@@ -9,6 +9,7 @@
 #include "keyboard.h"
 #include "rtc.h"
 #include "debug.h"
+#include "terminal_driver/terminal_out_driver.h"
 #include "tests.h"
 
 #include "boot/idt.h"
@@ -166,7 +167,8 @@ void entry(unsigned long magic, unsigned long addr) {
 
 #ifdef RUN_TESTS
 	/* Run tests */
-	launch_tests();
+	//launch_tests();
+    temp_terminal_test();
 #endif
 	/* Execute the first program ("shell") ... */
 

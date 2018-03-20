@@ -131,7 +131,7 @@ void kb_test_handler() {
 	scancode = inb(DATA_REG);
 	/* put the corresponding character on screen */
 	if(!(scancode & RELEASE_OFFSET)) {
-		kb_test_last_key = kbdus[scancode];
+		kb_test_last_key = kbdreg[scancode];
 		putc(kb_test_last_key);
 	}
 }
@@ -233,4 +233,22 @@ void launch_tests() {
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
+}
+
+void temp_terminal_test(){
+	terminal_out_open();
+	int i;
+	char temp_buf[30]="^[*f**king****test^[*";
+	//int i;
+	temp_buf[2] = 12;
+	temp_buf[20] = 13;
+	terminal_out_write((uint8_t*)temp_buf,21);
+	temp_buf[2] = 8;
+	terminal_out_write((uint8_t*)temp_buf,21);
+	temp_buf[20] = '*';
+/*	for (i=0;i<30;++i){
+		temp_buf[18] = i%10 + '0';
+		terminal_out_write((uint8_t*)temp_buf,21);
+	}*/
+	while(1);
 }

@@ -37,10 +37,10 @@ void terminal_out_open(){
 	//outw(0x03D4, (0x00 << 8)| 0x0A);
 	//outw(0x03D4, (0x08 << 8)| 0x0B);
 	//int curser_temp_p = screen_y*NUM_COLS+screen_x;
-	set_cursor();
+	terminal_set_cursor();
 }
 
-void set_cursor(){
+void terminal_set_cursor(){
 	int pos = screen_y * NUM_COLS + screen_x;
  
 	outb(0x0F,0x3D4);
@@ -58,6 +58,7 @@ void terminal_out_clear(){
 	curser_x = 0;
 	video_mem = (char*)VIDEO;
 	last_position_before_newline = NUM_COLS;
+	terminal_set_cursor();
 }
 
 void terminal_out_write(uint8_t* buf, int length){
@@ -125,7 +126,7 @@ void terminal_out_putc(uint8_t c){
         }
     }
 //    int curser_temp_p = screen_y*NUM_COLS+screen_x;
-	set_cursor();
+	terminal_set_cursor();
 }
 
 void terminal_out_newline(){
@@ -139,6 +140,7 @@ void terminal_out_newline(){
 /*    int curser_temp_p = screen_y*NUM_COLS+screen_x;
 	outw(0x03D4, ((curser_temp_p && 0x00FF)<<8)|0xF);
 	outw(0x03D4, (curser_temp_p && 0xFF00)|0xE);*/
+	terminal_set_cursor();
 }
 
 void terminal_out_backspace(){
@@ -158,7 +160,7 @@ void terminal_out_backspace(){
     *(uint8_t *)(video_mem + temp_offset) = '\0';
     *(uint8_t *)(video_mem + temp_offset + 1) = ATTRIB;
     int curser_temp_p = screen_y*NUM_COLS+screen_x;
-	set_cursor();
+	terminal_set_cursor();
 }
 
 /*void terminal_out_scroll_down(){
