@@ -184,15 +184,6 @@ void idt_int_bp_handler();
 void idt_int_of_handler();
 
 /**
- *	System call handler
- *
- *	This function handles `INT 0x80`. It is the entry point of all system calls.
- *
- *	@param eax: The system call index
- */
-void idt_int_usr_handler(int eax);
-
-/**
  *	Prints panic message and halts the processor.
  *
  *	@param msg: The panic message. Could be a formatted string with up to four
