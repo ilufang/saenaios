@@ -165,7 +165,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * without showing you any output */
 	printf("Enabling Interrupts\n");
 	sti();
-    test_read_file("frame1.txt");
+    test_read_file("verylargetextwithverylongname.tx");
     //test_read_dir();
 #ifdef RUN_TESTS
 	/* Run tests */

@@ -15,6 +15,7 @@ int32_t read_dentry_by_name (const uint8_t* fname, fsys_dentry_t* dentry){
     // iteration var
     int i = 0;
     uint32_t len = strlen((int8_t*)fname);
+    //if(len > FILENAME_LEN) len = FILENAME_LEN;
     // iterate through all dentries
     for(i = 0; i < dentry_count; i++){
         fsys_dentry_t curr_dentry = dentry_arr[i];
@@ -96,7 +97,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
         }
         // update source and dest address for next copy
         buf += n_copy;
-        cpy_src = (uint8_t*)(data_block_ptr + target_inode->data_block_num[block_idx++]);
+        cpy_src = (uint8_t*)(data_block_ptr + target_inode->data_block_num[++block_idx] * BLOCK_SIZE);
         // calculate size to copy for next iteration
         if(rem_len < BLOCK_SIZE){
             n_copy = rem_len;
@@ -167,7 +168,10 @@ int32_t file_write(int32_t fd, void* buf, int32_t nbytes){
 void test_read_file(int8_t* filename){
     clear();
     fsys_dentry_t test_dentry;
-    read_dentry_by_name((uint8_t*)filename, &test_dentry);
+    if(read_dentry_by_name((uint8_t*)filename, &test_dentry) == -1){
+        printf("File does not exist.");
+        return;
+    }
     bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
     // total num of data block
     int32_t dblock_count = boot_ptr->data_count;
