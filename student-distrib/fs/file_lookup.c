@@ -31,9 +31,10 @@ file_lookup_start:
 	nd.depth ++;
 
 	// up limit of sim link //TODO 
-	//if (nd.dep > temp_buff_size){
-		//TODO
-	//}
+	if (nd.depth > temp_buff_size){
+		errno = EMLINK;
+		return NULL;
+	}
 
 	if (find_dentry(&nd)) {
 		return NULL;
@@ -65,19 +66,22 @@ file_lookup_start:
 
 int find_dentry(nameidata_t* nd){
 	// sanity check
+	dentry_t* temp_dentry;
 	if (!nd){ 
-		//TODO errno
-		return -1;
+		errno = EINVAL;
+		return -errno;
 	}
 	while (*nd->path){
-		if (!(*(nd->dentry->inode->i_op->lookup))(nd->path, nd->dentry->inode)){
-			//TODO errno
-			return -1;
+		if (!(temp_dentry = (*(nd->dentry->inode->i_op->lookup))(nd->path, nd->dentry->inode))){
+			errno = ENOSYS;
+			return -errno;
 		}
-		//shift path to next '/'
+		nd->dentry = temp_dentry;
+		//shift path to next '\'
 		while (*(nd->path) || *(nd->path)!='\\'){
 			++(nd->path);
 		}
 		++(nd->path);
 	}
+	return 0;
 }

@@ -15,6 +15,10 @@
 #include "boot/idt.h"
 #include "boot/page_table_init.h"
 
+#include "proc/task.h"
+#include "fs/vfs.h"
+#include "fs/fs_devfs.h"
+
 #define RUN_TESTS
 
 /* Macros. */
@@ -165,6 +169,15 @@ void entry(unsigned long magic, unsigned long addr) {
 	printf("Enabling Interrupts\n");
 	sti();
 
+	//create a basic process
+	task_create_kernel_pid();
+	//mount device driver fs
+	devfs_installfs();
+
+	devfs_register_driver("null_driver",0x2);
+
+	int fd;
+	fd = open("/dev");
 #ifdef RUN_TESTS
 	/* Run tests */
 	//launch_tests();

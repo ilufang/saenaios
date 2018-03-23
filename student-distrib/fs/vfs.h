@@ -53,7 +53,7 @@ typedef struct s_file_operations {
  *	used by directory peeks and metadata operations.
  */
 typedef struct s_inode_operations {
-	struct dentry * (*lookup) (struct s_inode *inode, const char *filename);
+	struct s_dentry * (*lookup) (struct s_inode *inode, const char *filename);
 	// int (*permission) (struct inode *, int, unsigned int);
 	int (*readlink) (struct s_dentry *dentry, char *buf, int size);
 	// int (*create) (struct inode *,struct dentry *,int, struct nameidata *);
@@ -111,6 +111,7 @@ typedef struct s_inode {
 	super_block_t *sb;
 	file_operations_t *f_op;
 	inode_operations_t *i_op;
+	void* private_data;
 } inode_t;
 
 /**
@@ -146,7 +147,7 @@ typedef struct s_dentry {
  *	used by `readdir` to track its current position in the iteration.
  */
 typedef struct s_dirent {
-	dentry_t *dentry;
+	dentry_t dentry;
 	union {
 		int index;
 		void *data;
