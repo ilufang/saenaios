@@ -10,6 +10,7 @@
 #include "rtc.h"
 #include "debug.h"
 #include "tests.h"
+#include "fsdriver/fsdriver.h"
 
 #include "boot/idt.h"
 #include "boot/page_table_init.h"
@@ -58,6 +59,7 @@ void entry(unsigned long magic, unsigned long addr) {
 		int mod_count = 0;
 		int i;
 		module_t* mod = (module_t*)mbi->mods_addr;
+        boot_start_addr = mod->mod_start;
 		while (mod_count < mbi->mods_count) {
 			printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
 			printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
@@ -163,7 +165,8 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * without showing you any output */
 	printf("Enabling Interrupts\n");
 	sti();
-
+    test_read_file("frame1.txt");
+    //test_read_dir();
 #ifdef RUN_TESTS
 	/* Run tests */
 	launch_tests();

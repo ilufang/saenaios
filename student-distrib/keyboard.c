@@ -242,22 +242,19 @@ void shift_buf(int num_bytes){
 void enter(){
     prev_enter = curr_char_ptr;
     buf_push('\n');
-    int fd = 1;
-    //(void)write(fd, seq_enter, 3);
+    //(void)write(1, seq_enter, 3);
     //terminal_out_write(seq_enter, 3);
 }
 
 void backspace(){
     curr_char_ptr--;
     kbd_buf[curr_char_ptr] = NULL_CHAR;
-    int fd = 1;
-    //(void)write(fd, seq_backspace, 3);
+    //(void)write(1, seq_backspace, 3);
     //terminal_out_write(seq_backspace,3);
 }
 
 void ctrl_l(){
-    int fd = 1;
-    //(void)write(fd, seq_ctrl_l, 3);  
+    //(void)write(1, seq_ctrl_l, 3);  
     //terminal_out_write(seq_ctrl_l,3);
 }
 
@@ -320,10 +317,9 @@ void regular_key(uint8_t scancode){
     }
     buf_push(scanchar);
     //putc(scanchar);
-    int fd = 1;
     uint8_t keybuf[1];
     keybuf[0] = scanchar;
-    //(void)write(fd, keybuf, 1);
+    //(void)write(1, keybuf, 1);
     //terminal_out_write(keybuf,1);
 }
 
