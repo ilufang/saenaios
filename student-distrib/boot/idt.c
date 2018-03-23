@@ -2,33 +2,44 @@
 
 #include "idt_int.h"
 #include "../lib.h"
+#include "../i8259.h"
 
 #define IDT_DPL_KERNEL	0
 #define IDT_DPL_USER	3
 
 /**
  *	Create an IDT entry template
+ *
+ *	@param idte: Pointer to IDT entry to write to
+ *	@param handler: Address of handler
+ *	@param dpl: Descriptor privilege level
  */
 void idt_make_entry(idt_desc_t *idte, void *handler, int dpl);
 
 /**
  *	Create an IDT interrupt gate
+ *
+ *	@param idte: Pointer to IDT entry to write to
+ *	@param handler: Address of handler
+ *	@param dpl: Descriptor privilege level
  */
 void idt_make_interrupt(idt_desc_t *idte, void *handler, int dpl);
 
 /**
  *	Create an IDT trap gate
+ *
+ *	@param idte: Pointer to IDT entry to write to
+ *	@param handler: Address of handler
+ *	@param dpl: Descriptor privilege level
  */
 void idt_make_trap(idt_desc_t *idte, void *handler, int dpl);
 
-/**
- *	User interrupt (INT 0x80) handler
- */
-void idt_int_usr();
-
 void idt_construct(idt_desc_t *idt) {
-	printf("Initializing IDT...\n");
 	int i;
+	char *int_irq_ptr = (char *)&(idt_int_irq);
+
+	printf("Initializing IDT...\n");
+	// Initialize interrupt 0x00 - 0x1f: processor exceptions
 	idt_make_trap(idt + 0x00, &(idt_int_de), IDT_DPL_KERNEL);
 	idt_make_interrupt(idt + 0x01, &(idt_int_reserved), IDT_DPL_KERNEL);
 	idt_make_interrupt(idt + 0x02, &(idt_int_nmi), IDT_DPL_KERNEL);
@@ -53,9 +64,55 @@ void idt_construct(idt_desc_t *idt) {
 		idt_make_trap(idt + i, &(idt_int_reserved), IDT_DPL_KERNEL);
 	}
 
+	// Initialize interrupt 0x20 - 0x2f: PIC interrupts
+	for (i = 0x20; i < 0x30; i++) {
+		idt_make_interrupt(idt + i, int_irq_ptr, IDT_DPL_KERNEL);
+		int_irq_ptr += idt_int_irq_size;
+	}
+
+	// Initialize interrupt 0x80: System call
 	idt_make_trap(idt + 0x80, &(idt_int_usr), IDT_DPL_USER);
-    idt_make_interrupt(idt + RTC_VEC, &(idt_int_rtc), IDT_DPL_KERNEL);
-    idt_make_interrupt(idt + KEYBOARD_VEC, &(idt_int_keyboard), IDT_DPL_KERNEL);
+}
+
+int idt_addEventListener(unsigned type, irq_listener listener) {
+	// Sanity check
+	if (!listener || type >= 0x10)
+		return -1;
+	// Don't overwrite
+	if (idt_int_irq_listeners[type] != &idt_int_irq_default)
+		return -1;
+	// Set handler
+	idt_int_irq_listeners[type] = listener;
+	// Enable IRQ
+	enable_irq(type);
+
+	return 0;
+}
+
+int idt_removeEventListener(unsigned type) {
+	// Sanity check
+	if (type >= 0x10)
+		return -1;
+	// Don't double-free
+	if (idt_int_irq_listeners[type] == &idt_int_irq_default)
+		return -1;
+	// Reset handler
+	idt_int_irq_listeners[type] = idt_int_irq_default;
+	// Disable IRQ
+	disable_irq(type);
+
+	return 0;
+}
+
+irq_listener idt_getEventListener(unsigned type) {
+	// Sanity check
+	if (type >= 0x10)
+		return NULL;
+	// Default listener is NO listener
+	if (idt_int_irq_listeners[type] == &idt_int_irq_default)
+		return NULL;
+
+	return idt_int_irq_listeners[type];
 }
 
 void idt_make_entry(idt_desc_t *idte, void *handler, int dpl) {
