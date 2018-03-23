@@ -1,7 +1,7 @@
 #include "fstab.h"
 
 #include "../errno.h"
-#include "../lib.c"
+#include "../lib.h"
 
 #include "../../libc/src/syscalls.h" // Definitions from libc
 
@@ -94,12 +94,12 @@ vfsmount_t *fstab_get_mountpoint(const char *path, int *offset) {
 	}
 
 	*offset = max_match;
-	return fstab_mnt[max_idx];
+	return fstab_mnt + max_idx;
 }
 
 int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 	char *type;
-	path_t dest = "/";
+	pathname_t dest = "/";
 	struct sys_mount_opts *opts;
 	int i, avail_idx = -1;
 	file_system_t *fs = NULL;
@@ -144,14 +144,14 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 
 	fstab_mnt[avail_idx].superblock = (*fs->get_sb)(fs, opts->mountflags,
 													opts->source, opts->opts);
-	fstab_mnt[avail_idx].count = 0;
+	fstab_mnt[avail_idx].open_count = 0;
 	fstab_mnt[avail_idx].root = fstab_mnt[avail_idx].superblock->root;
 
 	return 0;
 }
 
 int syscall_umount(int targetaddr, int b, int c) {
-	path_t target = "/";
+	pathname_t target = "/";
 	int i;
 
 	if (!targetaddr) {
@@ -166,12 +166,12 @@ int syscall_umount(int targetaddr, int b, int c) {
 	// TODO: permission checks
 
 	for (i = 0; i < FSTAB_MAX_MNT; i++) {
-		if (strncmp(target, fstab_mnt[i].mountpoint) == 0) {
-			if (fstab_mnt[i].count != 0) {
+		if (strncmp(target, fstab_mnt[i].mountpoint, PATH_MAX_LEN) == 0) {
+			if (fstab_mnt[i].open_count != 0) {
 				// There are open files
 				return -EBUSY;
 			}
-			fstab_mnt[i].fs->kill_sb(fstab_mnt[i].superblock);
+			fstab_mnt[i].superblock->fstype->kill_sb(fstab_mnt[i].superblock);
 			fstab_mnt[i].mountpoint[0] = '\0';
 			return 0;
 		}

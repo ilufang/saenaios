@@ -10,16 +10,20 @@
 
 #include "pathname.h"
 
-#include "fstab.h"
 
 #define VFS_FILENAME_LEN	32
 #define VFS_MAX_OPEN_FILES	256
+
+#define FTYPE_REGULAR	1
+#define FTYPE_DIRECTORY	2
+#define FTYPE_SYMLINK	3
+#define FTYPE_DEVICE	4
 
 struct s_file;
 struct s_inode;
 struct s_super_block;
 struct s_dentry;
-struct s_dirent
+struct s_dirent;
 struct s_file_operations;
 struct s_inode_operations;
 struct s_super_operations;
@@ -63,8 +67,8 @@ typedef struct s_super_operations {
 typedef struct s_super_block {
 	struct s_file_system *fstype;
 	super_operations_t *s_op;
-	dentry_t *root;
-	int count;
+	struct s_dentry *root;
+	int open_count;
 } super_block_t;
 
 /**
@@ -112,8 +116,10 @@ int vfs_close_file(file_t *file);
 int syscall_open(int pathaddr, int flags, int mode);
 int syscall_ece391_open(int pathaddr, int, int);
 int syscall_close(int fd, int, int);
-int syscall_ece391_read(int pathaddr, int, int);
+int syscall_ece391_read(int fd, int bufaddr, int size);
 int syscall_read(int fd, int bufaddr, int size);
 int syscall_write(int fd, int bufaddr, int size);
+
+#include "fstab.h"
 
 #endif

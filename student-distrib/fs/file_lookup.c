@@ -1,5 +1,7 @@
 #include "file_lookup.h"
 
+#include "../errno.h"
+
 #define temp_buff_size 256
 #define sim_link_uplimit 7
 
@@ -7,7 +9,6 @@
 inode_t* file_lookup(pathname_t path){
 	vfsmount_t *fs;
 	int i;	// number for path offset
-	int j;  // iterator
 
 	// initialize nameidata for this file lookup
 	nameidata_t nd;
@@ -27,7 +28,7 @@ file_lookup_start:
 	nd.dentry = fs -> root;
 	nd.mnt = fs;
 	nd.path += i;
-	nd.dep ++;
+	nd.depth ++;
 
 	// up limit of sim link //TODO 
 	//if (nd.dep > temp_buff_size){
@@ -35,18 +36,18 @@ file_lookup_start:
 	//}
 
 	if (find_dentry(&nd)) {
-		return -errno;
+		return NULL;
 	}
 
 	// handle sim link
-	if (nd.dentry -> inode -> file_type == SIM_LINK){
+	if (nd.dentry -> inode -> file_type == FTYPE_SYMLINK){
 		// update nd for sim link
-		if (nd.dentry -> inode -> readlink){
-			if ((pathtemp_length = (*nd.dentry -> inode -> readlink)(nd.dentry,pathtemp,temp_buff_size))==-1){
+		if (nd.dentry -> inode -> i_op -> readlink){
+			if ((pathtemp_length = (*nd.dentry -> inode -> i_op -> readlink)(nd.dentry,pathtemp,temp_buff_size))==-1){
 				//TODO errno
 				return NULL;
 			}
-			if (pathtemp<temp_buff_size) pathtemp[pathtemp] = '\0';
+			if (pathtemp_length<temp_buff_size) pathtemp[pathtemp_length] = '\0';
 			// hope it doesn't reach up limit
 		}else{
 			// readlink function not implemented
@@ -59,7 +60,7 @@ file_lookup_start:
 	}
 
 	// lookup finish, nothing to release
-	return fd.dentry;
+	return nd.dentry->inode;
 }
 
 int find_dentry(nameidata_t* nd){
@@ -69,7 +70,7 @@ int find_dentry(nameidata_t* nd){
 		return -1;
 	}
 	while (*nd->path){
-		if (!(*(nd->dentry->inode->lookup))(nd->path, nd->dentry->inode)){
+		if (!(*(nd->dentry->inode->i_op->lookup))(nd->path, nd->dentry->inode)){
 			//TODO errno
 			return -1;
 		}

@@ -2,6 +2,7 @@
 
 #include "../errno.h"
 
+#include "file_lookup.h"
 #include "../proc/task.h"
 
 #include "../../libc/src/syscalls.h" // Definitions from libc
@@ -16,7 +17,6 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	task_t *proc;
 	pathname_t path = "/";
 	int i, avail_fd = -1;
-	vfsmount_t *fs;
 	inode_t *inode;
 	file_t *file;
 
@@ -40,28 +40,21 @@ int syscall_open(int pathaddr, int flags, int mode) {
 		return -EMFILE;
 	}
 
-/*	if (!(fs = fstab_get_mountpoint(path, &i))) {
-		return -errno;
-	}
-
-	if (!(inode = find_inode(fs, path + i))) { // TODO
-		return -errno;
-	}
-
-	if (!(file = alloc_file())) {; // TODO
-		return -errno;
-	}*/
 	if (!(inode = file_lookup(path))){
+		return -errno;
+	}
+	
+	if (!(file = vfs_open_file(inode, flags))) {
 		return -errno;
 	}
 
 	errno = -(*file->f_op->open)(inode, file);
 	if (errno != 0) {
-		dealloc_file(); // TODO
+		vfs_close_file(file);
 		return -errno;
 	}
 
-	proc->file[avail_fd] = file;
+	proc->files[avail_fd] = file;
 	return avail_fd;
 }
 
@@ -84,6 +77,11 @@ int syscall_close(int fd, int b, int c) {
 	}
 	proc->files[fd] = NULL;
 	return 0;
+}
+
+int syscall_ece391_read(int fd, int bufaddr, int size) {
+	// TODO: merge readdir with read
+	return syscall_read(fd, bufaddr, size);
 }
 
 int syscall_read(int fd, int bufaddr, int count) {
@@ -162,15 +160,15 @@ int vfs_close_file(file_t *file) {
 	if (!file || !file->inode) {
 		return -EINVAL;
 	}
-	file->count--;
-	if (file->count != 0) {
+	file->open_count--;
+	if (file->open_count != 0) {
 		// Someone else is still using this file
 		return 0;
 	}
 	// Close this file
 	(*file->f_op->release)(file->inode, file);
-	file->inode->count--;
-	if (file->inode->count == 0) {
+	file->inode->open_count--;
+	if (file->inode->open_count == 0) {
 		// Inode no longer in use, ask filesystem to release it
 		(*file->inode->sb->s_op->destroy_inode)(file->inode);
 	}
