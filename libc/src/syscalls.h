@@ -8,7 +8,7 @@
 #ifndef LIBC_SRC_SYSCALLS_H
 #define LIBC_SRC_SYSCALLS_H
 
-#include "../include/sys/fd.h"
+#include "../include/fcntl.h"
 
 #define SYSCALL_OPEN		16
 #define SYSCALL_CLOSE		17
@@ -18,9 +18,9 @@
 #define SYSCALL_UMOUNT		21
 
 struct __attribute__((__packed__)) sys_mount_opts {
-	char *source;
+	const char *source;
 	unsigned long mountflags;
-	char *opts;
+	const char *opts;
 };
 
 #endif

@@ -53,7 +53,7 @@ typedef struct s_file_operations {
  *	used by directory peeks and metadata operations.
  */
 typedef struct s_inode_operations {
-	struct dentry * (*lookup) (struct s_inode *inode, const char *filename);
+	struct s_dentry * (*lookup) (struct s_inode *inode, const char *filename);
 	// int (*permission) (struct inode *, int, unsigned int);
 	int (*readlink) (struct s_dentry *dentry, char *buf, int size);
 	// int (*create) (struct inode *,struct dentry *,int, struct nameidata *);
@@ -229,6 +229,7 @@ int syscall_read(int fd, int bufaddr, int size);
  *	In addition to regular read, the `ece391_read` can also be performed on an
  *	directory, in which case each call to read will read in the filename of an
  *	entry in the directory.
+ *	@see syscall_read
  *
  *	@param fd, bufaddr, size: see `syscall_read`
  *	@return see `syscall_read`

@@ -12,7 +12,7 @@ inode_t* file_lookup(pathname_t path){
 
 	// initialize nameidata for this file lookup
 	nameidata_t nd;
-	// 	
+	//
 	nd.depth = 0;
 	nd.path = path;
 
@@ -30,7 +30,7 @@ file_lookup_start:
 	nd.path += i;
 	nd.depth ++;
 
-	// up limit of sim link //TODO 
+	// up limit of sim link //TODO
 	//if (nd.dep > temp_buff_size){
 		//TODO
 	//}
@@ -65,12 +65,12 @@ file_lookup_start:
 
 int find_dentry(nameidata_t* nd){
 	// sanity check
-	if (!nd){ 
+	if (!nd){
 		//TODO errno
 		return -1;
 	}
 	while (*nd->path){
-		if (!(*(nd->dentry->inode->i_op->lookup))(nd->path, nd->dentry->inode)){
+		if (!(*(nd->dentry->inode->i_op->lookup))(nd->dentry->inode, nd->path)){
 			//TODO errno
 			return -1;
 		}
@@ -80,4 +80,5 @@ int find_dentry(nameidata_t* nd){
 		}
 		++(nd->path);
 	}
+	return 0;
 }
