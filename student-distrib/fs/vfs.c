@@ -43,7 +43,7 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	if (!(inode = file_lookup(path))){
 		return -errno;
 	}
-	
+
 	if (!(file = vfs_open_file(inode, flags))) {
 		return -errno;
 	}
@@ -127,7 +127,7 @@ int syscall_write(int fd, int bufaddr, int count) {
 
 
 file_t *vfs_open_file(inode_t *inode, int mode) {
-	int i, avail_idx = -1;
+	int i;
 
 	if (!inode || !(mode & (O_RDONLY | O_WRONLY))) {
 		errno = EINVAL;
@@ -135,25 +135,22 @@ file_t *vfs_open_file(inode_t *inode, int mode) {
 	}
 
 	for (i = 0; i < VFS_MAX_OPEN_FILES; i++) {
-		if (avail_idx < 0 && !vfs_files[i].inode) {
-			avail_idx = i;
-		} else if (vfs_files[i].inode == inode && vfs_files[i].mode == mode) {
-			// File already opened in the desired mode
-			return vfs_files + i;
+		if (!vfs_files[i].inode) {
+			break;
 		}
 	}
-	if (avail_idx < 0) {
+	if (i == VFS_MAX_OPEN_FILES) {
 		errno = ENFILE;
 		return NULL;
 	}
 
-	vfs_files[avail_idx].inode = inode;
-	vfs_files[avail_idx].mode = mode;
-	vfs_files[avail_idx].open_count = 1;
-	vfs_files[avail_idx].pos = 0;
-	vfs_files[avail_idx].f_op = inode->f_op;
-	(*inode->f_op->open)(inode, vfs_files + avail_idx);
-	return vfs_files + avail_idx;
+	vfs_files[i].inode = inode;
+	vfs_files[i].mode = mode;
+	vfs_files[i].open_count = 1;
+	vfs_files[i].pos = 0;
+	vfs_files[i].f_op = inode->f_op;
+	(*inode->f_op->open)(inode, vfs_files + i);
+	return vfs_files + i;
 }
 
 int vfs_close_file(file_t *file) {
