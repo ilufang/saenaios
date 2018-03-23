@@ -5,12 +5,7 @@
 #include "../lib.h"
 #include "../fs/vfs.h"
 
-#define SYSCALL_OPEN		16
-#define SYSCALL_CLOSE		17
-#define SYSCALL_READ		18
-#define SYSCALL_WRITE		19
-#define SYSCALL_MOUNT		20
-#define SYSCALL_UMOUNT		21
+#include "../../libc/src/syscalls.h" // Definitions from libc
 
 syscall_handler syscall_handler_table[SYSCALL_NUMBER_MAX];
 
@@ -41,7 +36,7 @@ void syscall_register_all() {
 	// ece391_execute
 	syscall_register(2, NULL);
 	// ece391_read
-	syscall_register(3, syscall_read);
+	syscall_register(3, syscall_ece391_read);
 	// ece391_write
 	syscall_register(4, syscall_write);
 	// ece391_open
