@@ -66,7 +66,7 @@ void rtc_setrate(int rate);
 
 int32_t rtc_open(const uint8_t *filename);
 
-int32_t rtc_close(int32_t fd)
+int32_t rtc_close(int32_t fd);
 
 int32_t rtc_read(int32_t fd, void* buf, int32_t nbytes);
 

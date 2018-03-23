@@ -31,20 +31,21 @@ void rtc_handler(){
 		inb(CMOS_PORT);
 		block = 0;
 	}
+	else {	
+		if (count < 1024/freq) {
+			count++;
+		}
 
-	if (count < 1024/freq) {
-		count++;
-	}
-
-	else {
-		count = 1;
-		/* sends eoi */
-		send_eoi(RTC_IRQ_NUM);
-		/* reads from register C so that the interrupt will happen again */
-		outb(REG_C, RTC_PORT);
-		inb(CMOS_PORT);
-		block = 0;
-		/* Not functional yet */
+		else {
+			count = 1;
+			/* sends eoi */
+			send_eoi(RTC_IRQ_NUM);
+			/* reads from register C so that the interrupt will happen again */
+			outb(REG_C, RTC_PORT);
+			inb(CMOS_PORT);
+			block = 0;
+			/* Not functional yet */
+		}
 	}
 }
 
