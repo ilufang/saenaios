@@ -9,6 +9,8 @@
 #define SYSCALL_CLOSE		17
 #define SYSCALL_READ		18
 #define SYSCALL_WRITE		19
+#define SYSCALL_MOUNT		20
+#define SYSCALL_UMOUNT		21
 
 syscall_handler syscall_handler_table[SYSCALL_NUMBER_MAX];
 
@@ -62,4 +64,6 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_CLOSE, syscall_close);
 	syscall_register(SYSCALL_READ, syscall_read);
 	syscall_register(SYSCALL_WRITE, syscall_write);
+	syscall_register(SYSCALL_MOUNT, syscall_mount);
+	syscall_register(SYSCALL_UMOUNT, syscall_umount);
 }

@@ -11,12 +11,55 @@ int syscall_ece391_open(int pathaddr, int b, int c) {
 
 int syscall_open(int pathaddr, int flags, int mode) {
 	task_t *proc;
-	
+	pathname_t path = "/";
+	int i, avail_fd = -1;
+	vfsmount_t *fs;
+	inode_t *inode;
+	file_t *file;
+
 	proc = task_list + task_current_pid();
 	if (proc->status != TASK_ST_RUNNING) {
 		return -ESRCH;
 	}
-	return 0;
+
+	errno = -path_cd(path, (char *)pathaddr);
+	if (errno != 0) {
+		return -errno;
+	}
+
+	for (i = 0; i < TASK_MAX_OPEN_FILES; i++) {
+		if (proc->files[i] == NULL) {
+			avail_fd = i;
+			break;
+		}
+	}
+	if (avail_fd < 0) {
+		return -EMFILE;
+	}
+
+/*	if (!(fs = fstab_get_mountpoint(path, &i))) {
+		return -errno;
+	}
+
+	if (!(inode = find_inode(fs, path + i))) { // TODO
+		return -errno;
+	}
+
+	if (!(file = alloc_file())) {; // TODO
+		return -errno;
+	}*/
+	if (!(inode = file_lookup(path))){
+		return -errno;
+	}
+
+	errno = -(*file->f_op->open)(inode, file);
+	if (errno != 0) {
+		dealloc_file(); // TODO
+		return -errno;
+	}
+
+	proc->file[avail_fd] = file;
+	return avail_fd;
 }
 
 int syscall_close(int fd, int b, int c) {

@@ -8,25 +8,73 @@
 
 #include "../types.h"
 
+#include "pathname.h"
+
+#include "fstab.h"
+
+#define VFS_FILENAME_LEN	32
+
 struct s_file;
 struct s_inode;
+struct s_super_block;
+struct s_dentry;
+struct s_dirent
 struct s_file_operations;
+struct s_inode_operations;
+struct s_super_operations;
+
+struct s_file_system;
+struct s_vfsmount;
 
 typedef struct s_file_operations {
 	int (*open)(struct s_inode *inode, struct s_file *file);
 	int (*release)(struct s_inode *inode, struct s_file *file);
 	ssize_t (*read)(struct s_file *, uint8_t *buf, size_t count, size_t *offset);
 	ssize_t (*write)(struct s_file *, uint8_t *buf, size_t count, size_t *offset);
+	void (*readdir)(struct s_file *, struct s_dirent *dirent);
 } file_operations_t;
+
+typedef struct s_inode_operations {
+	struct dentry * (*lookup) (struct s_inode *inode, const char *filename);
+	// int (*permission) (struct inode *, int, unsigned int);
+	int (*readlink) (struct s_dentry *dentry, char *buf, int size);
+	// int (*create) (struct inode *,struct dentry *,int, struct nameidata *);
+	// int (*link) (struct dentry *,struct inode *,struct dentry *);
+	// int (*unlink) (struct inode *,struct dentry *);
+	// int (*symlink) (struct inode *,struct dentry *,const char *link);
+	// int (*mkdir) (struct inode *,struct dentry *,int);
+	// int (*rmdir) (struct inode *,struct dentry *);
+	// int (*mknod) (struct inode *,struct dentry *,int,dev_t);
+	// int (*rename) (struct inode *, struct dentry *,
+			// struct inode *, struct dentry *);
+	// void (*truncate) (struct inode *);
+	// int (*setattr) (struct dentry *, struct iattr *);
+	// int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
+} inode_operations_t;
+
+typedef struct s_super_operations {
+   	struct s_inode *(*alloc_inode)(struct s_super_block *sb);
+	void (*destroy_inode)(struct s_inode *);
+	int (*write_inode) (struct s_inode *);
+	int (*drop_inode) (struct s_inode *);
+} super_operations_t;
+
+typedef struct s_super_block {
+	struct s_file_system *fstype;
+	super_operations_t *s_op;
+	dentry_t *root;
+	int count;
+} super_block_t;
 
 /**
  *	A file in the VFS, not opened. Might be written to disk.
  */
 typedef struct s_inode {
 	uint32_t ino;
+	int file_type;
 	int open_count;
 	uint16_t mode;
-	file_operations_t *f_op;
+	file_operations_t *i_op;
 } inode_t;
 
 /**
@@ -39,6 +87,21 @@ typedef struct s_file {
 	size_t pos; ///< The file pointer
 	file_operations_t *f_op; ///< The file driver
 } file_t;
+
+typedef struct s_dentry {
+	char filename[VFS_FILENAME_LEN];
+	inode_t *inode;
+} dentry_t;
+
+typedef struct s_dirent {
+	dentry_t *dentry;
+	union {
+		int index;
+		void *data;
+	} dirent;
+} dirent_t;
+
+
 
 // System call handlers
 int syscall_open(int pathaddr, int flags, int mode);
