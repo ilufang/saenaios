@@ -3,6 +3,8 @@
 #include "../errno.h"
 #include "../lib.c"
 
+#include "../../libc/src/syscalls.h" // Definitions from libc
+
 #define FSTAB_MAX_FS	16
 #define FSTAB_MAX_MNT	16
 
@@ -148,7 +150,7 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 	return 0;
 }
 
-int syscall_umount(int targetaddr) {
+int syscall_umount(int targetaddr, int b, int c) {
 	path_t target = "/";
 	int i;
 

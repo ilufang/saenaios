@@ -35,14 +35,8 @@ vfsmount_t *fstab_get_mountpoint(const char *path, int *offset);
 
 // System calls
 
-struct __attribute__((__packed__)) sys_mount_opts {
-	char *source;
-	unsigned long mountflags;
-	char *opts;
-};
-
 int syscall_mount(int typeaddr, int destaddr, int optaddr);
 
-int syscall_umount(int targetaddr);
+int syscall_umount(int targetaddr, int b, int c);
 
 #endif

@@ -13,6 +13,7 @@
 #include "fstab.h"
 
 #define VFS_FILENAME_LEN	32
+#define VFS_MAX_OPEN_FILES	256
 
 struct s_file;
 struct s_inode;
@@ -74,7 +75,9 @@ typedef struct s_inode {
 	int file_type;
 	int open_count;
 	uint16_t mode;
-	file_operations_t *i_op;
+	super_block_t *sb;
+	file_operations_t *f_op;
+	inode_operations_t *i_op;
 } inode_t;
 
 /**
@@ -101,12 +104,15 @@ typedef struct s_dirent {
 	} dirent;
 } dirent_t;
 
+file_t *vfs_open_file(inode_t *inode, int mode);
 
+int vfs_close_file(file_t *file);
 
 // System call handlers
 int syscall_open(int pathaddr, int flags, int mode);
 int syscall_ece391_open(int pathaddr, int, int);
 int syscall_close(int fd, int, int);
+int syscall_ece391_read(int pathaddr, int, int);
 int syscall_read(int fd, int bufaddr, int size);
 int syscall_write(int fd, int bufaddr, int size);
 
