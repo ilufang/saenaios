@@ -64,10 +64,12 @@ void rtc_setrate(int rate);
  *	Occured when RTC needs to be turned on and initialized.
  */
 
-int rtc_open();
+int32_t rtc_open(const uint8_t *filename);
 
-int rtc_read();
+int32_t rtc_close(int32_t fd)
 
-int rtc_write();
+int32_t rtc_read(int32_t fd, void* buf, int32_t nbytes);
+
+int32_t rtc_write(int32_t fd, const void *buf, int32_t nbytes);
 
 #endif /* _RTC_H */
