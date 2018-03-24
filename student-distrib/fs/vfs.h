@@ -24,10 +24,10 @@ struct s_file;
 struct s_inode;
 struct s_super_block;
 struct s_dentry;
-struct s_dirent;
 struct s_file_operations;
 struct s_inode_operations;
 struct s_super_operations;
+struct dirent;
 
 struct s_file_system;
 struct s_vfsmount;
@@ -43,7 +43,7 @@ typedef struct s_file_operations {
 	int (*release)(struct s_inode *inode, struct s_file *file);
 	ssize_t (*read)(struct s_file *, uint8_t *buf, size_t count, size_t *offset);
 	ssize_t (*write)(struct s_file *, uint8_t *buf, size_t count, size_t *offset);
-	void (*readdir)(struct s_file *, struct s_dirent *dirent);
+	int (*readdir)(struct s_file *, struct dirent *dirent);
 } file_operations_t;
 
 /**
@@ -137,21 +137,6 @@ typedef struct s_dentry {
 	char filename[VFS_FILENAME_LEN];
 	inode_t *inode;
 } dentry_t;
-
-/**
- *	Directory entity used to iterate a directory
- *
- *	This struct is designed similar to the userspace directory listing struct.
- *	It contains both the dentry to be read by the user, and the private data
- *	used by `readdir` to track its current position in the iteration.
- */
-typedef struct s_dirent {
-	dentry_t *dentry;
-	union {
-		int index;
-		void *data;
-	} dirent;
-} dirent_t;
 
 /**
  *	System-level `file_t` allocation
@@ -249,6 +234,17 @@ int syscall_ece391_read(int fd, int bufaddr, int size);
  *	@return the number of bytes written, or the negative of an errno on failure.
  */
 int syscall_write(int fd, int bufaddr, int size);
+
+/**
+ *	System call handler for `getdents`: get next entry in directory
+ *
+ *	@param fd: the file descriptor of the directory to be listed
+ *	@param buf: pointer to the `dirent` structure. Consecutive calls should
+ *				pass the same `dirent`, as it is used to track the state of the
+ *				iteration.
+ *	@return: 0 on success, or negative of an errno on failure
+ */
+int syscall_getdents(int fd, int bufaddr, int c);
 
 // For consistent include order
 #include "fstab.h"

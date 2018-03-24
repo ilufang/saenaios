@@ -1,10 +1,15 @@
 #include "tests.h"
 #include "x86_desc.h"
 #include "lib.h"
+#include "libc.h"
 
 #include "boot/idt.h"
 #include "keyboard.h"
 #include "rtc.h"
+
+#include "fs/vfs.h"
+#include "proc/task.h"
+#include "boot/syscall.h"
 
 #define PASS 1
 #define FAIL 0
@@ -192,6 +197,42 @@ int rtc_test() {
 }
 
 /* Checkpoint 2 tests */
+
+// Symbol defined in libc's do_syscall.S
+extern int do_syscall(int num, int b, int c, int d);
+
+/**
+ *	Syscall 15 handler for testing
+ *
+ *	@param a, b, c: data. Should be sent 42, -391 and 0xecebcafe
+ *	@return 0xac if data matched, 0xbad if it does not
+ */
+int test_syscall_handler(int a, int b, int c) {
+	if (a == 42 && b == -391 && c == 0xecebcafe) {
+		return 0xac;
+	}
+	printf("Syscall passed in bad values\n");
+	return 0xbad;
+}
+
+/**
+ *	Test system call dispatcher
+ */
+int test_syscall_dispatcher() {
+	TEST_HEADER;
+	// Using syscall number 15, the unused portion of the ece391 specification
+	if (syscall_register(15, &test_syscall_handler) != 0) {
+		printf("Failed to register handler\n");
+		assertion_failure();
+	}
+	// Send dwords 42, -391 and 0xecebcafe, should return 0xac
+	if (do_syscall(15, 42, -391, 0xecebcafe) != 0xac) {
+		printf("Syscall 15 returned bad value\n");
+		assertion_failure();
+	}
+	return PASS;
+}
+
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -214,23 +255,25 @@ void launch_tests() {
 	// IDT tests
 	TEST_OUTPUT("idt_test", idt_test());
 	// The following test should trigger a fault
-	TEST_OUTPUT("idt_test_de", idt_test_de());
+	// TEST_OUTPUT("idt_test_de", idt_test_de());
 	// The following test should not trigger any fault
 	TEST_OUTPUT("idt_test_usr", idt_test_usr());
 
 	// Paging test
 	// The following test should trigger a fault
-	TEST_OUTPUT("paging_test", paging_test());
+	// TEST_OUTPUT("paging_test", paging_test());
 
 	// KB test
-	TEST_OUTPUT("kb_test", kb_test());
+	// TEST_OUTPUT("kb_test", kb_test());
 
 	// RTC test
-	TEST_OUTPUT("rtc_test", rtc_test());
+	// TEST_OUTPUT("rtc_test", rtc_test());
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
+
+	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 }

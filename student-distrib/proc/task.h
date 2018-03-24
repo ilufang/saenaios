@@ -15,8 +15,6 @@
 #define TASK_MAX_PROC		65536 ///< Maximum of concurrently-scheduled tasks
 #define TASK_MAX_OPEN_FILES	16 ///< Per-process limit of concurrent open files
 
-typedef uint16_t pid_t;
-
 /**
  *	Structure for a process in the PID table
  */

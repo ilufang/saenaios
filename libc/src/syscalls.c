@@ -1,5 +1,9 @@
 #include "syscalls.h"
 
+#include "../include/stddef.h"
+#include "../include/sys/types.h"
+#include "../include/errno.h"
+
 #include "../include/sys/mount.h"
 
 int do_syscall(int num, int b, int c, int d);
@@ -32,4 +36,86 @@ int read(int fd, void *buf, unsigned int count) {
 
 int write(int fd, const void *buf, unsigned int count) {
 	return do_syscall(SYSCALL_WRITE, fd, (int)buf, count);
+}
+
+int getdents(int fd, struct dirent *buf) {
+	return do_syscall(SYSCALL_GETDENTS, fd, (int)buf, 0);
+}
+
+#define LIBC_MAX_OPEN_DIR	64
+
+static DIR libc_dir_list[LIBC_MAX_OPEN_DIR];
+
+DIR *opendir(const char *filename) {
+	int fd;
+	fd = open(filename, O_RDONLY, 0);
+	if (fd >= 0) {
+		return fdopendir(fd);
+	}
+	return NULL;
+}
+
+DIR *fdopendir(int fd) {
+	int i;
+	for (i = 0; i < LIBC_MAX_OPEN_DIR; i++) {
+		if (libc_dir_list[i].count == 0) {
+			break;
+		}
+	}
+	if (i == LIBC_MAX_OPEN_DIR) {
+		errno = ENFILE;
+		return NULL;
+	}
+	libc_dir_list[i].count = 1;
+	libc_dir_list[i].fd = fd;
+	libc_dir_list[i].dent.dirent.index = 0;
+	return libc_dir_list + i;
+}
+
+struct dirent *readdir(DIR *dirp) {
+	if (!dirp || dirp->count == 0) {
+		errno = EINVAL;
+		return NULL;
+	}
+	getdents(dirp->fd, &(dirp->dent));
+	return &(dirp->dent);
+}
+
+long telldir(DIR *dirp) {
+	if (!dirp || dirp->count == 0) {
+		return -EINVAL;
+	}
+	return dirp->dent.dirent.index;
+}
+
+void seekdir(DIR *dirp, long loc) {
+	if (!dirp || dirp->count == 0) {
+		errno = EINVAL;
+		return;
+	}
+	dirp->dent.dirent.index = loc;
+}
+
+void rewinddir(DIR *dirp) {
+	if (!dirp || dirp->count == 0) {
+		errno = EINVAL;
+		return;
+	}
+	dirp->dent.dirent.index = 0;
+}
+
+int closedir(DIR *dirp) {
+	if (!dirp || dirp->count == 0) {
+		return -EINVAL;
+	}
+	dirp->count = 0;
+	return close(dirp->fd);
+}
+
+int dirfd(DIR *dirp) {
+	if (!dirp || dirp->count == 0) {
+		return -EINVAL;
+	}
+	return dirp->fd;
+
 }
