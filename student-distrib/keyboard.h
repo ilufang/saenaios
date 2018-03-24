@@ -58,11 +58,42 @@ void keyboard_init();
  */
 void keyboard_handler();
 
-
+/**
+ *	Keyboard read function
+ *
+ *  Read data from user input terminated by \n
+ *
+ *	@param fd: index into file descriptor table
+ *	@param buf: buffer that we read data into
+ *	@param nbytes: number of bytes to read
+ *	@return number of bytes read on success, -1 for error
+ */
 int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes);
+
+/**
+ *	Keyboard write function
+ *
+ *  @note the function does nothing because keyboard write is not supported
+ */
 int32_t keyboard_write(int32_t fd, void* buf, int32_t nbytes);
+
+/**
+ *	Keyboard open function
+ *
+ *  Initialize any local variable
+ *
+ *	@param filename: name of the file to open
+ */
 int32_t keyboard_open(const uint8_t* filename);
+
+/**
+ *	Keyboard close function
+ *
+ *  @note the function does nothing for now
+ *
+ *	@param fd: index into file descriptor table
+ */
 int32_t keyboard_close(int32_t fd);
 
 
-#endif /* _RTC_H */
+#endif /* _KEYBOARD_H */

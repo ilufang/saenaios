@@ -115,8 +115,6 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 }
 
 
-// file syscall handlers that can't really work
-// call read_dentry_by_name
 int32_t file_open(const uint8_t* filename){
     int i = 0;
     fsys_dentry_t dentry;
@@ -141,7 +139,7 @@ int32_t file_open(const uint8_t* filename){
             return 0;
         }
     }
-    
+    // if there's not available fd, return -1
     return -1;
 }
 
@@ -156,6 +154,7 @@ int32_t file_read(int32_t fd, void* buf, int32_t nbytes){
     uint32_t inode = test_fd_arr[fd]->inode;
     uint32_t file_loc = test_fd_arr[fd]->pos;
     uint32_t bytes_read = read_data(inode, file_loc, (uint8_t*)buf, (uint32_t)nbytes);
+    // update file offset position for successful read
     if(bytes_read != -1){
         test_fd_arr[fd]->pos += bytes_read;   
     }

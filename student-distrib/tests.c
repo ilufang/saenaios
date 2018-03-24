@@ -199,13 +199,13 @@ int rtc_test() {
 /**
  *	Test helper function to read file by name
  *
- *	@note This test depends on a working IDT and working keyboard. This test
- *		  will also remove the handler
+ *	@param filename: the file name to read
  */
 void read_file_by_name(int8_t* filename){
     fsys_dentry_t test_dentry;
     if(read_dentry_by_name((uint8_t*)filename, &test_dentry) == -1){
-        terminal_print("File does not exist.\n");
+        terminal_print(filename);
+        terminal_print(": File does not exist.\n");
         return;
     }
     // pointer to inode of target file
@@ -219,6 +219,11 @@ void read_file_by_name(int8_t* filename){
     terminal_print(filename);
 }
 
+/**
+ *	Test helper function to read file by index
+ *
+ *	@param idx: the index of file to read
+ */
 int read_file_by_index(uint32_t idx){
     fsys_dentry_t test_dentry;
     if(read_dentry_by_index(idx, &test_dentry) == -1){
@@ -230,6 +235,7 @@ int read_file_by_index(uint32_t idx){
     int32_t file_len = target_inode->length;
     uint8_t content[BLOCK_SIZE * 128];
     memset(content, 0x0, BLOCK_SIZE * 128);
+    // print file content
     read_data(test_dentry.inode_num, 0, content, file_len);
     terminal_out_write(content, file_len);
     terminal_print("\nDone reading file: ");
@@ -239,6 +245,13 @@ int read_file_by_index(uint32_t idx){
     return 0;
 }
 
+
+/**
+ *	Test read file handler
+ *
+ *	@note: the function will replace the original keyboard handler with
+ *         test_kb_handler easier operation
+ */
 int test_read_file(){
 	TEST_HEADER;
     idt_removeEventListener(KBD_IRQ_NUM);
@@ -296,10 +309,15 @@ int test_read_file(){
     }
     
     return PASS;
-    
-    
 }
 
+
+/**
+ *	Test read directory handler
+ *  
+ *  Read all files in the directory and print their names, sizes
+ *  and file types to the sreen.
+ */
 int test_read_dir(){
 	TEST_HEADER;
     clear();
@@ -320,6 +338,14 @@ int test_read_dir(){
     while(kb_test_last_key != '\n');
     return PASS;
 }
+
+
+/**
+ *	Test keyboard read handler
+ *  Enable keyboard testing mode, each keypress of enter key
+ *  will evoke keyboard_read to read from the keyboard buffer
+ *  and output the values the terminal
+ */
 
 int test_keyboard_read(){
 	TEST_HEADER;
