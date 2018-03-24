@@ -163,9 +163,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
-	printf("Enabling Interrupts\n");
+	terminal_print("Enabling Interrupts\n");
 	sti();
-    test_read_file("verylargetextwithverylongname.tx");
+    //test_read_file("verylargetextwithverylongname.tx");
     //test_read_dir();
 #ifdef RUN_TESTS
 	/* Run tests */
@@ -174,7 +174,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Execute the first program ("shell") ... */
 
 	/* Spin (nicely, so we don't chew up cycles) */
-	printf("End of startup\n");
+	terminal_print("End of startup\n");
 	while(1);
 	asm volatile (".1: hlt; jmp .1;");
 }

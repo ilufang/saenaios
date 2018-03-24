@@ -33,6 +33,9 @@ int32_t safe_strncpy(int8_t* dest, const int8_t* src, int32_t n);
 /* for testing rtc */
 void test_interrupts(void);
 
+/* using terminal driver write to print */
+void terminal_print(int8_t* buf);
+
 /* Port read functions */
 /* Inb reads a byte and returns its value as a zero-extended 32-bit
  * unsigned int */

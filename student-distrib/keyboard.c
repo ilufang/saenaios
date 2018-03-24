@@ -14,6 +14,8 @@
 #define SEQ_CLR     1
 #define SEQ_ENTER   2
 
+volatile int read_test_mode = 0;
+
 enum key_mode{regular, caps, shift, caps_shift};
 
 volatile enum key_mode curr_mode = regular;
@@ -21,9 +23,9 @@ volatile uint8_t ctrl_status = UNPRESSED;
 volatile uint8_t shift_status = UNPRESSED;
 volatile uint8_t alt_status = UNPRESSED;
 
-volatile uint32_t curr_char_ptr = 0;
-volatile uint32_t prev_enter = -1;
-volatile uint8_t kbd_buf[KEY_BUF_SIZE];
+int curr_char_ptr = 0;
+int prev_enter = -1;
+uint8_t kbd_buf[KEY_BUF_SIZE];
 
 /* control sequences, 0 - backspace, 1 - ctrl + l, 2 - enter */
 //const char* ctrl_seq[3] = {"^[8", "^[12", "^[13"};
@@ -196,11 +198,11 @@ uint8_t kbdcs[128] =
 
 void buf_push(uint8_t c){
     if(curr_char_ptr < KEY_BUF_SIZE - 1){
-        curr_char_ptr++;
         kbd_buf[curr_char_ptr] = c;   
-    }else if(c == ENTER_P && curr_char_ptr == KEY_BUF_SIZE){
         curr_char_ptr++;
+    }else if(c == ENTER_P && curr_char_ptr == KEY_BUF_SIZE){
         kbd_buf[curr_char_ptr] = c;
+        curr_char_ptr++;
     }
     return;
 }
@@ -243,19 +245,32 @@ void enter(){
     prev_enter = curr_char_ptr;
     buf_push('\n');
     //(void)write(1, seq_enter, 3);
-    //terminal_out_write(seq_enter, 3);
+    terminal_out_write((uint8_t*)seq_enter, 3);
+    if(read_test_mode == 1){
+        uint8_t testbuf[prev_enter];
+        int fd, nbytes;
+        int32_t num_read;
+        num_read = keyboard_read(fd, testbuf, nbytes);
+        terminal_out_write(testbuf, num_read);
+        if(testbuf[0]=='`'){
+            read_test_mode = 0;
+        }
+    }   
 }
 
+// TODO: check for enter
 void backspace(){
-    curr_char_ptr--;
-    kbd_buf[curr_char_ptr] = NULL_CHAR;
+    if(curr_char_ptr>0 && kbd_buf[curr_char_ptr-1]!='\n'){
+        curr_char_ptr--;
+        kbd_buf[curr_char_ptr] = NULL_CHAR;  
+        terminal_out_write((uint8_t*)seq_backspace,3);
+    }
     //(void)write(1, seq_backspace, 3);
-    //terminal_out_write(seq_backspace,3);
 }
 
 void ctrl_l(){
     //(void)write(1, seq_ctrl_l, 3);  
-    //terminal_out_write(seq_ctrl_l,3);
+    terminal_out_write((uint8_t*)seq_ctrl_l,3);
 }
 
 
@@ -320,7 +335,7 @@ void regular_key(uint8_t scancode){
     uint8_t keybuf[1];
     keybuf[0] = scanchar;
     //(void)write(1, keybuf, 1);
-    //terminal_out_write(keybuf,1);
+    terminal_out_write(keybuf,1);
 }
 
 void update_mode(uint8_t scancode){

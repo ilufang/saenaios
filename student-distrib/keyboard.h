@@ -12,6 +12,7 @@
 #include "types.h"
 #include "i8259.h"
 #include "lib.h"
+#include "terminal_driver/terminal_out_driver.h"
 
 #define DATA_REG    0x60
 #define CTRL_REG    0x64
@@ -42,6 +43,8 @@
  */
 extern unsigned char kbdreg[128];
 
+extern volatile int read_test_mode;
+
 /**
  *	Initializes keyboard
  */
@@ -55,20 +58,6 @@ void keyboard_init();
  */
 void keyboard_handler();
 
-void buf_push(uint8_t c);
-
-void update_mode(uint8_t scancode);
-
-void regular_key(uint8_t scancode);
-
-void backspace();
-
-void ctrl_l();
-
-void enter();
-
-void shift_buf(int num_bytes);
-void clear_buf();
 
 int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes);
 int32_t keyboard_write(int32_t fd, void* buf, int32_t nbytes);

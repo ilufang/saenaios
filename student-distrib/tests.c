@@ -5,6 +5,8 @@
 #include "boot/idt.h"
 #include "keyboard.h"
 #include "rtc.h"
+#include "fsdriver/fsdriver.h"
+#include "terminal_driver/terminal_out_driver.h"
 
 #define PASS 1
 #define FAIL 0
@@ -192,6 +194,142 @@ int rtc_test() {
 }
 
 /* Checkpoint 2 tests */
+
+
+/**
+ *	Test helper function to read file by name
+ *
+ *	@note This test depends on a working IDT and working keyboard. This test
+ *		  will also remove the handler
+ */
+void read_file_by_name(int8_t* filename){
+    fsys_dentry_t test_dentry;
+    if(read_dentry_by_name((uint8_t*)filename, &test_dentry) == -1){
+        terminal_print("File does not exist.\n");
+        return;
+    }
+    // pointer to inode of target file
+    fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
+    int32_t file_len = target_inode->length;
+    uint8_t content[BLOCK_SIZE * 128];
+    memset(content, 0x0, BLOCK_SIZE * 128);
+    read_data(test_dentry.inode_num, 0, content, file_len);
+    terminal_out_write(content, file_len);
+    terminal_print("\nDone reading file: ");
+    terminal_print(filename);
+}
+
+int read_file_by_index(uint32_t idx){
+    fsys_dentry_t test_dentry;
+    if(read_dentry_by_index(idx, &test_dentry) == -1){
+        terminal_print("File does not exist.\n");
+        return -1;
+    }
+    // pointer to inode of target file
+    fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
+    int32_t file_len = target_inode->length;
+    uint8_t content[BLOCK_SIZE * 128];
+    memset(content, 0x0, BLOCK_SIZE * 128);
+    read_data(test_dentry.inode_num, 0, content, file_len);
+    terminal_out_write(content, file_len);
+    terminal_print("\nDone reading file: ");
+    uint32_t namelen = strlen((int8_t*)test_dentry.filename);
+    if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
+    terminal_out_write((uint8_t*)test_dentry.filename, namelen);
+    return 0;
+}
+
+int test_read_file(){
+	TEST_HEADER;
+    idt_removeEventListener(KBD_IRQ_NUM);
+	kb_test_last_key = '\0';
+	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
+    uint32_t i = 0;
+    
+    terminal_out_clear();
+    terminal_print("Reading text file...\n");
+    read_file_by_name("frame0.txt");
+	terminal_print("\nPress enter to continue...");
+	
+    while(kb_test_last_key != '\n');
+    
+	kb_test_last_key = '\0';
+    terminal_out_clear();
+    terminal_print("Reading program binary...\n");
+    read_file_by_name("hello");
+    terminal_print("\nPress enter to continue...");
+	
+    while(kb_test_last_key != '\n');
+
+	kb_test_last_key = '\0';
+    terminal_out_clear();
+    terminal_print("Reading another program binary...\n");
+    read_file_by_name("ls");
+    terminal_print("\nPress enter to continue...");
+	
+    while(kb_test_last_key != '\n');
+    
+	kb_test_last_key = '\0';
+    terminal_out_clear();
+    terminal_print("Reading that very long file...\n");
+    read_file_by_name("verylargetextwithverylongname.tx");
+    terminal_print("\nPress enter to continue...");
+    
+    while(kb_test_last_key != '\n');
+    
+    
+    kb_test_last_key = '\0';
+    terminal_out_clear();
+    terminal_print("Reading a filename that doesn't exist...\n");
+    read_file_by_name("seagullspokeatmyhead");
+    terminal_print("\nPress enter to continue...");
+    
+    while(kb_test_last_key != '\n');
+    terminal_out_clear();
+    terminal_print("Reading all files by index...\n");
+    while(read_file_by_index(i)==0){
+        kb_test_last_key = '\0';
+        i++;
+        terminal_print("\nPress enter to read the next file...\n");
+        while(kb_test_last_key != '\n');
+        terminal_out_clear();
+    }
+    
+    return PASS;
+    
+    
+}
+
+int test_read_dir(){
+	TEST_HEADER;
+    clear();
+    terminal_out_clear();
+    terminal_print("Testing directory read.\n");
+    int32_t fd= dir_open((uint8_t*)".");
+    int32_t nbytes = 0;
+    int8_t* file_names[FILENAME_LEN];
+    int32_t count;
+    while(0!=(count = dir_read(fd, file_names, nbytes))){
+        if(-1 == count){
+            terminal_print("Error reading directory.");
+            return FAIL;
+        }
+    }
+    kb_test_last_key = '\0';
+    terminal_print("\nPress enter to end...");
+    while(kb_test_last_key != '\n');
+    return PASS;
+}
+
+int test_keyboard_read(){
+	TEST_HEADER;
+    terminal_print("Press enter to read from keyboard, buffer will be printed to ternimal screen.\nPress backtick to exit test.\n");
+    read_test_mode = 1;
+    while(read_test_mode == 1);
+    return PASS;
+    
+}
+
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -212,11 +350,11 @@ void launch_tests() {
 	printf("Running tests...\n");
 
 	// IDT tests
-	TEST_OUTPUT("idt_test", idt_test());
+	//TEST_OUTPUT("idt_test", idt_test());
 	// The following test should trigger a fault
 	//TEST_OUTPUT("idt_test_de", idt_test_de());
 	// The following test should not trigger any fault
-	TEST_OUTPUT("idt_test_usr", idt_test_usr());
+	//TEST_OUTPUT("idt_test_usr", idt_test_usr());
 
 	// Paging test
 	// The following test should trigger a fault
@@ -227,6 +365,23 @@ void launch_tests() {
 
 	// RTC test
 	//TEST_OUTPUT("rtc_test", rtc_test());
+    
+    // File and directory test
+    
+    
+    TEST_OUTPUT("test_read_file", test_read_file());
+    clear();
+    terminal_out_clear();
+    
+    TEST_OUTPUT("test_read_dir", test_read_dir());
+    clear();
+    terminal_out_clear();
+    
+    // restore keyboard handler for keyboard read test
+	idt_removeEventListener(KBD_IRQ_NUM);
+	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
+    TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
+    terminal_out_clear();
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);

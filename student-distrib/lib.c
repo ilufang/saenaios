@@ -37,6 +37,8 @@ void set_cursor(int x, int y){
  * Function: Clears video memory */
 void clear(void) {
     int32_t i;
+    screen_x = 0;
+    screen_y = 0;
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
@@ -494,4 +496,8 @@ void test_interrupts(void) {
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
         video_mem[i << 1]++;
     }
+}
+
+void terminal_print(int8_t* buf){
+    terminal_out_write((uint8_t*)buf, strlen(buf));
 }

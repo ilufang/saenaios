@@ -5,6 +5,11 @@
 #include "fsdriver.h"
 
 
+
+int32_t boot_start_addr;
+// temporary file array used for testing
+fsys_file_t * test_fd_arr[FSYS_MAX_FILE];
+
 int32_t read_dentry_by_name (const uint8_t* fname, fsys_dentry_t* dentry){
     // ptr to bootblock
     bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
@@ -110,10 +115,61 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 }
 
 
-// dir syscall handlers that can't really work (or maybe they can)
+// file syscall handlers that can't really work
+// call read_dentry_by_name
+int32_t file_open(const uint8_t* filename){
+    int i = 0;
+    fsys_dentry_t dentry;
+    // filename does not exist
+    if(read_dentry_by_name(filename, &dentry) == -1){
+        return -1;
+    }
+    // create and fill in file struct
+    fsys_file_t file;
+    file.inode = dentry.inode_num;
+    file.open_count++;
+    file.pos = 0;
+    fsys_fops_t f_ops;
+    f_ops.open = &file_open;
+    f_ops.close = &file_close;
+    f_ops.read = &file_read;
+    f_ops.write = &file_write;
+    // find an available fd
+    for(i = 0; i < FSYS_MAX_FILE; i++){
+        if(!test_fd_arr[i]){
+            test_fd_arr[i] = &file;
+            return 0;
+        }
+    }
+    
+    return -1;
+}
+
+int32_t file_close(int32_t fd){
+    // free the corresponding fd
+    test_fd_arr[fd] = NULL;
+    return 0;
+}
+
+int32_t file_read(int32_t fd, void* buf, int32_t nbytes){
+    // use file array and fd to get inode and offset information
+    uint32_t inode = test_fd_arr[fd]->inode;
+    uint32_t file_loc = test_fd_arr[fd]->pos;
+    uint32_t bytes_read = read_data(inode, file_loc, (uint8_t*)buf, (uint32_t)nbytes);
+    if(bytes_read != -1){
+        test_fd_arr[fd]->pos += bytes_read;   
+    }
+    return bytes_read;
+}
+
+int32_t file_write(int32_t fd, void* buf, int32_t nbytes){
+    // return -1 for a read-only file system
+    return -1;
+}
 
 int32_t dir_open(const uint8_t* filename){
-    return 0;
+    // same as file open?
+    return file_open((uint8_t*)".");
 }
 
 int32_t dir_close(int32_t fd){
@@ -121,72 +177,42 @@ int32_t dir_close(int32_t fd){
 }
 
 int32_t dir_read(int32_t fd, void* buf, int32_t nbytes){
-    int i = 0;
     int32_t bytesread = 0;
     fsys_dentry_t dir_entry;
-    while(read_dentry_by_index (i, &dir_entry) == 0){
-        int8_t* fname = dir_entry.filename;
-        printf(fname);
-        printf("\n");
-        uint32_t namelen = strlen((int8_t*)fname);
-        memcpy((int8_t*)buf, (int8_t*)fname, namelen);
-        buf += 32;
-        bytesread += namelen;
-        i++;
+    fsys_file_t *dirfile = test_fd_arr[fd];
+    uint32_t readpos = dirfile->pos;
+    bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
+    // total num of dentry
+    int32_t dentry_count = boot_ptr->dir_count;
+    // check for invalid dentry index
+    if(readpos>=dentry_count) return 0;
+    if(read_dentry_by_index (readpos, &dir_entry) == 0){
+        // read dentry and print information, update offset of corresponding file
+        fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (dir_entry.inode_num + 1));
+        uint32_t namelen = strlen((int8_t*)dir_entry.filename);
+        if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
+        memset((int8_t*)buf, '\0', FILENAME_LEN);
+        memcpy((int8_t*)buf, (int8_t*)dir_entry.filename, namelen);
+        int32_t file_len = target_inode->length;
+        terminal_print("FILE NAME: ");
+        terminal_print(buf);
+        terminal_print("    FILE SIZE: ");
+        int8_t len_str_buf[ITOA_BUF_SIZE];
+        terminal_print(itoa(file_len, len_str_buf, 10));
+        terminal_print("    FILE TYPE: ");
+        int8_t type_str_buf[ITOA_BUF_SIZE];
+        terminal_print(itoa(dir_entry.filetype, type_str_buf, 10));
+        terminal_print("\n");
+        bytesread = namelen;
+        dirfile->pos = readpos+1;
+        return bytesread;
     }
-    return bytesread;
+    // if read failed return -1
+    return -1;
 }
 
 int32_t dir_write(int32_t fd, void* buf, int32_t nbytes){
+    // return -1 for a read only file system
     return -1;
-}
-
-// file syscall handlers that can't really work
-
-int32_t file_open(const uint8_t* filename){
-    return 0;
-}
-
-int32_t file_close(int32_t fd){
-    return 0;
-}
-
-int32_t file_read(int32_t fd, void* buf, int32_t nbytes){
-    /*
-    uint32_t inode = task_list.files[fd].inode;
-    uint32_t file_loc = task_list.files[fd].pos;
-    return read_data(inode, file_loc, (uint8_t*)buf, (uint32_t)nbytes);
-    */
-    return 0;
-}
-
-int32_t file_write(int32_t fd, void* buf, int32_t nbytes){
-    return -1;
-}
-
-
-void test_read_file(int8_t* filename){
-    clear();
-    fsys_dentry_t test_dentry;
-    if(read_dentry_by_name((uint8_t*)filename, &test_dentry) == -1){
-        printf("File does not exist.");
-        return;
-    }
-    bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
-    // total num of data block
-    int32_t dblock_count = boot_ptr->data_count;
-    // pointer to inode of target file
-    fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
-    int32_t file_len = target_inode->length;
-    uint8_t content[file_len];
-    read_data(test_dentry.inode_num, 0, content, file_len);
-    printf((int8_t*)content);
-}
-
-void test_read_dir(){
-    clear();
-    int32_t fd, nbytes;
-    int8_t* file_names[1388];
-    (void)dir_read(fd, file_names, nbytes);
 }
 
