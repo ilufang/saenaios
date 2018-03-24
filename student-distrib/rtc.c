@@ -5,7 +5,12 @@
 #include "boot/idt.h"
 #include "lib.h"
 
-static unsigned char block = 0;
+static int rtc_status = 0;
+static int rtc_freq = 0;
+static int rtc_count = 1;
+
+#define RTC_MAX_FREQ 	1024	/* max user frequency is 1024 Hz */
+#define RTC_IS_OPEN 	0x01	/* means rtc is opened in a file */
 
 void rtc_init(){
 	/* selects register B */
@@ -22,12 +27,11 @@ void rtc_init(){
 
 void rtc_handler(){
 	/* sends eoi */
+	rtc_count++;
 	send_eoi(RTC_IRQ_NUM);
 	/* reads from register C so that the interrupt will happen again */
 	outb(REG_C, RTC_PORT);
 	inb(CMOS_PORT);
-	block = 0;
-	/* Not functional yet */
 }
 
 void rtc_setrate(int rate) {
@@ -48,17 +52,22 @@ void rtc_setrate(int rate) {
 //TODO
 
 int rtc_open() {
-	char prev;
+	/* check if rtc is already opened */
+	if (rtc_status & RTC_IS_OPEN)
+		return 0;
+	/* initialize private data */
+	rtc_count = 1;
+	rtc_freq = 512;
 	/* avoid new interrupts come in */
 	disable_irq(RTC_IRQ_NUM);
 	/* select register A and disbale NMI */
 	outb(REG_A_NMI, RTC_PORT);
 	/* read and store current value */
-	prev = inb(CMOS_PORT);
+	char prev = inb(CMOS_PORT);
 	/* select register A again */
 	outb(REG_A_NMI, RTC_PORT);
 	/* set the 0-3 bits to adjust frequency to 2Hz */
-	outb(((prev & 0xF0) | 0x0F), CMOS_PORT);
+	outb(((prev & 0xF0) | 0x06), CMOS_PORT);
 	/* selects register B */
 	outb(REG_B_NMI, RTC_PORT);
 	/* read and store current value */
@@ -69,48 +78,41 @@ int rtc_open() {
 	outb(prev | BIT_SIX, CMOS_PORT);
 	/* enable new interrupts come in */
 	enable_irq(RTC_IRQ_NUM);
-	/* enable the corresponding irq line on PIC */
-	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
 	/* return 0 for successful open */
 	return 0;
 }
 
 int rtc_close() {
 	/* currently do nothing */
+	rtc_status &= ~RTC_IS_OPEN;
+	rtc_status = 0;
+	rtc_freq = 0;
+	rtc_count = 1;
 	return 0;
 }
 
 int rtc_read() {
-	char prev;
-	/* avoid new interrupts come in */
-	disable_irq(RTC_IRQ_NUM);
-	/* select register B and disable NMI */
-	outb(REG_B_NMI, RTC_PORT);
-	/* read and store current value */
-	prev = inb(CMOS_PORT);
-	/* set the register to register B again */
-	outb(REG_B_NMI, RTC_PORT);
-	/* turns off bit 6 of register B to disable PIE */
-	outb(prev & ~BIT_SIX, CMOS_PORT);
-	/* enable new interrupts come in */
-	outb(REG_C, RTC_PORT);
-	inb(CMOS_PORT);
-	enable_irq(RTC_IRQ_NUM);
-	/* set block to 1 */
-	block = 1;
-	/* wait until new interrupts come in */
+
 	while(1) {
-		if (block == 0) {						/* re-enable PIE and return 0 */
-			outb(REG_B_NMI, RTC_PORT);
-			prev = inb(CMOS_PORT);
-			outb(REG_B_NMI, RTC_PORT);
-			outb(prev | BIT_SIX, CMOS_PORT);
+		if (rtc_count % rtc_freq == 0)
 			return 0;
-		}
 	}
+
 }
 
-int rtc_write(int rate) {
+int rtc_write(int freq) {
+	/* sanity check */
+	if (freq < 2 || freq > 1024)
+		return -1;
+
+	if (is_power_of_two(freq) == -1)
+		return -1;
+	/* set rtc_freq */
+	rtc_freq = RTC_MAX_FREQ / freq;
+
+	return 0;
+
+/*
 	char prev;
 	char rate_mask;
 
@@ -146,4 +148,17 @@ int rtc_write(int rate) {
 	outb((prev & 0xF0) | rate_mask, CMOS_PORT); //write only our rate to A.
 	enable_irq(RTC_IRQ_NUM);
 	return 0;
+*/
+}
+
+int is_power_of_two(int freq) {
+
+	if (freq == 0)
+		return 0;
+	while (freq != 1) {
+		if (freq % 2 != 0)
+			return -1;
+		freq = freq / 2;
+	}
+	return -1;
 }

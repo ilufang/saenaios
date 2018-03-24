@@ -66,8 +66,12 @@ void rtc_setrate(int rate);
 
 int rtc_open();
 
+int rtc_close();
+
 int rtc_read();
 
-int rtc_write();
+int rtc_write(int freq);
+
+int is_power_of_two(int freq);
 
 #endif /* _RTC_H */
