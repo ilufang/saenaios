@@ -98,11 +98,11 @@ int32_t rtc_open(const uint8_t *filename) {
 
 int32_t rtc_close(int32_t fd) {
 	/* currently do nothing */
-	// disable_irq(RTC_IRQ_NUM);
-	// block = 0;
-	// freq = 0;
-	// count = 1;
-	// idt_removeEventListener(RTC_IRQ_NUM, &rtc_handler);
+	disable_irq(RTC_IRQ_NUM);
+	block = 0;
+	freq = 0;
+	count = 1;
+	idt_removeEventListener(RTC_IRQ_NUM, &rtc_handler);
 	return 0;
 }
 
