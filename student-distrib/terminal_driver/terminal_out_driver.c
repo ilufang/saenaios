@@ -107,6 +107,7 @@ int terminal_out_escape_sequence(uint8_t *buf,int max_length){
 
 void terminal_out_putc(uint8_t c){
 	int temp_offset;
+    if(c == 0) return;
 	if(c == '\n' || c == '\r') {
         terminal_out_newline();
     } else {

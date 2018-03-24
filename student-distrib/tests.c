@@ -217,6 +217,7 @@ void read_file_by_name(int8_t* filename){
     terminal_out_write(content, file_len);
     terminal_print("\nDone reading file: ");
     terminal_print(filename);
+    terminal_print("\n");
 }
 
 /**
@@ -262,7 +263,7 @@ int test_read_file(){
     terminal_out_clear();
     terminal_print("Reading text file...\n");
     read_file_by_name("frame0.txt");
-	terminal_print("\nPress enter to continue...");
+	terminal_print("Press enter to continue...");
 	
     while(kb_test_last_key != '\n');
     
@@ -270,7 +271,7 @@ int test_read_file(){
     terminal_out_clear();
     terminal_print("Reading program binary...\n");
     read_file_by_name("hello");
-    terminal_print("\nPress enter to continue...");
+    terminal_print("Press enter to continue...");
 	
     while(kb_test_last_key != '\n');
 
@@ -278,7 +279,7 @@ int test_read_file(){
     terminal_out_clear();
     terminal_print("Reading another program binary...\n");
     read_file_by_name("ls");
-    terminal_print("\nPress enter to continue...");
+    terminal_print("Press enter to continue...");
 	
     while(kb_test_last_key != '\n');
     
@@ -286,7 +287,7 @@ int test_read_file(){
     terminal_out_clear();
     terminal_print("Reading that very long file...\n");
     read_file_by_name("verylargetextwithverylongname.tx");
-    terminal_print("\nPress enter to continue...");
+    terminal_print("Press enter to continue...");
     
     while(kb_test_last_key != '\n');
     
@@ -295,7 +296,7 @@ int test_read_file(){
     terminal_out_clear();
     terminal_print("Reading a filename that doesn't exist...\n");
     read_file_by_name("seagullspokeatmyhead");
-    terminal_print("\nPress enter to continue...");
+    terminal_print("Press enter to continue...");
     
     while(kb_test_last_key != '\n');
     terminal_out_clear();
@@ -303,7 +304,7 @@ int test_read_file(){
     while(read_file_by_index(i)==0){
         kb_test_last_key = '\0';
         i++;
-        terminal_print("\nPress enter to read the next file...\n");
+        terminal_print("\nPress enter to read the next file...");
         while(kb_test_last_key != '\n');
         terminal_out_clear();
     }

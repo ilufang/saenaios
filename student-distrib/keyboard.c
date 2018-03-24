@@ -212,7 +212,7 @@ uint8_t kbdcs[128] =
  *	@param c: the char to add to buffer
  */
 void buf_push(uint8_t c){
-    if(curr_char_ptr < KEY_BUF_SIZE - 1){
+    if(curr_char_ptr < KEY_BUF_SIZE){
         kbd_buf[curr_char_ptr] = c;   
         curr_char_ptr++;
     }else if(c == ENTER_P && curr_char_ptr == KEY_BUF_SIZE - 1){
@@ -281,10 +281,12 @@ void shift_buf(int num_bytes){
  *        keyboard buffer and print to the screen
  */
 void enter(){
-    prev_enter = curr_char_ptr;
-    buf_push('\n');
-    //(void)write(1, seq_enter, 3);
-    terminal_out_write((uint8_t*)seq_enter, 3);
+    if(curr_char_ptr < KEY_BUF_SIZE){
+        prev_enter = curr_char_ptr;
+        buf_push('\n'); 
+        //(void)write(1, seq_enter, 3);
+        terminal_out_write((uint8_t*)seq_enter, 3);
+    }
     if(read_test_mode == 1){
         uint8_t testbuf[prev_enter];
         int fd, nbytes;
@@ -326,8 +328,6 @@ void ctrl_l(){
 }
 
 
-}
-
 /**
  *	Helper function to handle regular keypress
  *  
@@ -367,13 +367,17 @@ void regular_key(uint8_t scancode){
             scanchar = kbdcs[scancode];
             break;         
     }
-    // write the character to terminal
-    buf_push(scanchar);
-    //putc(scanchar);
-    uint8_t keybuf[1];
-    keybuf[0] = scanchar;
-    //(void)write(1, keybuf, 1);
-    terminal_out_write(keybuf,1);
+    if (scanchar == 0 ) return;
+    
+    if(curr_char_ptr < KEY_BUF_SIZE-1){
+        // write the character to terminal
+        buf_push(scanchar);
+        //putc(scanchar);
+        uint8_t keybuf[1];
+        keybuf[0] = scanchar;
+        //(void)write(1, keybuf, 1);
+        terminal_out_write(keybuf,1);
+    }
 }
 
 /**
@@ -428,31 +432,6 @@ void update_mode(uint8_t scancode){
 }
 
 
-void keyboard_init(){
-	idt_addEventListener(KBD_IRQ_NUM, &keyboard_handler);
-}
-
-int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes){
-    int i = 0;
-    for(i = 0; i <= prev_enter; i++){
-        buf[i] = kbd_buf[i];
-    }
-    shift_buf(prev_enter);
-    return i;
-}
-
-int32_t keyboard_write(int32_t fd, void* buf, int32_t nbytes){
-    return -1;
-}
-
-int32_t keyboard_open(const uint8_t* filename){
-    clear_buf();
-    return 0;
-}
-
-int32_t keyboard_close(int32_t fd){
-    clear_buf();
-    return 0;
 
 void keyboard_handler(){
 	uint8_t scancode;
@@ -499,3 +478,35 @@ void keyboard_handler(){
     
 	send_eoi(KBD_IRQ_NUM);
 }
+
+
+void keyboard_init(){
+	idt_addEventListener(KBD_IRQ_NUM, &keyboard_handler);
+}
+
+int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes){
+    if(prev_enter < 0){
+        return -1;
+    }
+    int i = 0;
+    for(i = 0; i <= prev_enter; i++){
+        buf[i] = kbd_buf[i];
+    }
+    shift_buf(prev_enter);
+    return i;
+}
+
+int32_t keyboard_write(int32_t fd, void* buf, int32_t nbytes){
+    return -1;
+}
+
+int32_t keyboard_open(const uint8_t* filename){
+    clear_buf();
+    return 0;
+}
+
+int32_t keyboard_close(int32_t fd){
+    clear_buf();
+    return 0;
+}
+
