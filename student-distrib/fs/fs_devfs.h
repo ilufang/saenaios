@@ -16,7 +16,7 @@
 typedef struct s_dev_driver{
 	char name[VFS_FILENAME_LEN];
 	int 		name_length;
-	struct file_operations_t* driver_op;
+	file_operations_t* driver_op;
 } dev_driver_t;
 
 void devfs_installfs();

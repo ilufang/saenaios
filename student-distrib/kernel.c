@@ -18,6 +18,7 @@
 #include "proc/task.h"
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
+#include "libc.h"
 
 #define RUN_TESTS
 
@@ -174,10 +175,13 @@ void entry(unsigned long magic, unsigned long addr) {
 	//mount device driver fs
 	devfs_installfs();
 
+	mount("","/dev","devfs",0,"");
+
 	devfs_register_driver("null_driver",0x2);
 
 	int fd;
-	fd = open("/dev");
+	fd = open("/dev",O_RDONLY, 0);
+
 #ifdef RUN_TESTS
 	/* Run tests */
 	//launch_tests();

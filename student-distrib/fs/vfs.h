@@ -107,7 +107,6 @@ typedef struct s_inode {
 	uint32_t ino;
 	int file_type;
 	int open_count;
-	uint16_t mode;
 	super_block_t *sb;
 	file_operations_t *f_op;
 	inode_operations_t *i_op;
@@ -230,6 +229,7 @@ int syscall_read(int fd, int bufaddr, int size);
  *	In addition to regular read, the `ece391_read` can also be performed on an
  *	directory, in which case each call to read will read in the filename of an
  *	entry in the directory.
+ *	@see syscall_read
  *
  *	@param fd, bufaddr, size: see `syscall_read`
  *	@return see `syscall_read`

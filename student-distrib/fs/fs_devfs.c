@@ -45,7 +45,7 @@ void devfs_installfs() {
 	devfs_f_op . readdir = &devfs_f_op_readdir;
 
 	//inflate devfs in sup
-	strcpy("devfs", devfs.name);
+	strcpy(devfs.name,"devfs");
 
 	devfs.get_sb = &devfs_get_sb;
 
@@ -73,7 +73,7 @@ struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags, const c
 	devfs_root_inode_ino = devfs_root_inode_ino;
 
 	//inflate root dentry
-	strcpy("dev",devfs_dentry_array[devfs_root_inode_ino].filename);
+	strcpy(devfs_dentry_array[devfs_root_inode_ino].filename,"/dev");
 	devfs_dentry_array[devfs_root_inode_ino].inode = &devfs_inode_array[devfs_root_inode_ino];
 
 	//inflate superblock
@@ -169,7 +169,7 @@ dentry_t* devfs_i_op_lookup(inode_t* inode,const char* path){
 				// i_op already initialized during allocation
 				// private data NULL
 				// copy device driver name
-				strcpy(devfs_table[i].name, devfs_dentry_array[new_inode->ino].filename);
+				strcpy(devfs_dentry_array[new_inode->ino].filename,devfs_table[i].name);
 				return &devfs_dentry_array[new_inode->ino];
 			}
 		}
@@ -187,7 +187,7 @@ int devfs_register_driver(const char* name, file_operations_t *ops){
 	if (!ops) return -1;
 	if (devfs_table_index > DEVFS_DRIVER_LIMIT) return -1;
 
-	strcpy(name, devfs_table[devfs_table_index].name);
+	strcpy(devfs_table[devfs_table_index].name, name);
 
 	devfs_table[devfs_table_index].name_length = 0;
 
@@ -199,7 +199,7 @@ int devfs_register_driver(const char* name, file_operations_t *ops){
 	devfs_table[devfs_table_index].driver_op = ops;
 
 	++devfs_table_index;	
-	return 1;
+	return 0;
 }
 
 void devfs_unregister_driver(const char* name){
@@ -216,6 +216,8 @@ int devfs_f_op_open(inode_t* inode, file_t* file){
 	file->mode = inode->mode;
 	file->pos = 0;	//TODO
 	file->f_op = &devfs_f_op;
+
+	return 0;
 }
 
 int devfs_f_op_release(inode_t* inode, file_t* file){
@@ -231,6 +233,6 @@ void devfs_f_op_readdir(file_t* file, dirent_t* dirent){
 	}
 	dirent->dirent.index = file->pos;
 	dirent->dirent.data = NULL;
-	strcpy(devfs_table[file->pos].name, dirent -> dentry. filename);
+	strcpy(dirent -> dentry. filename , devfs_table[file->pos].name);
 	file->pos ++;
 }

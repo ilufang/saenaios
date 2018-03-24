@@ -72,7 +72,7 @@ int find_dentry(nameidata_t* nd){
 		return -errno;
 	}
 	while (*nd->path){
-		if (!(temp_dentry = (*(nd->dentry->inode->i_op->lookup))(nd->path, nd->dentry->inode))){
+		if (!(temp_dentry = (*(nd->dentry->inode->i_op->lookup))(nd->dentry->inode, nd->path))){
 			errno = ENOSYS;
 			return -errno;
 		}

@@ -1,5 +1,6 @@
 #include "pathname.h"
 
+#include "../lib.h"
 #include "../errno.h"
 
 int path_cd(pathname_t path, const char *relpath) {
@@ -8,7 +9,7 @@ int path_cd(pathname_t path, const char *relpath) {
 	if (!path || !relpath || path[0] != '/') {
 		return -EINVAL;
 	}
-	
+
 	ptr = strlen(path);
 
 	if (path[ptr-1] != '/') {
@@ -16,7 +17,7 @@ int path_cd(pathname_t path, const char *relpath) {
 		path[ptr++] = '/';
 		path[ptr] = '\0'; // In case of abnormal exit, maintain path validity
 	}
-	
+
 	if (relpath[0] == '/') {
 		// CD to absolute path
 		ptr = 1;
@@ -62,9 +63,10 @@ int path_cd(pathname_t path, const char *relpath) {
 			for(; (*relpath != '/' && *relpath != '\0'); relpath++) {
 				path[ptr++] = *relpath;
 			}
-			if (*relpath == '/')
+			if (*relpath == '/'){
 				relpath++;
-			path[ptr++] = '/';
+				path[ptr++] = '/';
+			}
 		}
 	}
 

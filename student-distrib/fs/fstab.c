@@ -136,11 +136,11 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 		}
 	}
 
-	if (!avail_idx) {
+	if (avail_idx<0) {
 		return -ENFILE;
 	}
 
-	strcpy(dest, fstab_mnt[avail_idx].mountpoint);
+	strcpy(fstab_mnt[avail_idx].mountpoint, dest);
 
 	fstab_mnt[avail_idx].superblock = (*fs->get_sb)(fs, opts->mountflags,
 													opts->source, opts->opts);

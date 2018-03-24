@@ -44,6 +44,8 @@ int syscall_open(int pathaddr, int flags, int mode) {
 		return -errno;
 	}
 
+	inode->open_count++;
+
 	if (!(file = vfs_open_file(inode, flags))) {
 		return -errno;
 	}
