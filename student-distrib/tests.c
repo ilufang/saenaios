@@ -182,7 +182,8 @@ int rtc_test() {
 	kb_test_last_key = '\0';
 	while(kb_test_last_key != 's');
 	idt_addEventListener(RTC_IRQ_NUM, &rtc_test_handler);
-	rtc_setrate(14); // Slower!
+	rtc_open();
+	rtc_setrate(0x06); // Slower!
 	kb_test_last_key = '\0';
 	while(kb_test_last_key != 'e');
 	idt_removeEventListener(RTC_IRQ_NUM);
@@ -192,6 +193,25 @@ int rtc_test() {
 }
 
 /* Checkpoint 2 tests */
+int rtc_test_2() {
+	TEST_HEADER;
+	int i, j;
+	int freq = 2;
+	idt_removeEventListener(KBD_IRQ_NUM);
+	idt_removeEventListener(RTC_IRQ_NUM);
+	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
+	rtc_open();
+	rtc_setrate(0x06);
+	for (i = 0; i < 10; i++) {
+		rtc_write(freq);
+		for (j = 0; j < 100; j++) {
+			rtc_read();
+			test_interrupts();
+		}
+		freq *= 2;
+	}
+	clear();
+}
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -214,19 +234,20 @@ void launch_tests() {
 	// IDT tests
 	TEST_OUTPUT("idt_test", idt_test());
 	// The following test should trigger a fault
-	TEST_OUTPUT("idt_test_de", idt_test_de());
+	// TEST_OUTPUT("idt_test_de", idt_test_de());
 	// The following test should not trigger any fault
 	TEST_OUTPUT("idt_test_usr", idt_test_usr());
 
 	// Paging test
 	// The following test should trigger a fault
-	TEST_OUTPUT("paging_test", paging_test());
+	// TEST_OUTPUT("paging_test", paging_test());
 
 	// KB test
-	TEST_OUTPUT("kb_test", kb_test());
+	// TEST_OUTPUT("kb_test", kb_test());
 
 	// RTC test
-	TEST_OUTPUT("rtc_test", rtc_test());
+	// TEST_OUTPUT("rtc_test", rtc_test());
+	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);

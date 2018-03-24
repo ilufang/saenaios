@@ -51,6 +51,8 @@ void rtc_init();
  */
 void rtc_handler();
 
+void test_rtc_handler();
+
 /**
  *	Set rate of RTC interrupts
  *

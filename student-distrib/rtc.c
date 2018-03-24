@@ -29,7 +29,17 @@ void rtc_handler(){
 	/* sends eoi */
 	rtc_count++;
 	send_eoi(RTC_IRQ_NUM);
+	// rtc_read();
+	// test_interrupts();
 	/* reads from register C so that the interrupt will happen again */
+	outb(REG_C, RTC_PORT);
+	inb(CMOS_PORT);
+}
+
+void test_rtc_handler() {
+	rtc_count++;
+	send_eoi(RTC_IRQ_NUM);
+	// test_interrupts();
 	outb(REG_C, RTC_PORT);
 	inb(CMOS_PORT);
 }
@@ -56,28 +66,29 @@ int rtc_open() {
 	if (rtc_status & RTC_IS_OPEN)
 		return 0;
 	/* initialize private data */
+	rtc_status |= RTC_IS_OPEN;
 	rtc_count = 1;
 	rtc_freq = 512;
 	/* avoid new interrupts come in */
-	disable_irq(RTC_IRQ_NUM);
+	// disable_irq(RTC_IRQ_NUM);
 	/* select register A and disbale NMI */
-	outb(REG_A_NMI, RTC_PORT);
+	// outb(REG_A_NMI, RTC_PORT);
 	/* read and store current value */
-	char prev = inb(CMOS_PORT);
+	// char prev = inb(CMOS_PORT);
 	/* select register A again */
-	outb(REG_A_NMI, RTC_PORT);
+	// outb(REG_A_NMI, RTC_PORT);
 	/* set the 0-3 bits to adjust frequency to 2Hz */
-	outb(((prev & 0xF0) | 0x06), CMOS_PORT);
+	// outb(((prev & 0xF0) | 0x06), CMOS_PORT);
 	/* selects register B */
-	outb(REG_B_NMI, RTC_PORT);
+	// outb(REG_B_NMI, RTC_PORT);
 	/* read and store current value */
-	prev = inb(CMOS_PORT);
+	// prev = inb(CMOS_PORT);
 	/* set the register to register B again */
-	outb(REG_B_NMI, RTC_PORT);
+	// outb(REG_B_NMI, RTC_PORT);
 	/* turns on bit 6 of register B to enable PIE */
-	outb(prev | BIT_SIX, CMOS_PORT);
+	// outb(prev | BIT_SIX, CMOS_PORT);
 	/* enable new interrupts come in */
-	enable_irq(RTC_IRQ_NUM);
+	// enable_irq(RTC_IRQ_NUM);
 	/* return 0 for successful open */
 	return 0;
 }
@@ -92,7 +103,8 @@ int rtc_close() {
 }
 
 int rtc_read() {
-
+	if (rtc_status == 0 || rtc_freq == 0)
+		return 0;
 	while(1) {
 		if (rtc_count % rtc_freq == 0)
 			return 0;
@@ -102,6 +114,9 @@ int rtc_read() {
 
 int rtc_write(int freq) {
 	/* sanity check */
+	if (!RTC_IS_OPEN)
+		return -1;
+
 	if (freq < 2 || freq > 1024)
 		return -1;
 
@@ -140,14 +155,6 @@ int rtc_write(int freq) {
 		rate_mask = 0x06;
 	else
 		return -1;
-
-	disable_irq(RTC_IRQ_NUM);
-	outb(REG_A_NMI, RTC_PORT);		// set index to register A, disable NMI
-	prev = inb(CMOS_PORT);			// get initial value of register A
-	outb(REG_A_NMI, RTC_PORT);		// reset index to A
-	outb((prev & 0xF0) | rate_mask, CMOS_PORT); //write only our rate to A.
-	enable_irq(RTC_IRQ_NUM);
-	return 0;
 */
 }
 
@@ -160,5 +167,5 @@ int is_power_of_two(int freq) {
 			return -1;
 		freq = freq / 2;
 	}
-	return -1;
+	return 0;
 }
