@@ -61,4 +61,6 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_WRITE, syscall_write);
 	syscall_register(SYSCALL_MOUNT, syscall_mount);
 	syscall_register(SYSCALL_UMOUNT, syscall_umount);
+
+	syscall_register(SYSCALL_GETDENTS, syscall_getdents);
 }

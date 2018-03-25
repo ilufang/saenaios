@@ -68,7 +68,7 @@ DIR *fdopendir(int fd) {
 	}
 	libc_dir_list[i].count = 1;
 	libc_dir_list[i].fd = fd;
-	libc_dir_list[i].dent.index = 0;
+	libc_dir_list[i].dent.index = -1;
 	return libc_dir_list + i;
 }
 
