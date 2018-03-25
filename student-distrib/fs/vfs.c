@@ -113,6 +113,9 @@ int syscall_read(int fd, int bufaddr, int count) {
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
+	if (!file->f_op->read) {
+		return -ENOSYS;
+	}
 	// TODO: no permission check
 	return (*file->f_op->read)(file, (uint8_t *) bufaddr, count, &(file->pos));
 }
@@ -132,6 +135,9 @@ int syscall_write(int fd, int bufaddr, int count) {
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
+	}
+	if (!file->f_op->write) {
+		return -ENOSYS;
 	}
 	// TODO: no permission check
 	return (*file->f_op->write)(file, (uint8_t *) bufaddr, count, &(file->pos));
@@ -153,12 +159,15 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
+	if (!file->f_op->readdir) {
+		return -ENOSYS;
+	}
 	// TODO: no permission check
 	return (*file->f_op->readdir)(file, (struct dirent *)bufaddr);
 }
 
 file_t *vfs_open_file(inode_t *inode, int mode) {
-	int i;
+	int i, ret;
 
 	if (!inode || !(mode & (O_RDONLY | O_WRONLY))) {
 		errno = EINVAL;
@@ -180,7 +189,12 @@ file_t *vfs_open_file(inode_t *inode, int mode) {
 	vfs_files[i].open_count = 1;
 	vfs_files[i].pos = 0;
 	vfs_files[i].f_op = inode->f_op;
-	(*inode->f_op->open)(inode, vfs_files + i);
+	ret = (*inode->f_op->open)(inode, vfs_files + i);
+	if (ret != 0) {
+		errno = -ret;
+		vfs_files[i].inode = NULL;
+		return NULL;
+	}
 	return vfs_files + i;
 }
 
