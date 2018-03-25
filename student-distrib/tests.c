@@ -301,7 +301,7 @@ void launch_tests() {
 	// RTC test
 	// TEST_OUTPUT("rtc_test", rtc_test());
 
-	
+
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);
@@ -311,7 +311,5 @@ void launch_tests() {
 
 	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 
-	//fs_test();
+	fs_test();
 }
-
-

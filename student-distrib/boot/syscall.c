@@ -53,7 +53,7 @@ void syscall_register_all() {
 	syscall_register(10, NULL);
 
 	// POSIX System calls
-	
+
 	// VFS
 	syscall_register(SYSCALL_OPEN, syscall_open);
 	syscall_register(SYSCALL_CLOSE, syscall_close);
@@ -61,4 +61,5 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_WRITE, syscall_write);
 	syscall_register(SYSCALL_MOUNT, syscall_mount);
 	syscall_register(SYSCALL_UMOUNT, syscall_umount);
+	syscall_register(SYSCALL_GETDENTS, syscall_getdents);
 }

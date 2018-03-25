@@ -68,7 +68,7 @@ DIR *fdopendir(int fd) {
 	}
 	libc_dir_list[i].count = 1;
 	libc_dir_list[i].fd = fd;
-	libc_dir_list[i].dent.index = 0;
+	libc_dir_list[i].dent.index = -1;
 	return libc_dir_list + i;
 }
 
@@ -77,7 +77,7 @@ struct dirent *readdir(DIR *dirp) {
 		errno = EINVAL;
 		return NULL;
 	}
-	getdents(dirp->fd, &(dirp->dent));
+	errno = -getdents(dirp->fd, &(dirp->dent));
 	return &(dirp->dent);
 }
 
@@ -101,7 +101,7 @@ void rewinddir(DIR *dirp) {
 		errno = EINVAL;
 		return;
 	}
-	dirp->dent.index = 0;
+	dirp->dent.index = -1;
 }
 
 int closedir(DIR *dirp) {

@@ -19,7 +19,7 @@ static struct s_super_block devfs_sb;
 // 'dev' directory is set to be the index DEVFS_DRIVER_LIMIT
 static dev_driver_t devfs_table[DEVFS_DRIVER_LIMIT+1];
 
-void devfs_installfs() {
+int devfs_installfs() {
 	// fstable stores value, so no worry here
 	file_system_t devfs;
 
@@ -42,7 +42,7 @@ void devfs_installfs() {
 
 	// dev is defined to be indexed DEVFS_DRIVER_LIMIT
 	strcpy(devfs_table[DEVFS_DRIVER_LIMIT].name,"/dev");
-	//may need error checking?	
+	//may need error checking?
 
 	// inflate inode for /dev directory
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.ino = DEVFS_DRIVER_LIMIT;
@@ -59,7 +59,7 @@ void devfs_installfs() {
 
 	devfs.kill_sb = &devfs_kill_sb;
 
-	fstab_register_fs(&devfs);
+	return fstab_register_fs(&devfs);
 }
 
 struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags,
@@ -75,7 +75,7 @@ struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags,
 
 	// initialize device table
 	// this fields are the same for all device inodes here
-	for (i=0;i<DEVFS_INODE_LIMIT;++i){
+	for (i=0;i<DEVFS_DRIVER_LIMIT;++i){
 		devfs_table[i].name[0] = '\0';
 		devfs_table[i].inode.open_count = 0;
 		devfs_table[i].inode.ino = i;
@@ -129,17 +129,17 @@ int devfs_s_op_free_inode(inode_t* inode){
 	return 0;
 }
 
-int devfs_s_op_read_inode(){
+int devfs_s_op_read_inode(inode_t* inode){
 	// does nothing actually
 	return -ENOSYS;
 }
 
-int devfs_s_op_write_inode(){
+int devfs_s_op_write_inode(inode_t* inode){
 	// does nothing actually
 	return -ENOSYS;
 }
 
-int devfs_s_op_drop_inode(){
+int devfs_s_op_drop_inode(inode_t* inode){
 	// does nothing actually
 	return -ENOSYS;
 }
@@ -178,7 +178,7 @@ int devfs_register_driver(const char* name, file_operations_t *ops){
 	// find a place to register and repeated driver check
 	for (i = 0; i < DEVFS_DRIVER_LIMIT; i++) {
 		if (devfs_table[i].name[0] == '\0') {
-			// found a empty slots 
+			// found a empty slots
 			break;
 		} else if (strncmp(devfs_table[i].name, name, VFS_FILENAME_LEN) == 0) {
 			// same name driver already exists
@@ -215,14 +215,17 @@ int devfs_unregister_driver(const char* name){
 }
 
 int devfs_f_op_open(inode_t* inode, file_t* file){
-	// This should not be called, driver's f_op will handle instead
-	return -ENOSYS;
+	if (!inode || !file) return -EINVAL;
+	file->inode = inode;
+	file->pos = 0;
+	file->f_op = inode->f_op;
+	//not private data
+	return 0;
 }
 
 int devfs_f_op_release(inode_t* inode, file_t* file){
-	if (inode.open_count == 0)
+	if (inode->open_count == 0)
 		return -EEXIST;
-	--inode.open_count;	
 	return 0;
 }
 

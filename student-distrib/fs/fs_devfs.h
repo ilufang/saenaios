@@ -16,7 +16,7 @@
 
 /**
  *	A struct for entries of the device driver table
- *	
+ *
  */
 typedef struct s_dev_driver{
 	char name[VFS_FILENAME_LEN + 1];	///<driver name
@@ -28,7 +28,7 @@ typedef struct s_dev_driver{
  *
  *	initialize get_sb,s_op i_op f_op and install file system information
  */
-void devfs_installfs();
+int devfs_installfs();
 
 /**
  *	inflate the superblock object for devfs
