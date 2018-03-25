@@ -225,6 +225,43 @@ int test_syscall_dispatcher() {
 	return PASS;
 }
 
+int test_stdio_with_fd(){
+	int fd, pre_fd;
+	char temp_buf[5];
+	fd = open("/dev/stdout",O_RDONLY, 0);
+	pre_fd = fd;
+	if (fd < 0){
+		return FAIL;
+	}
+	char clear_sequence[4] = "^[*";
+	clear_sequence[2] = 12;
+	write(fd, clear_sequence, 3);
+
+	write(fd, "You should see a cleared screen with this line!",47);
+
+	printf("\nThis is a message sent by printf through stdout!\n");
+
+	printf("Reading stdout...\nNow this should return 0: %d \n", read(fd,temp_buf,3));
+	if (read(fd,temp_buf,3) != 0)
+		assertion_failure();
+	close(fd);
+
+	printf("Writing to a closed stdout...\nShould be a error code: %d \n",write (fd, "see", 3));
+
+	if (write (fd, "see", 3) != -EBADF)
+		assertion_failure();
+
+	//do it again!
+	fd = open("/dev/stdout",O_RDONLY, 0);
+
+	if (pre_fd!=fd) {
+		printf("stdio: FD leak\n");
+		//should give same fd for now
+		return FAIL;
+	}
+
+	return PASS;
+}
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -241,8 +278,11 @@ void launch_tests() {
 	idt_removeEventListener(RTC_IRQ_NUM);
 
 	// Begin testing
+
 	clear();
 	printf("Running tests...\n");
+
+	TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
 	// IDT tests
 	TEST_OUTPUT("idt_test", idt_test());
@@ -261,6 +301,8 @@ void launch_tests() {
 	// RTC test
 	// TEST_OUTPUT("rtc_test", rtc_test());
 
+	
+
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_removeEventListener(RTC_IRQ_NUM);
@@ -269,20 +311,7 @@ void launch_tests() {
 
 	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 
-	fs_test();
+	//fs_test();
 }
 
-void temp_terminal_test(){
-	terminal_out_open();
-	int i;
-	char temp_buf[30]="^[*f**king****test^[*";
-	//int i;
-	temp_buf[2] = 12;
-	temp_buf[20] = 13;
-	terminal_out_write((uint8_t*)temp_buf,21);
-	temp_buf[2] = 8;
-	terminal_out_write((uint8_t*)temp_buf,21);
-	temp_buf[20] = '*';
 
-	while(1);
-}

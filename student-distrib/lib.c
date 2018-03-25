@@ -2,6 +2,7 @@
  * vim:ts=4 noexpandtab */
 
 #include "lib.h"
+#include "terminal_driver/terminal_out_driver.h"
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80

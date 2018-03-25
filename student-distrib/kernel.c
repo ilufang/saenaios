@@ -172,32 +172,16 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	//create a basic process
 	task_create_kernel_pid();
-	//mount device driver fs
+	//install device driver fs
 	devfs_installfs();
-
+	//mount device driver fs
 	mount("","/dev","devfs",0,"");
-
+	//register std out
 	terminal_out_driver_register();
-
-	int fd;
-	fd = open("/dev/stdout",O_RDONLY, 0);
-	if (fd < 0){
-		printf("open stdout failed!\n");
-	}
-	char clear_sequence[4] = "^[*";
-	clear_sequence[2] = 12;
-	write(fd, clear_sequence, 3);
-
-	write(fd, "f**kingYEAH!",12);
-
-	close(fd);
-
-	printf("should be a error code: %d \n",write (fd, "see", 3));
 
 #ifdef RUN_TESTS
 	/* Run tests */
-	//launch_tests();
-    temp_terminal_test();
+	launch_tests();
 #endif
 	/* Execute the first program ("shell") ... */
 
