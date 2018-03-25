@@ -43,7 +43,7 @@ typedef unsigned short uid_t;
 typedef unsigned long id_t;
 
 /// Used for file serial numbers.
-typedef unsigned long ino_t;
+typedef long ino_t;
 
 // /// Used for interprocess communication.
 // TODO: key_t

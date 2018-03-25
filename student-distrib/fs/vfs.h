@@ -23,7 +23,6 @@
 struct s_file;
 struct s_inode;
 struct s_super_block;
-struct s_dentry;
 struct s_file_operations;
 struct s_inode_operations;
 struct s_super_operations;
@@ -102,11 +101,16 @@ typedef struct s_file_operations {
 	 *	first iteration, the `index` field of `dirent` must contain -1. For
 	 *	subsequent reads, the `index` field will contain the index of the last
 	 *	visited index. Index does not have to be consecutive, but the same index
-	 *	must read out the same dir entry.
+	 *	must read out the same dir entry. Driver may also utilize the `data`
+	 *	field to store private data, but it will not be notified of the deletion
+	 *	of `dirent`.
 	 *
 	 *	@param file: the file to iterate, must be a directory
 	 *	@param dirent: the dirent, whose `index` field is used to track
-	 *				   iteration progress
+	 *				   iteration progress. The output dir entry will be written
+	 *				   to the `ino` and `filename` field.
+	 *	@return 0 on success, or the negative of an errno on failure.
+	 *			Specifically, -ENOENT when iteration has finished
 	 */
 	int (*readdir)(struct s_file *file, struct dirent *dirent);
 } file_operations_t;
@@ -253,7 +257,7 @@ typedef struct s_super_block {
  *	A file in the VFS (not opened)
  *
  *	Inode contains metadata information of a file, such as attributes and its
- *	physical location on disk (but NOT filename, which only exists in dentry).
+ *	physical location on disk (but NOT filename, which only exists in dirent).
  *	`file_t`s can be opened from inodes.
  *
  *	An inode could be interpreted as a `file_t`, at which the VFS is the user

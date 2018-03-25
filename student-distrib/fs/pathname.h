@@ -15,7 +15,7 @@
  *	when directly declared, but will not make copies when used in function
  *	parameters.
  */
-typedef char pathname_t[PATH_MAX_LEN];
+typedef char pathname_t[PATH_MAX_LEN + 1];
 
 /**
  *	Apply a relative path to an absolute path

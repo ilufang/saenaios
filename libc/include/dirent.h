@@ -15,11 +15,9 @@
  */
 struct dirent {
 	long ino; ///< I-number of file
-	char filename[32]; ///< Name of file (see VFS_FILENAME_LEN)
-	union {
-		int index; ///< Index number in the directory
-		void *data; ///< Custom private data
-	} dirent;
+	char filename[32 + 1]; ///< Name of file (see VFS_FILENAME_LEN)
+	int index; ///< Index number in the directory
+	int data; ///< Custom private data
 };
 
 /**
