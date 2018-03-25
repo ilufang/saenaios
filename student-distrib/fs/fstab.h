@@ -18,7 +18,7 @@
  *	super block with filled s_op driver functions.
  */
 typedef struct s_file_system {
-	char name[FSTAB_FS_NAME_LEN]; ///< Name used by `mount` call
+	char name[FSTAB_FS_NAME_LEN + 1]; ///< Name used by `mount` call
 	super_block_t *(*get_sb)(struct s_file_system *fs, int flags,
 							const char *dev, const char *opts);
 							///< Initialization and superblock retrieval method
@@ -33,8 +33,7 @@ typedef struct s_file_system {
  */
 typedef struct s_vfsmount {
 	pathname_t mountpoint; ///< Path of mountpoint
-	dentry_t *root; ///< dentry of mounted root in current FS
-	super_block_t *superblock; ///< Superblock
+	super_block_t *sb; ///< Superblock
 	int open_count; ///< Number of opened files. Used to detect open files on umount
 } vfsmount_t;
 

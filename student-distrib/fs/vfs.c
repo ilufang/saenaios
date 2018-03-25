@@ -71,7 +71,7 @@ int syscall_close(int fd, int b, int c) {
 		return -ESRCH;
 	}
 	file = proc->files[fd];
-	if (!file || fd >= 16 || fd < 0) {
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
 	(*(file->f_op->release))(file->inode, file);
@@ -88,7 +88,7 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 	struct dirent dent;
 	ret = syscall_read(fd, bufaddr, size);
 	if (ret == EISDIR) {
-		if (size < 32) {
+		if (size < VFS_FILENAME_LEN) {
 			return -EINVAL;
 		}
 		ret = syscall_getdents(fd, (int)&dent, 0);
@@ -112,7 +112,7 @@ int syscall_read(int fd, int bufaddr, int count) {
 		return -ESRCH;
 	}
 	file = proc->files[fd];
-	if (!file || fd >= 16 || fd < 0) {
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
 	// TODO: no permission check
@@ -132,7 +132,7 @@ int syscall_write(int fd, int bufaddr, int count) {
 		return -ESRCH;
 	}
 	file = proc->files[fd];
-	if (!file || fd >= 16 || fd < 0) {
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
 	// TODO: no permission check
@@ -152,7 +152,7 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 		return -ESRCH;
 	}
 	file = proc->files[fd];
-	if (!file || fd >= 16 || fd < 0) {
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
 	// TODO: no permission check
@@ -200,7 +200,7 @@ int vfs_close_file(file_t *file) {
 	file->inode->open_count--;
 	if (file->inode->open_count == 0) {
 		// Inode no longer in use, ask filesystem to release it
-		(*file->inode->sb->s_op->destroy_inode)(file->inode);
+		(*file->inode->sb->s_op->free_inode)(file->inode);
 	}
 	file->inode = NULL;
 	file->mode = 0;
