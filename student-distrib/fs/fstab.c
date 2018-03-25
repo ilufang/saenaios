@@ -142,10 +142,10 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 
 	strcpy(fstab_mnt[avail_idx].mountpoint, dest);
 
-	fstab_mnt[avail_idx].superblock = (*fs->get_sb)(fs, opts->mountflags,
+	fstab_mnt[avail_idx].sb = (*fs->get_sb)(fs, opts->mountflags,
 													opts->source, opts->opts);
 	fstab_mnt[avail_idx].open_count = 0;
-	fstab_mnt[avail_idx].root = fstab_mnt[avail_idx].superblock->root;
+	fstab_mnt[avail_idx].sb->root = fstab_mnt[avail_idx].sb->root;
 
 	return 0;
 }
@@ -171,7 +171,7 @@ int syscall_umount(int targetaddr, int b, int c) {
 				// There are open files
 				return -EBUSY;
 			}
-			fstab_mnt[i].superblock->fstype->kill_sb(fstab_mnt[i].superblock);
+			fstab_mnt[i].sb->fstype->kill_sb(fstab_mnt[i].sb);
 			fstab_mnt[i].mountpoint[0] = '\0';
 			return 0;
 		}

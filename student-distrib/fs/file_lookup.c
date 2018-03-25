@@ -9,7 +9,7 @@
 inode_t* file_lookup(pathname_t path){
 	vfsmount_t *fs;
 	int i;	// number for path offset
-
+	int temp_buff_size;
 	// initialize nameidata for this file lookup
 	nameidata_t nd;
 	// 	
@@ -26,7 +26,12 @@ file_lookup_start:
 	}
 	// update nameidata
 	nd.mnt = fs;
-	nd.inode = fs -> inode;	// note
+	// get and open the root inode
+	if (!(nd.inode = (*(fs->sb->s_op->open_inode))(fs ->sb, fs -> sb -> root))){
+		// root inode open failed
+		errno = ENOENT;
+		return NULL;
+	}
 	nd.path += i;
 	nd.depth ++;
 
@@ -45,7 +50,7 @@ file_lookup_start:
 	if (nd.inode -> file_type == FTYPE_SYMLINK){
 		// update nd for sym link
 		if (nd.inode -> i_op -> readlink){
-			if ((pathtemp_length = (*nd.dentry -> inode -> i_op -> readlink)(nd.inode,pathtemp,sym_link_buff_size))<0){
+			if ((pathtemp_length = (*(nd.inode -> i_op -> readlink))(nd.inode,pathtemp))<0){
 				// the errno should be set by function called
 				return NULL;
 			}
@@ -85,10 +90,16 @@ int find_file(nameidata_t* nd){
 			errno = ENOSYS;
 			return -errno;
 		}
+		// get over '/'
+		if (*(nd->path) == '/') ++(nd->path);
 		if ((temp_ino = (*(nd->inode->i_op->lookup))(nd->inode, nd->path)) < 0){
 			//error, errno set in called function
 			return temp_ino;
 		}else{
+			// free previous directory inode
+			(*nd -> mnt -> sb -> s_op -> free_inode)(nd -> inode);
+			// note: this is necessary
+			nd -> inode = NULL;
 			//get inode for next search
 			if (!(nd -> inode = (*(nd -> mnt -> sb -> s_op -> open_inode))(nd -> mnt -> sb, temp_ino))){
 				// open inode failed, errno set in called function
@@ -97,7 +108,7 @@ int find_file(nameidata_t* nd){
 
 		}
 		//shift path to next '/', get over it
-		while (*(nd->path) || *(nd->path)!='/'){
+		while ((*(nd->path)) && (*(nd->path)!='/')){
 			++(nd->path);
 		}
 		if (*(nd->path) == '/') ++(nd->path);

@@ -180,17 +180,29 @@ void entry(unsigned long magic, unsigned long addr) {
 	terminal_out_driver_register();
 
 	int fd;
-	fd = open("/dev",O_RDONLY, 0);
+	fd = open("/dev/stdout",O_RDONLY, 0);
+	if (fd < 0){
+		printf("open stdout failed!\n");
+	}
+	char clear_sequence[4] = "^[*";
+	clear_sequence[2] = 12;
+	write(fd, clear_sequence, 3);
+
+	write(fd, "f**kingYEAH!",12);
+
+	close(fd);
+
+	printf("should be a error code: %d \n",write (fd, "see", 3));
 
 #ifdef RUN_TESTS
 	/* Run tests */
 	//launch_tests();
-    //temp_terminal_test();
+    temp_terminal_test();
 #endif
 	/* Execute the first program ("shell") ... */
 
 	/* Spin (nicely, so we don't chew up cycles) */
-	printf("End of startup\n");
+	printf("\nEnd of startup\n");
 	while(1);
 	asm volatile (".1: hlt; jmp .1;");
 }

@@ -13,6 +13,8 @@
 #include "i8259.h"
 #include "lib.h"
 
+#include "terminal_driver/terminal_out_driver.h"
+
 #define DATA_REG    0x60
 #define CTRL_REG    0x64
 

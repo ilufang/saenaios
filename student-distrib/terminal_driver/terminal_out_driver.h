@@ -124,7 +124,7 @@ int terminal_out_write_(uint8_t* buf, int length);
  *	@param count: number to be written
  *	@return number of bytes successfully written
  */
-ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count);
+ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count,off_t *offset);
 
 /**
  *	read for terminal out driver
@@ -138,14 +138,13 @@ ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count);
  *	
  *  @note behavior not defined!
  */
-ssize_t terminal_out_read(file_t* file, uint8_t* buf,size_t count);
-
+ssize_t terminal_out_read(file_t* file, uint8_t *buf, size_t count, off_t *offset);
 /**
  *	register the terminal out driver
  *	
  *	or stdout, which I may call it
  */
-void terminal_out_driver_register();
+int terminal_out_driver_register();
 
 /**
  *

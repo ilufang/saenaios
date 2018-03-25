@@ -5,7 +5,7 @@ static int curser_x=0, curser_y=0;	//not useful for now
 //pointing to start address of video memory
 static char* video_mem = (char *)VIDEO;	
 // scroll offset initialized to 0
-static int screen_stroll_offset=0;
+//static int screen_stroll_offset=0;
 // if last_newline is 1, then cannot backspace to last line
 static int last_newline = 0;
 
@@ -38,7 +38,7 @@ int terminal_out_driver_register(){
 	terminal_out_op.write = & terminal_out_write;
 	terminal_out_op.readdir = NULL;
 
-	return (devfs_register_driver("stdout", &terminal_out_op))
+	return (devfs_register_driver("stdout", &terminal_out_op));
 }
 
 int terminal_out_open(inode_t* inode, file_t* file){
@@ -78,8 +78,8 @@ void terminal_out_clear(){
 	terminal_set_cursor();
 }
 
-ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count){
-	return (ssize_t(terminal_out_write_(buf,(int)count)));	// wrap for now
+ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count,off_t* offset){
+	return (ssize_t)(terminal_out_write_(buf,(int)count));	// wrap for now
 }
 
 int terminal_out_write_(uint8_t* buf, int length){
@@ -101,7 +101,7 @@ int terminal_out_write_(uint8_t* buf, int length){
 	return length;	// note for now
 }
 
-ssize_t terminal_out_read(file_t* file, uint8_t* buf,size_t count){
+ssize_t terminal_out_read(file_t* file, uint8_t* buf,size_t count,off_t* offset){
 	return 0;	// for now
 }
 

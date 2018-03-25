@@ -13,13 +13,12 @@ static file_operations_t devfs_f_op;
 //static inode_t	devfs_root_inode;
 
 //static dentry_t devfs_root_dentry;
-static int devfs_root_inode_ino;
+//static int devfs_root_inode_ino;
 
 static struct s_super_block devfs_sb;
 
-static dev_driver_t devfs_table[DEVFS_DRIVER_LIMIT];
-
-static int devfs_table_index = 0;
+// 'dev' directory is set to be the index DEVFS_DRIVER_LIMIT
+static dev_driver_t devfs_table[DEVFS_DRIVER_LIMIT+1];
 
 void devfs_installfs() {
 	//int i;
@@ -27,7 +26,9 @@ void devfs_installfs() {
 
 	//inflate s_op i_op struct
 	devfs_s_op.alloc_inode = &devfs_s_op_alloc_inode;
-	devfs_s_op.destroy_inode = &devfs_s_op_destroy_inode;
+	devfs_s_op.open_inode = &devfs_s_op_open_inode;
+	devfs_s_op.free_inode = &devfs_s_op_free_inode;
+	devfs_s_op.read_inode = &devfs_s_op_read_inode;
 	devfs_s_op.write_inode = &devfs_s_op_write_inode;
 	devfs_s_op.drop_inode = &devfs_s_op_drop_inode;
 
@@ -39,6 +40,16 @@ void devfs_installfs() {
 	devfs_f_op.read = NULL;
 	devfs_f_op.write = NULL;
 	devfs_f_op.readdir = &devfs_f_op_readdir;
+
+	// dev is defined to be indexed DEVFS_DRIVER_LIMIT
+	strcpy(devfs_table[DEVFS_DRIVER_LIMIT].name,"/dev");
+	//may need error checking?	
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.ino = DEVFS_DRIVER_LIMIT;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.file_type = FTYPE_DIRECTORY;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.open_count = 0;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.sb = &devfs_sb;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.f_op = &devfs_f_op;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.i_op = &devfs_inode_op;
 
 	//inflate devfs in sup
 	strcpy(devfs.name,"devfs");
@@ -53,37 +64,23 @@ void devfs_installfs() {
 struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags,
 									const char *dev,const char *opts) {
 	int i; //iterator
-	if ((devfs_root_inode_ino = devfs_get_free_inode_num()) == -1){
-		errno = ENFILE;
-		return NULL;
-	}
-	//inflate root inode
-	devfs_inode_array[devfs_root_inode_ino].ino = devfs_root_inode_ino;
-	devfs_inode_array[devfs_root_inode_ino].file_type = FTYPE_DIRECTORY;
-	devfs_inode_array[devfs_root_inode_ino].open_count	= 1;
-	//mode to be determined
-	devfs_inode_array[devfs_root_inode_ino].sb = &devfs_sb;
-	devfs_inode_array[devfs_root_inode_ino].f_op = &devfs_f_op;
-	devfs_inode_array[devfs_root_inode_ino].i_op = &devfs_inode_op;
-	devfs_inode_array[devfs_root_inode_ino].private_data = NULL;
-
-	devfs_root_inode_ino = devfs_root_inode_ino;
-
-	//inflate root dentry
-	strcpy(devfs_dentry_array[devfs_root_inode_ino].filename,"/dev");
-	devfs_dentry_array[devfs_root_inode_ino].inode = &devfs_inode_array[devfs_root_inode_ino];
 
 	//inflate superblock
 	devfs_sb.fstype = fstab_get_fs("devfs");
 
 	devfs_sb.s_op = &devfs_s_op;
 
-	devfs_sb.root = &devfs_dentry_array[devfs_root_inode_ino];
+	devfs_sb.root = DEVFS_DRIVER_LIMIT;
 
-	// initialize inode array
+	// initialize device table
 	for (i=0;i<DEVFS_INODE_LIMIT;++i){
-		devfs_inode_array[i].open_count = 0;
-		devfs_inode_array[i].i_op = &devfs_inode_op;
+		devfs_table[i].name[0] = '\0';
+		devfs_table[i].inode.open_count = 0;
+		devfs_table[i].inode.ino = i;
+		devfs_table[i].inode.sb = &devfs_sb;
+		devfs_table[i].inode.f_op = NULL;
+		devfs_table[i].inode.i_op = &devfs_inode_op;
+		//private data don't care
 	}
 	return &devfs_sb;
 }
@@ -92,11 +89,111 @@ void devfs_kill_sb(){
 	return;
 }
 
-struct s_inode* devfs_s_op_alloc_inode(struct s_super_block *sb){
+inode_t* devfs_s_op_alloc_inode(struct s_super_block *sb){
+	errno = ENOSYS;
+	return NULL;
+}
+
+inode_t* devfs_s_op_open_inode(super_block_t* sb, ino_t ino){
+	// ino exceeds limit
+	if (ino > DEVFS_DRIVER_LIMIT){
+		errno = EINVAL;	// NEED CHECK
+		return NULL;
+	}
+	if (!sb){
+		errno = EINVAL;
+		return NULL;
+	}
+	// invalid ino, i.e. driver not defined
+	if (devfs_table[ino].name[0]=='\0'){
+		errno = EINVAL;	// NEED CHECK
+		return NULL;
+	}
+	devfs_table[ino].inode.open_count ++;
+	return &devfs_table[ino].inode;
+}
+
+int devfs_s_op_free_inode(inode_t* inode){
+	//decrease open count of inode
+	if (!inode){
+		return -EINVAL;
+	}
+	if (inode->open_count==0){
+		return -ENODEV;
+	}
+	--inode->open_count;
+	return 0;
+}
+
+int devfs_s_op_read_inode(){
+	// does nothing actually
 	return -ENOSYS;
 }
 
-int devfs_get_free_inode_num(){
+int devfs_s_op_write_inode(){
+	// does nothing actually
+	return -ENOSYS;
+}
+
+int devfs_s_op_drop_inode(){
+	// does nothing actually
+	return -ENOSYS;
+}
+
+ino_t devfs_i_op_lookup(inode_t* inode,const char* path){
+	if (!inode){
+		return -EINVAL;
+	}
+	if (!path){
+		return -EINVAL;
+	}
+	// path should be directly the driver name
+	// and inode should be the dev inode
+	int i;
+
+	for (i = 0; i < DEVFS_DRIVER_LIMIT; i++) {
+		if (strncmp(path, devfs_table[i].name, VFS_FILENAME_LEN) == 0) {
+			return i;
+		}
+	}
+	return -ENXIO;
+}
+
+int devfs_i_op_readlink(inode_t* inode, char* buf){
+	// no symlink support
+	return -ENOSYS;
+}
+
+int devfs_register_driver(const char* name, file_operations_t *ops){
+	int i;
+	inode_t *inode;
+
+	if (!name || !ops || strlen(name) > VFS_FILENAME_LEN) {
+		return -EINVAL;
+	}
+
+	for (i = 0; i < DEVFS_DRIVER_LIMIT; i++) {
+		if (devfs_table[i].name[0] == '\0') {
+			break;
+		} else if (strncmp(devfs_table[i].name, name, VFS_FILENAME_LEN) == 0) {
+			return -EEXIST;
+		}
+	}
+	if (i > DEVFS_DRIVER_LIMIT) {
+		return -ENFILE;
+	}
+
+	// i represent the device table index to be register
+	strcpy(devfs_table[i].name, name);
+
+	inode = &(devfs_table[i].inode);
+	inode->file_type = FTYPE_DEVICE;
+	inode->f_op = ops;
+
+	return 0;
+}
+
+/*int devfs_get_free_inode_num(){
 	int i;
 
 	for (i = 0; i < DEVFS_INODE_LIMIT; i++) {
@@ -106,74 +203,7 @@ int devfs_get_free_inode_num(){
 	}
 	return -ENFILE;
 }
-
-void devfs_s_op_destroy_inode(inode_t* inode){
-	return;
-}
-
-int devfs_s_op_write_inode(){
-	//TODO
-	return -ENOSYS;
-}
-int devfs_s_op_drop_inode(){
-	//TODO
-	return -ENOSYS;
-}
-
-inode_t *devfs_i_op_lookup(inode_t* inode,const char* path){
-	// path should be directly the driver name
-	// and inode should be the dev inode
-
-	int i, j;
-	inode_t* new_inode;
-	dentry_t ret;
-
-	for (i = 0; i < DEVFS_DRIVER_LIMIT; i++) {
-		if (strncmp(path, devfs_table[i].name, VFS_FILENAME_LEN) == 0) {
-			ret.ino = i;
-
-		}
-	}
-	return NULL;
-}
-
-int devfs_i_op_readlink(dentry_t* dentry, char* buf, int size){
-	// no symlink support
-	return -ENOSYS;
-}
-
-int devfs_register_driver(const char* name, file_operations_t *ops){
-	int i, idx = -1;
-	inode_t *inode;
-
-	if (!name || !ops || strlen(name) > VFS_FILENAME_LEN) {
-		return -EINVAL;
-	}
-
-	for (i = 0; i < DEVFS_DRIVER_LIMIT; i++) {
-		if (idx < 0 && devfs_table[i].name[0] == '\0') {
-			idx = i;
-		} else if (strncmp(devfs_table[i].name, name, VFS_FILENAME_LEN) == 0) {
-			return -EEXISTS;
-		}
-	}
-	if (idx < 0) {
-		return -ENFILE;
-	}
-
-	strcpy(devfs_table[idx].name, name);
-
-	inode = &(devfs_table[idx].inode);
-	inode->ino = idx;
-	inode->file_type = FTYPE_DEVICE;
-	inode->open_count = 0;
-	inode->sb = &devfs_sb;
-	inode->f_op = ops;
-	inode->i_op = &devfs_inode_op;
-
-	return 0;
-}
-
+*/
 int devfs_unregister_driver(const char* name){
 	int i;
 
@@ -208,7 +238,7 @@ int devfs_f_op_readdir(file_t* file, struct dirent* dirent){
 		return -ENOENT;
 	}
 	dirent->ino = i;
-	strcpy(dirent->dentry.filename, devfs_table[file->pos].name);
+	strcpy(dirent->filename, devfs_table[file->pos].name);
 	dirent->index = i;
 	return 0;
 }
