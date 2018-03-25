@@ -18,7 +18,6 @@ static inline void assertion_failure(){
 }
 
 int fs_test_pathname() {
-	TEST_HEADER;
 	pathname_t base, rel;
 	int ret, result = PASS;
 
