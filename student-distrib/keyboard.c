@@ -205,9 +205,9 @@ uint8_t kbdcs[128] =
 /**
  *	Helper function to append a char keyboard buffer
  *
- *  Modify keyboard buffer and update current char pointer
- *  If there are 127 elements in the buffer and the new key 
- *  is not enter, do nothing.
+ *	Modify keyboard buffer and update current char pointer
+ *	If there are 127 elements in the buffer and the new key 
+ *	is not enter, do nothing.
  *
  *	@param c: the char to add to buffer
  */
@@ -226,7 +226,7 @@ void buf_push(uint8_t c){
 /**
  *	Helper function to clear keyboard buffer
  *
- *  Clears keyboard buffer and reset buffer pointers
+ *	Clears keyboard buffer and reset buffer pointers
  */
 void clear_buf(){
     int i;
@@ -241,7 +241,7 @@ void clear_buf(){
 /**
  *	Helper function to shift keyboard buffer
  *
- *  Left shift keyboard buffer, discart data at the front
+ *	Left shift keyboard buffer, discart data at the front
  *
  *	@param num_bytes: number of characters to shift
  */
@@ -274,11 +274,11 @@ void shift_buf(int num_bytes){
 /**
  *	Helper function handle enter key press
  *
- *  Update position and push an enter char to keyboard buffer, send enter
- *  control sequence to terminal
+ *	Update position and push an enter char to keyboard buffer, send enter
+ *	control sequence to terminal
  *
- *  @note in test_read mode, the function also read from the current
- *        keyboard buffer and print to the screen
+ *	@note in test_read mode, the function also read from the current
+ *		keyboard buffer and print to the screen
  */
 void enter(){
     if(curr_char_ptr < KEY_BUF_SIZE){
@@ -302,8 +302,8 @@ void enter(){
 /**
  *	Helper function to handle backspace keypress
  *
- *  Erase one character in the keyboard buffer, unless an enter is reached.
- *  Send backspace control sequence to terminal
+ *	Erase one character in the keyboard buffer, unless an enter is reached.
+ *	Send backspace control sequence to terminal
  */
 void backspace(){
     if(curr_char_ptr>0 && kbd_buf[curr_char_ptr-1]!='\n'){
@@ -317,10 +317,10 @@ void backspace(){
 /**
  *	Helper function to handle ctrl+l keypress combination
  *
- *  Sends ctrl_l control sequence to terminal
+ *	Sends ctrl_l control sequence to terminal
  *
- *  @note the function does not erase characters entered but not yet read
- *        in keyboard buffer
+ *	@note the function does not erase characters entered but not yet read
+ *		in keyboard buffer
  */
 void ctrl_l(){
     //(void)write(1, seq_ctrl_l, 3);  
@@ -331,9 +331,9 @@ void ctrl_l(){
 /**
  *	Helper function to handle regular keypress
  *  
- *  Send a character to terminal. Check for ctrl_l
+ *	Send a character to terminal. Check for ctrl_l
  *
- *  @param scancode: scancode received
+ *	@param scancode: scancode received
  */
 void regular_key(uint8_t scancode){
     // check for possible ctrl-l if control key is pressed
@@ -383,9 +383,9 @@ void regular_key(uint8_t scancode){
 /**
  *	Helper function to handle shift and capslock
  *  
- *  Change the current keyboard mode
+ *	Change the current keyboard mode
  *
- *  @param scancode: scancode received
+ *	@param scancode: scancode received
  */
 void update_mode(uint8_t scancode){
         switch(scancode){

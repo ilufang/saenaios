@@ -316,8 +316,8 @@ int test_read_file(){
 /**
  *	Test read directory handler
  *  
- *  Read all files in the directory and print their names, sizes
- *  and file types to the sreen.
+ *	Read all files in the directory and print their names, sizes
+ *	and file types to the sreen.
  */
 int test_read_dir(){
 	TEST_HEADER;
@@ -343,9 +343,9 @@ int test_read_dir(){
 
 /**
  *	Test keyboard read handler
- *  Enable keyboard testing mode, each keypress of enter key
- *  will evoke keyboard_read to read from the keyboard buffer
- *  and output the values the terminal
+ *	Enable keyboard testing mode, each keypress of enter key
+ *	will evoke keyboard_read to read from the keyboard buffer
+ *	and output the values the terminal
  */
 
 int test_keyboard_read(){

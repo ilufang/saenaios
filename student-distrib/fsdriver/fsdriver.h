@@ -126,8 +126,8 @@ int32_t file_write(int32_t fd, void* buf, int32_t nbytes);
 /**
  *	File system file open function
  *
- *  Open the file filename, find an available fd for the 
- *  file and initialize the file structure
+ *	Open the file filename, find an available fd for the 
+ *	file and initialize the file structure
  *
  *	@param filename: the name of the file to open
  *	@return 0 on success for now, -1 for failure
@@ -137,7 +137,7 @@ int32_t file_open(const uint8_t* filename);
 /**
  *	File system file close function
  *
- *  Close the file pointed to by fd
+ *	Close the file pointed to by fd
  *
  *	@param fd: fd of the file to close
  *	@return 0 on success, -1 for failure
@@ -147,8 +147,8 @@ int32_t file_close(int32_t fd);
 /**
  *	File system directory read function
  *
- *  Read a filename of a file in the directory, multiple calls of read will
- *  read consecutive file names
+ *	Read a filename of a file in the directory, multiple calls of read will
+ *	read consecutive file names
  *
  *	@param fd: index into file descriptor table
  *	@param buf: buffer that we read data into
@@ -168,8 +168,8 @@ int32_t dir_write(int32_t fd, void* buf, int32_t nbytes);
 /**
  *	File system directory open function
  *
- *  Open a directory file, find an available fd for the 
- *  file and initialize in the file structure
+ *	Open a directory file, find an available fd for the 
+ *	file and initialize in the file structure
  *
  *	@param filename: the name of the directory file to open
  *	@return 0 on success for now, -1 for failure
@@ -179,7 +179,7 @@ int32_t dir_open(const uint8_t* filename);
 /**
  *	File system directory close function
  *
- *  Close the directory file pointed to by fd
+ *	Close the directory file pointed to by fd
  *
  *	@param fd: fd of the file to close
  *	@return 0 on success, -1 for failure
