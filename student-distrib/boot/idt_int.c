@@ -23,7 +23,3 @@ void idt_int_panic(char *msg, int a, int b, int c, int d) {
 void idt_int_irq_default(int irq) {
 	printf("Warning: unhandled IRQ: %x\n", irq);
 }
-
-void idt_int_usr_handler(int eax) {
-	printf("User Interrupt: %d\n", eax);
-}

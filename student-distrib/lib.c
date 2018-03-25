@@ -2,14 +2,15 @@
  * vim:ts=4 noexpandtab */
 
 #include "lib.h"
+#include "terminal_driver/terminal_out_driver.h"
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80
 #define NUM_ROWS    25
 #define ATTRIB      0x7
 
-static int screen_x;
-static int screen_y;
+// static int screen_x;
+// static int screen_y;
 static char* video_mem = (char *)VIDEO;
 
 /* void clear(void);
@@ -168,7 +169,7 @@ int32_t puts(int8_t* s) {
  * Return Value: void
  *  Function: Output a character to the console */
 void putc(uint8_t c) {
-    if(c == '\n' || c == '\r') {
+/*    if(c == '\n' || c == '\r') {
         screen_y++;
         screen_x = 0;
     } else {
@@ -177,7 +178,8 @@ void putc(uint8_t c) {
         screen_x++;
         screen_x %= NUM_COLS;
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
-    }
+    }*/
+    terminal_out_putc(c);
 }
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);

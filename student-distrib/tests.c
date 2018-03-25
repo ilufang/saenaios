@@ -1,19 +1,16 @@
 #include "tests.h"
 #include "x86_desc.h"
 #include "lib.h"
+#include "libc.h"
 
 #include "boot/idt.h"
 #include "keyboard.h"
 #include "rtc.h"
 
-#define PASS 1
-#define FAIL 0
-
-/* format these macros as you see fit */
-#define TEST_HEADER 	\
-	printf("[TEST %s] Running %s at %s:%d\n", __FUNCTION__, __FUNCTION__, __FILE__, __LINE__)
-#define TEST_OUTPUT(name, result)	\
-	printf("[TEST %s] Result = %s\n", name, (result) ? "PASS" : "FAIL");
+#include "proc/task.h"
+#include "boot/syscall.h"
+#include "fs/vfs.h"
+#include "fs/test.h"
 
 static inline void assertion_failure(){
 	/* Use exception #15 for assertions, otherwise
@@ -131,7 +128,7 @@ void kb_test_handler() {
 	scancode = inb(DATA_REG);
 	/* put the corresponding character on screen */
 	if(!(scancode & RELEASE_OFFSET)) {
-		kb_test_last_key = kbdus[scancode];
+		kb_test_last_key = kbdreg[scancode];
 		putc(kb_test_last_key);
 	}
 }
@@ -192,6 +189,95 @@ int rtc_test() {
 }
 
 /* Checkpoint 2 tests */
+
+// Symbol defined in libc's do_syscall.S
+extern int do_syscall(int num, int b, int c, int d);
+
+/**
+ *	Syscall 15 handler for testing
+ *
+ *	@param a, b, c: data. Should be sent 42, -391 and 0xecebcafe
+ *	@return 0xac if data matched, 0xbad if it does not
+ */
+int test_syscall_handler(int a, int b, int c) {
+	if (a == 42 && b == -391 && c == 0xecebcafe) {
+		return 0xac;
+	}
+	printf("Syscall passed in bad values\n");
+	return 0xbad;
+}
+
+/**
+ *	Test system call dispatcher
+ */
+int test_syscall_dispatcher() {
+	TEST_HEADER;
+	// Using syscall number 15, the unused portion of the ece391 specification
+	if (syscall_register(15, &test_syscall_handler) != 0) {
+		printf("Failed to register handler\n");
+		assertion_failure();
+	}
+	// Send dwords 42, -391 and 0xecebcafe, should return 0xac
+	if (do_syscall(15, 42, -391, 0xecebcafe) != 0xac) {
+		printf("Syscall 15 returned bad value\n");
+		assertion_failure();
+	}
+	return PASS;
+}
+
+int test_stdio_with_fd(){
+	int fd, pre_fd;
+	char temp_buf[20];
+	fd = open("/dev/stdout",O_RDONLY, 0);
+	pre_fd = fd;
+	struct dirent* temp_dirent;
+	DIR* temp_dir;
+	if (fd < 0){
+		return FAIL;
+	}
+	char clear_sequence[4] = "^[*";
+	clear_sequence[2] = 12;
+	write(fd, clear_sequence, 3);
+
+	write(fd, "You should see a cleared screen with this line!",47);
+
+	printf("\nThis is a message sent by printf through stdout!\n");
+
+	printf("Reading stdout...\nNow this should return 0: %d \n", read(fd,temp_buf,3));
+	if (read(fd,temp_buf,3) != 0)
+		assertion_failure();
+	close(fd);
+
+	printf("Writing to a closed stdout...\nShould be a error code: %d \n",write (fd, "see", 3));
+
+	if (write (fd, "see", 3) != -EBADF)
+		assertion_failure();
+
+	//do it again!
+	fd = open("/dev/stdout",O_RDONLY, 0);
+
+	if (pre_fd!=fd) {
+		printf("stdio: FD leak\n");
+		//should give same fd for now
+		return FAIL;
+	}
+	// now open dev file to go through dev directory
+	if (!(temp_dir = opendir("/dev"))){
+		printf("open dev directory failed\n");
+		return FAIL;
+	}
+	if (!(temp_dirent = readdir(temp_dir))){
+		printf("read dev directory failed\n");
+		return FAIL;
+	}
+	// should be stdout
+	if (strncmp(temp_dirent->filename, "stdout", 32)){
+		printf("read stdout dentry failed\n");
+		return FAIL;
+	}
+
+	return PASS;
+}
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -208,29 +294,38 @@ void launch_tests() {
 	idt_removeEventListener(RTC_IRQ_NUM);
 
 	// Begin testing
+
 	clear();
 	printf("Running tests...\n");
+
+	TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
 	// IDT tests
 	TEST_OUTPUT("idt_test", idt_test());
 	// The following test should trigger a fault
-	TEST_OUTPUT("idt_test_de", idt_test_de());
+	// TEST_OUTPUT("idt_test_de", idt_test_de());
 	// The following test should not trigger any fault
 	TEST_OUTPUT("idt_test_usr", idt_test_usr());
 
 	// Paging test
 	// The following test should trigger a fault
-	TEST_OUTPUT("paging_test", paging_test());
+	// TEST_OUTPUT("paging_test", paging_test());
 
 	// KB test
-	TEST_OUTPUT("kb_test", kb_test());
+	// TEST_OUTPUT("kb_test", kb_test());
 
 	// RTC test
-	TEST_OUTPUT("rtc_test", rtc_test());
+	// TEST_OUTPUT("rtc_test", rtc_test());
+
+
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
+
+	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
+
+	fs_test();
 }

@@ -9,10 +9,16 @@
 #include "keyboard.h"
 #include "rtc.h"
 #include "debug.h"
+#include "terminal_driver/terminal_out_driver.h"
 #include "tests.h"
 
 #include "boot/idt.h"
 #include "boot/page_table_init.h"
+
+#include "proc/task.h"
+#include "fs/vfs.h"
+#include "fs/fs_devfs.h"
+#include "libc.h"
 
 #define RUN_TESTS
 
@@ -164,6 +170,15 @@ void entry(unsigned long magic, unsigned long addr) {
 	printf("Enabling Interrupts\n");
 	sti();
 
+	//create a basic process
+	task_create_kernel_pid();
+	//install device driver fs
+	devfs_installfs();
+	//mount device driver fs
+	mount("","/dev","devfs",0,"");
+	//register std out
+	terminal_out_driver_register();
+
 #ifdef RUN_TESTS
 	/* Run tests */
 	launch_tests();
@@ -171,7 +186,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Execute the first program ("shell") ... */
 
 	/* Spin (nicely, so we don't chew up cycles) */
-	printf("End of startup\n");
+	printf("\nEnd of startup\n");
 	while(1);
 	asm volatile (".1: hlt; jmp .1;");
 }

@@ -263,7 +263,10 @@ idt_int_irq_size:
 	.long	idt_int_irq21 - idt_int_irq20
 
 idt_int_usr:
+	pushl	%edx
+	pushl	%ecx
+	pushl	%ebx
 	pushl	%eax
-	call	idt_int_usr_handler
-	addl	$4, %esp
+	call	syscall_invoke
+	addl	$16, %esp
 	iret
