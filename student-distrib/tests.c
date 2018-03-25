@@ -227,9 +227,11 @@ int test_syscall_dispatcher() {
 
 int test_stdio_with_fd(){
 	int fd, pre_fd;
-	char temp_buf[5];
+	char temp_buf[20];
 	fd = open("/dev/stdout",O_RDONLY, 0);
 	pre_fd = fd;
+	struct dirent* temp_dirent;
+	DIR* temp_dir;
 	if (fd < 0){
 		return FAIL;
 	}
@@ -257,6 +259,20 @@ int test_stdio_with_fd(){
 	if (pre_fd!=fd) {
 		printf("stdio: FD leak\n");
 		//should give same fd for now
+		return FAIL;
+	}
+	// now open dev file to go through dev directory
+	if (!(temp_dir = opendir("/dev"))){
+		printf("open dev directory failed\n");
+		return FAIL;
+	}
+	if (!(temp_dirent = readdir(temp_dir))){
+		printf("read dev directory failed\n");
+		return FAIL;
+	}
+	// should be stdout
+	if (strncmp(temp_dirent->filename, "stdout", 32)){
+		printf("read stdout dentry failed\n");
 		return FAIL;
 	}
 

@@ -224,8 +224,6 @@ int devfs_f_op_open(inode_t* inode, file_t* file){
 }
 
 int devfs_f_op_release(inode_t* inode, file_t* file){
-	if (inode->open_count == 0)
-		return -EEXIST;
 	return 0;
 }
 
