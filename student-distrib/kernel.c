@@ -177,7 +177,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	mount("","/dev","devfs",0,"");
 
-	devfs_register_driver("null_driver",0x2);
+	terminal_out_driver_register();
 
 	int fd;
 	fd = open("/dev",O_RDONLY, 0);
@@ -185,7 +185,7 @@ void entry(unsigned long magic, unsigned long addr) {
 #ifdef RUN_TESTS
 	/* Run tests */
 	//launch_tests();
-    temp_terminal_test();
+    //temp_terminal_test();
 #endif
 	/* Execute the first program ("shell") ... */
 

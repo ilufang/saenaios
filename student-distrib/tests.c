@@ -278,7 +278,7 @@ void launch_tests() {
 	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 }
 
-void temp_terminal_test(){
+/*void temp_terminal_test(){
 	terminal_out_open();
 	int i;
 	char temp_buf[30]="^[*f**king****test^[*";
@@ -289,9 +289,6 @@ void temp_terminal_test(){
 	temp_buf[2] = 8;
 	terminal_out_write((uint8_t*)temp_buf,21);
 	temp_buf[20] = '*';
-/*	for (i=0;i<30;++i){
-		temp_buf[18] = i%10 + '0';
-		terminal_out_write((uint8_t*)temp_buf,21);
-	}*/
+
 	while(1);
-}
+}*/

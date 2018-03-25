@@ -2,8 +2,8 @@
 
 #include "../errno.h"
 
-#define temp_buff_size 256
-#define sim_link_uplimit 7
+#define sym_link_buff_size 256
+#define sym_link_uplimit 7
 
 
 inode_t* file_lookup(pathname_t path){
@@ -16,72 +16,91 @@ inode_t* file_lookup(pathname_t path){
 	nd.depth = 0;
 	nd.path = path;
 
-	char pathtemp[temp_buff_size];
+	char pathtemp[sym_link_buff_size];
 	int pathtemp_length;
 
 file_lookup_start:
 	if (!(fs = fstab_get_mountpoint(nd.path, &i))) {
-		//TODO set errno
+		// errno set in the function called
 		return NULL;
 	}
 	// update nameidata
-	nd.dentry = fs -> root;
 	nd.mnt = fs;
+	nd.inode = fs -> inode;	// note
 	nd.path += i;
 	nd.depth ++;
 
-	// up limit of sim link //TODO 
-	if (nd.depth > temp_buff_size){
+	// up limit of sym link
+	if (nd.depth > sym_link_uplimit){
 		errno = EMLINK;
 		return NULL;
 	}
 
-	if (find_dentry(&nd)) {
+	if (find_file(&nd)){
+		//find file failed, errno set in function called
 		return NULL;
 	}
 
-	// handle sim link
-	if (nd.dentry -> inode -> file_type == FTYPE_SYMLINK){
-		// update nd for sim link
-		if (nd.dentry -> inode -> i_op -> readlink){
-			if ((pathtemp_length = (*nd.dentry -> inode -> i_op -> readlink)(nd.dentry,pathtemp,temp_buff_size))==-1){
-				//TODO errno
+	// handle sym link
+	if (nd.inode -> file_type == FTYPE_SYMLINK){
+		// update nd for sym link
+		if (nd.inode -> i_op -> readlink){
+			if ((pathtemp_length = (*nd.dentry -> inode -> i_op -> readlink)(nd.inode,pathtemp,sym_link_buff_size))<0){
+				// the errno should be set by function called
 				return NULL;
 			}
-			if (pathtemp_length<temp_buff_size) pathtemp[pathtemp_length] = '\0';
-			// hope it doesn't reach up limit
+			if (pathtemp_length<temp_buff_size) 
+				pathtemp[pathtemp_length] = '\0';
+			else{
+				errno = EFBIG;
+				return NULL;
+			}
 		}else{
 			// readlink function not implemented
-			//TODO set errno -ENOSYS;
+			errno = ENOSYS;
 			return NULL;
 		}
-		path_cd(path,pathtemp);
+		if (path_cd(path,pathtemp))
+			// errno set in path_cd;
+			return NULL;
+		//update appended link and then restart lookup process
 		nd.path = path;
 		goto file_lookup_start;
 	}
 
 	// lookup finish, nothing to release
-	return nd.dentry->inode;
+	return nd.inode;
 }
 
-int find_dentry(nameidata_t* nd){
+int find_file(nameidata_t* nd){
 	// sanity check
-	dentry_t* temp_dentry;
+	ino_t temp_ino;
 	if (!nd){ 
 		errno = EINVAL;
 		return -errno;
 	}
 	while (*nd->path){
-		if (!(temp_dentry = (*(nd->dentry->inode->i_op->lookup))(nd->dentry->inode, nd->path))){
+		// function existence check
+		if (!(nd->inode->i_op->lookup)){
 			errno = ENOSYS;
 			return -errno;
 		}
-		nd->dentry = temp_dentry;
-		//shift path to next '\'
-		while (*(nd->path) || *(nd->path)!='\\'){
+		if ((temp_ino = (*(nd->inode->i_op->lookup))(nd->inode, nd->path)) < 0){
+			//error, errno set in called function
+			return temp_ino;
+		}else{
+			//get inode for next search
+			if (!(nd -> inode = (*(nd -> mnt -> sb -> s_op -> open_inode))(nd -> mnt -> sb, temp_ino))){
+				// open inode failed, errno set in called function
+				return -errno;
+			}
+
+		}
+		//shift path to next '/', get over it
+		while (*(nd->path) || *(nd->path)!='/'){
 			++(nd->path);
 		}
-		++(nd->path);
+		if (*(nd->path) == '/') ++(nd->path);
 	}
 	return 0;
 }
