@@ -13,36 +13,41 @@
 #include "i8259.h"
 #include "lib.h"
 #include "terminal_driver/terminal_out_driver.h"
+#include "fs/vfs.h"
+#include "fs/fs_devfs.h"
 
-#define DATA_REG    0x60
-#define CTRL_REG    0x64
+#define DATA_REG    0x60		///< keyboard data register
+#define CTRL_REG    0x64		///< keyboard control register
 
-#define KBD_IRQ_NUM 1
+#define KBD_IRQ_NUM 1			///< keyboard irq number
 
-#define RELEASE_OFFSET 0x80
+#define RELEASE_OFFSET 0x80		///< higher byte offset for key release
 
-#define NULL_CHAR   '\0'
+#define NULL_CHAR   '\0'		///< null character
 
-#define ENTER_P    0x1C
-#define LCTRL_P    0x1D
-#define LALT_P     0x38
-#define BSB_P      0X0E
-#define LSHIFT_P    0x2A
-#define RSHIFT_P    0x36
-#define CAPS_P      0x3A
-#define L_P         0x26
-#define ENTER_P     0x1C
+#define ENTER_P    0x1C			///< keycode enter pressed
+#define LCTRL_P    0x1D			///< keycode left control pressed
+#define LALT_P     0x38			///< keycode left alt pressed
+#define BSB_P      0X0E			///< keycode backspace pressed
+#define LSHIFT_P    0x2A		///< keycode left shift pressed
+#define RSHIFT_P    0x36		///< keycode right shift pressed
+#define CAPS_P      0x3A		///< keycode capslock pressed
+#define L_P         0x26		///< keycode l pressed
+#define ENTER_P     0x1C		///< keycode enter pressed
 
-#define LCTRL_R      0x9D
-#define LALT_R       0xB8
-#define LSHIFT_R     0xAA
-#define RSHIFT_R     0xB6
+#define LCTRL_R      0x9D		///< keycode left control released
+#define LALT_R       0xB8		///< keycode left alt released
+#define LSHIFT_R     0xAA		///< keycode left shift released
+#define RSHIFT_R     0xB6		///< keycode right shift released
 
 /**
  *	Scan code to character mapping
  */
 extern unsigned char kbdreg[128];
 
+/**
+ *	Variable indicating read_test mode status
+ */
 extern volatile int read_test_mode;
 
 /**
@@ -59,6 +64,11 @@ void keyboard_init();
 void keyboard_handler();
 
 /**
+ *	Register keyboard driver in devfs
+ */
+int keyboard_driver_register();
+
+/**
  *	Keyboard read function
  *
  *	Read data from user input terminated by \n
@@ -71,20 +81,31 @@ void keyboard_handler();
 int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes);
 
 /**
+ *	Keyboard read wrapper
+ *
+ *	@param file: the file obj
+ *	@param buf: buffer to read into
+ *	@param count: number of byte to read
+ *	@param offset: offset to start reading
+ */
+ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset);
+
+/**
  *	Keyboard write function
  *
- *	@note the function does nothing because keyboard write is not supported
+ *	@note keyboard write is not supported
  */
-int32_t keyboard_write(int32_t fd, void* buf, int32_t nbytes);
+ssize_t keyboard_write(file_t* file, uint8_t *buf, size_t count, off_t *offset);
 
 /**
  *	Keyboard open function
  *
  *	Initialize any local variable
  *
- *	@param filename: name of the file to open
+ *	@param file: file object
+ *
  */
-int32_t keyboard_open(const uint8_t* filename);
+int32_t keyboard_open(inode_t* inode, file_t* file);
 
 /**
  *	Keyboard close function

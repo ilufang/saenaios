@@ -6,42 +6,80 @@
 #include "boot/idt.h"
 #include "lib.h"
 
-#define PRESSED     1
-#define UNPRESSED   0
-#define KEY_BUF_SIZE    128
+#define PRESSED     1			///< key state pressed
+#define UNPRESSED   0			///< key state unpressed
+#define KEY_BUF_SIZE    128		///< max keyboard buffer size
 
-#define SEQ_BSB     0
-#define SEQ_CLR     1
-#define SEQ_ENTER   2
-
-// whether the keyboard is in read_test mode
+/**
+ *	Scan code to character mapping
+ */
 volatile int read_test_mode = 0;
 
-// four key modes
+/**
+ *	Keyboard modes corresponding to capslock and shift state
+ */
 enum key_mode{regular, caps, shift, caps_shift};
 
-// keyboard status variables
+
+/**
+ *	Keyboard status variable for current key mode
+ */
 volatile enum key_mode curr_mode = regular;
+
+/**
+ *	Keyboard status variable for control key status
+ */
 volatile uint8_t ctrl_status = UNPRESSED;
+
+/**
+ *	Keyboard status variable for shift key status
+ */
 volatile uint8_t shift_status = UNPRESSED;
+
+/**
+ *	Keyboard status variable for alt key status
+ */
 volatile uint8_t alt_status = UNPRESSED;
 
-// indices into keyboard buffer
+/**
+ *	Index of current character in key buffer
+ */
 int curr_char_ptr = 0;
+
+/**
+ *	Index of previous enter in key buffer
+ */
 int prev_enter = -1;
 
-// keyboard buffer
+/**
+ *	Keyboard buffer for user input
+ */
 uint8_t kbd_buf[KEY_BUF_SIZE];
 
-/* control sequences for keyboard-terminal communication
-    0 - backspace, 1 - ctrl + l, 2 - enter */
+/**
+ *	Escape sequence for backspace
+ */
 const uint8_t seq_backspace[3] = {'^', '[', 8};
+
+/**
+ *	Escape sequence for control + l
+ */
 const uint8_t seq_ctrl_l[3] = {'^', '[', 12};
+
+/**
+ *	Escape sequence for enter
+ */
 const uint8_t seq_enter[3] = {'^', '[', 13};
 
+/**
+ *	keyboard driver file operations
+ */
+static file_operations_t keyboard_fop;
 
-/* keycode lookup table for 4 keyboard modes */
-/* keycode reference: Bran's Kernel development tutorial */
+/**
+ *	keycode lookup table for regular keyboard mode
+ *	keycode reference: Bran's Kernel development tutorial
+ */
 uint8_t kbdreg[128] =
 {
 	0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
@@ -82,6 +120,11 @@ uint8_t kbdreg[128] =
 	0,	/* All other keys are undefined */
 };
 
+
+/**
+ *	keycode lookup table for capslock keyboard mode
+ *	keycode reference: Bran's Kernel development tutorial
+ */
 uint8_t kbdcaps[128] =
 {
 	0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
@@ -122,6 +165,11 @@ uint8_t kbdcaps[128] =
 	0,	/* All other keys are undefined */
 };
 
+
+/**
+ *	keycode lookup table for shift keyboard mode
+ *	keycode reference: Bran's Kernel development tutorial
+ */
 uint8_t kbdshift[128] =
 {
 	0,  27, '!', '@', '#', '$', '%', '^', '&', '*',	/* 9 */
@@ -162,6 +210,11 @@ uint8_t kbdshift[128] =
 	0,	/* All other keys are undefined */
 };
 
+
+/**
+ *	keycode lookup table for capslock + shift keyboard mode
+ *	keycode reference: Bran's Kernel development tutorial
+ */
 uint8_t kbdcs[128] =
 {
 	0,  27, '!', '@', '#', '$', '%', '^', '&', '*',	/* 9 */
@@ -230,9 +283,11 @@ void buf_push(uint8_t c){
  */
 void clear_buf(){
     int i;
+    // set all character in buffer to null
     for(i = 0; i < KEY_BUF_SIZE; i++){
         kbd_buf[i] = NULL_CHAR;
     }
+    // reset buffer indices
     curr_char_ptr = 0;
     prev_enter = -1;
 }
@@ -247,9 +302,11 @@ void clear_buf(){
  */
 void shift_buf(int num_bytes){
     int i;
+    // update buffer indices
     curr_char_ptr -= num_bytes;
     prev_enter -= num_bytes;
     
+    // if numbytes is greater than current byte stored in buffer, clear buffer
     if(curr_char_ptr < 0){
         prev_enter = -1;
         curr_char_ptr = 0;
@@ -257,6 +314,7 @@ void shift_buf(int num_bytes){
         return;
     }
     
+    // shift data in buffer
     uint8_t elements[curr_char_ptr];
     
     for(i = 0; i < curr_char_ptr; i++){
@@ -264,7 +322,7 @@ void shift_buf(int num_bytes){
     }
     
     clear_buf();
-    
+    // store shifted data
     for(i = 0; i < curr_char_ptr; i++){
         kbd_buf[i] = elements[i];
     }
@@ -282,11 +340,15 @@ void shift_buf(int num_bytes){
  */
 void enter(){
     if(curr_char_ptr < KEY_BUF_SIZE){
+        // update enter location
         prev_enter = curr_char_ptr;
+        // append enter in keyboard buffer
         buf_push('\n'); 
         //(void)write(1, seq_enter, 3);
+        // write enter control sequence to terminal driver
         terminal_out_write((uint8_t*)seq_enter, 3);
     }
+    // read and print buffer content if testing file read
     if(read_test_mode == 1){
         uint8_t testbuf[prev_enter];
         int fd, nbytes;
@@ -306,9 +368,11 @@ void enter(){
  *	Send backspace control sequence to terminal
  */
 void backspace(){
+    // clear a char in keyboard buffer unless there's an enter
     if(curr_char_ptr>0 && kbd_buf[curr_char_ptr-1]!='\n'){
         curr_char_ptr--;
         kbd_buf[curr_char_ptr] = NULL_CHAR;  
+        // send control sequence to terminal driver
         terminal_out_write((uint8_t*)seq_backspace,3);
     }
     //(void)write(1, seq_backspace, 3);
@@ -484,11 +548,28 @@ void keyboard_init(){
 	idt_addEventListener(KBD_IRQ_NUM, &keyboard_handler);
 }
 
+int keyboard_driver_register(){
+    // fill file operation table
+    keyboard_fop.open = &keyboard_open;
+    keyboard_fop.release = &keyboard_close;
+    keyboard_fop.read = &keyboard_read;
+    keyboard_fop.write = &keyboard_write;
+    keyboard_fop.readdir = NULL;
+	return (devfs_register_driver("stdin", &keyboard_fop));
+}
+
+ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
+    int32_t fd;
+    return (ssize_t)keyboard_read(fd, buf, count);
+}
+
 int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes){
+    // error if there's no enter in buffer
     if(prev_enter < 0){
         return -1;
     }
     int i = 0;
+    // read buffer until a previous enter is reached
     for(i = 0; i <= prev_enter; i++){
         buf[i] = kbd_buf[i];
     }
@@ -496,16 +577,16 @@ int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes){
     return i;
 }
 
-int32_t keyboard_write(int32_t fd, void* buf, int32_t nbytes){
+ssize_t keyboard_write(file_t* file, uint8_t *buf, size_t count, off_t *offset){
     return -1;
 }
 
-int32_t keyboard_open(const uint8_t* filename){
+int32_t keyboard_open(inode_t* inode, file_t* file){
     clear_buf();
     return 0;
 }
 
-int32_t keyboard_close(int32_t fd){
+int32_t keyboard_close(inode_t* inode, file_t* file){
     clear_buf();
     return 0;
 }

@@ -13,66 +13,67 @@
 #include "../i8259.h"
 #include "../lib.h"
 
-#define INODE_NUM_OFFSET        4
-#define DATA_BLOCK_NUM_OFFSET   8
-#define BLOCK_SIZE              4096
-#define FILENAME_LEN            32
-#define DENTRY_SIZE             64
-#define FSYS_MAX_FILE           16
-#define ITOA_BUF_SIZE           10
+#define BLOCK_SIZE              4096		///< size of a single block in mp3 file system
+#define FILENAME_LEN            32			///< max filename length
+#define DENTRY_SIZE             64			///< size of a dentry
+#define FSYS_MAX_FILE           16			///< maximum number of test file
+#define ITOA_BUF_SIZE           10			///< buffer size for itoa function
 
 
 /**
  *	Dentry type used for file system parsing
  */
 typedef struct fsys_dentry {
-	int8_t filename[FILENAME_LEN];
-    int32_t filetype;
-    int32_t inode_num;
-    int8_t reserved[24];
+	int8_t filename[FILENAME_LEN];		///< filename
+    int32_t filetype;					///< file type
+    int32_t inode_num;					///< corresponding inode number
+    int8_t reserved[24];				///< reserved bytes
 } fsys_dentry_t;
 
 /**
  *	Inode struct used for file system parsing
  */
 typedef struct fsys_inode{
-    int32_t length;
-    int32_t data_block_num[1023];
+    int32_t length;						///< file length
+    int32_t data_block_num[1023];		///< data block indices
 } fsys_inode_t;
 
 /**
  *	bootblock struct used for file system parsing
  */
 typedef struct fsys_bootblock{
-    int32_t dir_count;
-    int32_t inode_count;
-    int32_t data_count;
-    int8_t reserved[52];
-    fsys_dentry_t direntries[63];
+    int32_t dir_count;					///< total number of dentries
+    int32_t inode_count;				///< total number of inode
+    int32_t data_count;					///< total number of data block
+    int8_t reserved[52];				///< reserved bytes
+    fsys_dentry_t direntries[63];		///< dentries
 } bootblock_t;
 
 /**
  *	file operation struct used for file system testing
  */
 typedef struct fsys_fops{
-    int32_t (*read)(int32_t fd, void* buf, int32_t nbytes);
-    int32_t (*write)(int32_t fd, void* buf, int32_t nbytes);
-    int32_t (*open)(const uint8_t* filename);
-    int32_t (*close)(int32_t fd);
+    int32_t (*read)(int32_t fd, void* buf, int32_t nbytes);		///< file read function
+    int32_t (*write)(int32_t fd, void* buf, int32_t nbytes);	///< file write function
+    int32_t (*open)(const uint8_t* filename);					///< file open function
+    int32_t (*close)(int32_t fd);								///< file close function
 } fsys_fops_t;
 
 /**
  *	File strut used for file system testing
  */
 typedef struct fsys_file{
-    uint32_t inode;
-    uint32_t open_count;
-    uint32_t pos;
-    fsys_fops_t *fop;
+    uint32_t inode;						///< inode number
+    uint32_t open_count;				///< number of open file
+    uint32_t pos;						///< offset file position
+    fsys_fops_t *fop;					///< file operations
 } fsys_file_t;
 
 
-extern int32_t boot_start_addr; //global variable of the starting address of boot block
+/**
+ *	Global variable of the starting address of boot block
+ */
+extern int32_t boot_start_addr;
 
 /**
  *	Read and fill dentry of corresponding file name
