@@ -498,6 +498,13 @@ void test_interrupts(void) {
     }
 }
 
+
+/**
+ *	Terminal print wrapper
+ *
+ *	Calls terminal print to output characters to screen.
+ *	@param buf: char buffer to be printed
+ */
 void terminal_print(int8_t* buf){
     terminal_out_write((uint8_t*)buf, strlen(buf));
 }

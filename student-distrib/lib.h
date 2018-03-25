@@ -33,7 +33,12 @@ int32_t safe_strncpy(int8_t* dest, const int8_t* src, int32_t n);
 /* for testing rtc */
 void test_interrupts(void);
 
-/* using terminal driver write to print */
+/**
+ *	Terminal print wrapper
+ *
+ *	Calls terminal print to output characters to screen.
+ *	@param buf: char buffer to be printed
+ */
 void terminal_print(int8_t* buf);
 
 /* Port read functions */
