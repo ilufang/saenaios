@@ -38,27 +38,76 @@ int getdents(int fd, struct dirent *buf);
  *	DIR structure for POSIX-compliant directory calls
  */
 typedef struct s_dir {
-	int count;
-	int fd;
-	struct dirent dent;
+	int count; ///< Open count
+	int fd; ///< Open file descriptor
+	struct dirent dent; ///< `dirent` structure
 } DIR;
 
+/**
+ *	Open a directory for listing
+ *
+ *	@param filename: path to the directory to open
+ *	@return pointer to DIR structure, or NULL on error
+ */
 DIR *opendir(const char *filename);
 
+/**
+ *	Open a directory from an opened fd for listing
+ *
+ *	@param fd: the file descriptor to the directory to open
+ *	@return pointer to DIR structure, or NULL on error
+ */
 DIR *fdopendir(int fd);
 
+/**
+ *	Read an entry in the opened directory
+ *
+ *	@param dirp: pointer to the opened DIR structure
+ *	@return pointer to the populated `dirent`. User should only read it.
+ */
 struct dirent *readdir(DIR *dirp);
 
-int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result);
-
+/**
+ *	Find the current location in the directory iteration
+ *
+ *	@param dirp: pointer to the opened DIR structure
+ *	@return an index, to be used by seekdir. The index may or may not be
+ *			contiguous.
+ *	@see seekdir
+ */
 long telldir(DIR *dirp);
 
+/**
+ *	Seek to a previously `tell`ed location in the directory iteration
+ *
+ *	@param dirp: pointer to the opened DIR structure
+ *	@param loc: the index previously returned by `telldir`. Manual manipulation
+ *				of the location causes undefined behaviors
+ *	@see telldir
+ */
 void seekdir(DIR *dirp, long loc);
 
+/**
+ *	Seek to the beginning location in the directory iteration
+ *
+ *	@param dirp: pointer to the opened DIR structure
+ */
 void rewinddir(DIR *dirp);
 
+/**
+ *	Finish listing and release a DIR struct allocated by `opendir`
+ *
+ *	@param dirp: pointer to the opened DIR structure
+ *	@return 0 on success, or the negative of an errno on failure
+ */
 int closedir(DIR *dirp);
 
+/**
+ *	Find the fd of an open directory
+ *
+ *	@param dirp: pointer to the opened DIR structure
+ *	@return the file descriptor underlying the open directory
+ */
 int dirfd(DIR *dirp);
 
 #endif

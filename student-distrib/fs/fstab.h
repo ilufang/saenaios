@@ -8,7 +8,7 @@
 
 #include "vfs.h"
 
-#define FSTAB_FS_NAME_LEN	16
+#define FSTAB_FS_NAME_LEN	16	///< Maximum length of file system type name
 
 /**
  *	The driver for a file system type.
@@ -96,6 +96,6 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr);
  *	@param targetaddr: the mount point path to unmount
  *	@return 0 on success, or the negative of an errno on failure
  */
-int syscall_umount(int targetaddr, int b, int c);
+int syscall_umount(int targetaddr, int, int);
 
 #endif
