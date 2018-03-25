@@ -272,7 +272,7 @@ typedef struct s_inode {
 	super_block_t *sb; ///< Reference to super block
 	file_operations_t *f_op; ///< Default file operations driver
 	inode_operations_t *i_op; ///< I-node operations driver
-	int private_data; /// Private data for drivers
+	int private_data; ///< Private data for drivers
 } inode_t;
 
 /**
@@ -391,12 +391,12 @@ int syscall_write(int fd, int bufaddr, int size);
  *	System call handler for `getdents`: get next entry in directory
  *
  *	@param fd: the file descriptor of the directory to be listed
- *	@param buf: pointer to the `dirent` structure. Consecutive calls should
- *				pass the same `dirent`, as it is used to track the state of the
- *				iteration.
+ *	@param bufaddr: pointer to the `dirent` structure. Consecutive calls should
+ *					pass the same `dirent`, as it is used to track the state of
+ *					the iteration.
  *	@return: 0 on success, or negative of an errno on failure
  */
-int syscall_getdents(int fd, int bufaddr, int c);
+int syscall_getdents(int fd, int bufaddr, int);
 
 // For consistent include order
 #include "fstab.h"

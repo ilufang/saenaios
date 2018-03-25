@@ -46,8 +46,6 @@ int syscall_open(int pathaddr, int flags, int mode) {
 		return -errno;
 	}
 
-	inode->open_count++;
-
 	if (!(file = vfs_open_file(inode, flags))) {
 		return -errno;
 	}
@@ -197,11 +195,7 @@ int vfs_close_file(file_t *file) {
 	}
 	// Close this file
 	(*file->f_op->release)(file->inode, file);
-	file->inode->open_count--;
-	if (file->inode->open_count == 0) {
-		// Inode no longer in use, ask filesystem to release it
-		(*file->inode->sb->s_op->free_inode)(file->inode);
-	}
+	(*file->inode->sb->s_op->free_inode)(file->inode);
 	file->inode = NULL;
 	file->mode = 0;
 	file->f_op = NULL;

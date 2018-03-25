@@ -68,7 +68,7 @@ DIR *fdopendir(int fd) {
 	}
 	libc_dir_list[i].count = 1;
 	libc_dir_list[i].fd = fd;
-	libc_dir_list[i].dent.dirent.index = 0;
+	libc_dir_list[i].dent.index = 0;
 	return libc_dir_list + i;
 }
 
@@ -85,7 +85,7 @@ long telldir(DIR *dirp) {
 	if (!dirp || dirp->count == 0) {
 		return -EINVAL;
 	}
-	return dirp->dent.dirent.index;
+	return dirp->dent.index;
 }
 
 void seekdir(DIR *dirp, long loc) {
@@ -93,7 +93,7 @@ void seekdir(DIR *dirp, long loc) {
 		errno = EINVAL;
 		return;
 	}
-	dirp->dent.dirent.index = loc;
+	dirp->dent.index = loc;
 }
 
 void rewinddir(DIR *dirp) {
@@ -101,7 +101,7 @@ void rewinddir(DIR *dirp) {
 		errno = EINVAL;
 		return;
 	}
-	dirp->dent.dirent.index = 0;
+	dirp->dent.index = 0;
 }
 
 int closedir(DIR *dirp) {
