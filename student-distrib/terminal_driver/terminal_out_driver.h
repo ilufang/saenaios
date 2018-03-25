@@ -65,7 +65,7 @@ void terminal_out_clear();
  *
  *	This function prints a single character on the screen
  *
- *	@param a single character to be printed
+ *	@param c: a single character to be printed
  */
 void terminal_out_putc(uint8_t c);
 
@@ -122,6 +122,7 @@ int terminal_out_write_(uint8_t* buf, int length);
  *	@param file object
  * 	@param buf: A pointer to buffer of output content
  *	@param count: number to be written
+ *	@param offset: offset of write
  *	@return number of bytes successfully written
  */
 ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count,off_t *offset);
@@ -131,9 +132,10 @@ ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count,off_t *offset
  *
  *	this is invalid operation of terminal out dirver
  *
- *	@param file object
+ *	@param file: object
  * 	@param buf: A pointer to buffer of output content
  *	@param count: number to be read
+ *	@param offset: offset of read
  *	@return 0
  *	
  *  @note behavior not defined!

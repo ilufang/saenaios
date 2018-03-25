@@ -2,8 +2,7 @@
 
 #include "../lib.h"
 
-#define DEVFS_INODE_LIMIT 32
-#define DEVFS_DRIVER_LIMIT 256
+#define DEVFS_DRIVER_LIMIT 256	///<up limit for number of drivers
 
 static super_operations_t devfs_s_op;
 static inode_operations_t devfs_inode_op;
@@ -21,10 +20,10 @@ static struct s_super_block devfs_sb;
 static dev_driver_t devfs_table[DEVFS_DRIVER_LIMIT+1];
 
 void devfs_installfs() {
-	//int i;
+	// fstable stores value, so no worry here
 	file_system_t devfs;
 
-	//inflate s_op i_op struct
+	//inflate s_op i_op struct specific to this fs
 	devfs_s_op.alloc_inode = &devfs_s_op_alloc_inode;
 	devfs_s_op.open_inode = &devfs_s_op_open_inode;
 	devfs_s_op.free_inode = &devfs_s_op_free_inode;
@@ -34,7 +33,7 @@ void devfs_installfs() {
 
 	devfs_inode_op.lookup = &devfs_i_op_lookup;
 	devfs_inode_op.readlink = &devfs_i_op_readlink;
-
+	// f_op for devfs directories
 	devfs_f_op.open = &devfs_f_op_open;
 	devfs_f_op.release = &devfs_f_op_release;
 	devfs_f_op.read = NULL;
@@ -44,6 +43,8 @@ void devfs_installfs() {
 	// dev is defined to be indexed DEVFS_DRIVER_LIMIT
 	strcpy(devfs_table[DEVFS_DRIVER_LIMIT].name,"/dev");
 	//may need error checking?	
+
+	// inflate inode for /dev directory
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.ino = DEVFS_DRIVER_LIMIT;
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.file_type = FTYPE_DIRECTORY;
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.open_count = 0;
@@ -51,7 +52,7 @@ void devfs_installfs() {
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.f_op = &devfs_f_op;
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.i_op = &devfs_inode_op;
 
-	//inflate devfs in sup
+	//inflate devfs and register
 	strcpy(devfs.name,"devfs");
 
 	devfs.get_sb = &devfs_get_sb;
@@ -73,6 +74,7 @@ struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags,
 	devfs_sb.root = DEVFS_DRIVER_LIMIT;
 
 	// initialize device table
+	// this fields are the same for all device inodes here
 	for (i=0;i<DEVFS_INODE_LIMIT;++i){
 		devfs_table[i].name[0] = '\0';
 		devfs_table[i].inode.open_count = 0;
@@ -86,10 +88,12 @@ struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags,
 }
 
 void devfs_kill_sb(){
+	// do nothing for now
 	return;
 }
 
 inode_t* devfs_s_op_alloc_inode(struct s_super_block *sb){
+	// this shouldn't be called
 	errno = ENOSYS;
 	return NULL;
 }
@@ -167,18 +171,21 @@ int devfs_i_op_readlink(inode_t* inode, char* buf){
 int devfs_register_driver(const char* name, file_operations_t *ops){
 	int i;
 	inode_t *inode;
-
+	// sanity check
 	if (!name || !ops || strlen(name) > VFS_FILENAME_LEN) {
 		return -EINVAL;
 	}
-
+	// find a place to register and repeated driver check
 	for (i = 0; i < DEVFS_DRIVER_LIMIT; i++) {
 		if (devfs_table[i].name[0] == '\0') {
+			// found a empty slots 
 			break;
 		} else if (strncmp(devfs_table[i].name, name, VFS_FILENAME_LEN) == 0) {
+			// same name driver already exists
 			return -EEXIST;
 		}
 	}
+	// number of drivers exceeds limit
 	if (i > DEVFS_DRIVER_LIMIT) {
 		return -ENFILE;
 	}
@@ -193,20 +200,9 @@ int devfs_register_driver(const char* name, file_operations_t *ops){
 	return 0;
 }
 
-/*int devfs_get_free_inode_num(){
-	int i;
-
-	for (i = 0; i < DEVFS_INODE_LIMIT; i++) {
-		if (!devfs_table[i].name[0]){
-			return i;
-		}
-	}
-	return -ENFILE;
-}
-*/
 int devfs_unregister_driver(const char* name){
 	int i;
-
+	// search for entry in the table
 	for (i = 0; i < DEVFS_DRIVER_LIMIT; i++) {
 		if (strncmp(devfs_table[i].name, name, VFS_FILENAME_LEN) == 0)
 			break;
@@ -224,11 +220,14 @@ int devfs_f_op_open(inode_t* inode, file_t* file){
 }
 
 int devfs_f_op_release(inode_t* inode, file_t* file){
-	// This should not be called, driver's f_op will handle instead
-	return -ENOSYS;
+	if (inode.open_count == 0)
+		return -EEXIST;
+	--inode.open_count;	
+	return 0;
 }
 
 int devfs_f_op_readdir(file_t* file, struct dirent* dirent){
+	// for /dev only
 	int i;
 	for (i = dirent->index + 1; i < DEVFS_DRIVER_LIMIT; i++) {
 		if (devfs_table[i].name[0])
