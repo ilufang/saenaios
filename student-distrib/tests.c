@@ -281,6 +281,7 @@ int test_stdio_with_fd(){
 }
 
 int rtc_test_2() {
+	
 	TEST_HEADER;
 	int i, j;
 	int fd;
@@ -289,6 +290,7 @@ int rtc_test_2() {
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
+	rtc_out_driver_register();
 	
 	fd = open("/dev/rtc", O_RDWR, 0);
 	if (fd < 0) {
@@ -299,7 +301,7 @@ int rtc_test_2() {
 	for (i = 0; i < 10; i++) {
 		write(fd, &freq, sizeof(freq));
 		clear();
-		for (j = 0; j < 79; j++) {
+		for (j = 0; j < 20; j++) {
 			read(fd, &freq, 0); // Read should not modify anything
 			printf("1");
 		}

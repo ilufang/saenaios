@@ -84,6 +84,7 @@ int rtc_open(inode_t* inode, file_t* file) {
 	rtc_status |= RTC_IS_OPEN;
 	rtc_count = 1;
 	rtc_freq = 512;
+	rtc_setrate(0x06);
 
 	return 0;
 }
