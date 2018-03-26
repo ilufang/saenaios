@@ -43,23 +43,6 @@
 #define LSHIFT_R     0xAA		///< keycode left shift released
 #define RSHIFT_R     0xB6		///< keycode right shift released
 
-#define NULL_CHAR   '\0'
-
-#define ENTER_P    0x1C
-#define LCTRL_P    0x1D
-#define LALT_P     0x38
-#define BSB_P      0X0E
-#define LSHIFT_P    0x2A
-#define RSHIFT_P    0x36
-#define CAPS_P      0x3A
-#define L_P         0x26
-#define ENTER_P     0x1C
-
-#define LCTRL_R      0x9D
-#define LALT_R       0xB8
-#define LSHIFT_R     0xAA
-#define RSHIFT_R     0xB6
-
 #define KEY_BUF_SIZE    128		///< max keyboard buffer size
 
 /**
