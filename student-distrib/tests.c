@@ -169,25 +169,25 @@ void rtc_test_handler(){
  *	@note This test depends on a working IDT and working keyboard. This test
  *		  will also remove the handler
  */
-int rtc_test() {
-	TEST_HEADER;
-	idt_removeEventListener(KBD_IRQ_NUM);
-	idt_removeEventListener(RTC_IRQ_NUM);
-	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
-	printf("Screen will be garbled in this test.\n");
-	printf("Press S to start, press E to end...\n");
-	kb_test_last_key = '\0';
-	while(kb_test_last_key != 's');
-	idt_addEventListener(RTC_IRQ_NUM, &rtc_test_handler);
-	rtc_open();
-	rtc_setrate(0x06); // Slower!
-	kb_test_last_key = '\0';
-	while(kb_test_last_key != 'e');
-	idt_removeEventListener(RTC_IRQ_NUM);
-	clear();
-	printf("RTC Test ended.\n");
-	return PASS;
-}
+// int rtc_test() {
+// 	TEST_HEADER;
+// 	idt_removeEventListener(KBD_IRQ_NUM);
+// 	idt_removeEventListener(RTC_IRQ_NUM);
+// 	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
+// 	printf("Screen will be garbled in this test.\n");
+// 	printf("Press S to start, press E to end...\n");
+// 	kb_test_last_key = '\0';
+// 	while(kb_test_last_key != 's');
+// 	idt_addEventListener(RTC_IRQ_NUM, &rtc_test_handler);
+// 	rtc_open();
+// 	rtc_setrate(0x06); // Slower!
+// 	kb_test_last_key = '\0';
+// 	while(kb_test_last_key != 'e');
+// 	idt_removeEventListener(RTC_IRQ_NUM);
+// 	clear();
+// 	printf("RTC Test ended.\n");
+// 	return PASS;
+// }
 
 /* Checkpoint 2 tests */
 
@@ -281,26 +281,39 @@ int test_stdio_with_fd(){
 }
 
 int rtc_test_2() {
+	
 	TEST_HEADER;
 	int i, j;
+	int fd;
 	int freq = 2;
 	char tick[] = "0";
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
-	rtc_open();
-	rtc_setrate(0x06);
+	rtc_out_driver_register();
+	
+	fd = open("/dev/rtc", O_RDWR, 0);
+	if (fd < 0) {
+		printf("Failed to open RTC %d\n", fd);
+		return FAIL;
+	}
+
 	for (i = 0; i < 10; i++) {
-		rtc_write(freq);
-		for (j = 0; j < 20; j++) {
-			rtc_read();
-			printf("a");
+		write(fd, &freq, sizeof(freq));
+		clear();
+		for (j = 0; j < 79; j++) {
+			read(fd, &freq, 0); // Read should not modify anything
+			printf("1");
 		}
 		tick[0]++;
 		freq *= 2;
 	}
 	clear();
+
+	close(fd);
+
 	// idt_removeEventListener(RTC_IRQ_NUM);
+	return PASS;
 }
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */

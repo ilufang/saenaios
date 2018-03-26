@@ -11,6 +11,9 @@
 
 #include "types.h"
 #include "i8259.h"
+#include "lib.h"
+#include "fs/vfs.h"
+#include "fs/fs_devfs.h"
 
 /**
  *	RTC_IRQ_NUM
@@ -135,7 +138,7 @@ void rtc_setrate(int rate);
  *	Occured when RTC needs to be turned on.
  */
 
-int rtc_open();
+int rtc_open(inode_t* inode, file_t* file);
 
 /**
  *	Close opened rtc and free all the private data.
@@ -143,7 +146,7 @@ int rtc_open();
  *	Currently do nothing.
  */
 
-int rtc_close();
+int rtc_close(inode_t* inode, file_t* file);
 
 /**
  *	Block rtc interrupts at a given frequency. (virtualized)
@@ -152,7 +155,7 @@ int rtc_close();
  *	a giving frequency.
  */
 
-int rtc_read();
+ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset);
 
 /**
  *	Set frequency of RTC interrupts (virtualized)
@@ -160,7 +163,7 @@ int rtc_read();
  *	@param freq: The RTC interrupt frequency (exact frequency). Must be in the range between 2-1024Hz and must be power of 2.
  */
 
-int rtc_write(int freq);
+ssize_t rtc_write(file_t* file, uint8_t* buf, size_t count, off_t* offset);
 
 /**
  *	Check if a number is a power of 2.
