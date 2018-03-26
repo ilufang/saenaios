@@ -12,92 +12,38 @@
 #include "types.h"
 #include "i8259.h"
 
-/**
- *	RTC_IRQ_NUM
- *
- *	IRQ number for RTC hardware.
- */
+/* irq number for rtc */
 #define RTC_IRQ_NUM 8
 
+/* rtc ports */
+#define RTC_PORT    0x70
 /**
  *	RTC_PORT
  *
  *	Port for writing to RTC
  */
-
-#define RTC_PORT    0x70
-
+#define CMOS_PORT   0x71
 /**
  *	CMOS_PORT
  *
  *	Port for reading from RTC
  */
-
-#define CMOS_PORT   0x71
-
-/**
- *	REG_A
- *
- *	RTC control register A.
- */
-
 #define REG_A       0x0A
-
-/**
- *	REG_B
- *
- *	RTC control register B.
- */
-
 #define REG_B       0x0B
-
-/**
- *	REG_C
- *
- *	RTC control register C.
- */
-
 #define REG_C       0x0C
-
-/**
- *	REG_D
- *
- *	RTC control register D.
- */
-
 #define REG_D       0x0D
 
-/**
- *	REG_A_NMI
- *
- *	RTC control register A with NMI enabled (disable interrupts).
- */
-
 #define REG_A_NMI   0x8A
-
-/**
- *	REG_B_NMI
- *
- *	RTC control register B with NMI enabled (disable interrupts).
- */
-
 #define REG_B_NMI   0x8B
-
-/**
- *	REG_C_NMI
- *
- *	RTC control register C with NMI enabled (disable interrupts).
- */
-
 #define REG_C_NMI   0x8C
 
-/**
- *	BIT_SIX
- *
- *	the sixth bit of REG_B for enabling periodic interrupt.
- */
-
+#define BIT_SEVEN	0x80
 #define BIT_SIX     0x40
+#define BIT_FIVE 	0x20
+#define BIT_FOUR	0x10
+#define BIT_THREE	0x08
+#define BIT_TWO 	0x04
+#define BIT_ONE 	0x02
 
 /**
  *	Initialize the rtc
