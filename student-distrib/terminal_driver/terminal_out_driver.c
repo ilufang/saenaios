@@ -67,7 +67,11 @@ void terminal_set_cursor(){
 
 void terminal_out_clear(){
 	// clear out memory
-	clear();
+	int32_t i;
+    for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
+        *(uint8_t *)(video_mem + (i << 1)) = ' ';
+        *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+    }
 	// set cursor to up left
 	screen_y = 0;
 	screen_x = 0;
@@ -84,18 +88,25 @@ ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count,off_t* offset
 
 int terminal_out_write_(uint8_t* buf, int length){
 	int i;
-	for (i=0; i<length; ++i){
-		switch (buf[i]){
+	if (length == 1){
+		switch (buf[0]){
 			//escape sequence
-			case '^':
-				if ((i+1<length) && buf[i+1] == '['){
-					i += terminal_out_escape_sequence(buf+i,length-i)-1;
-					// -1 because i would self increase in the for loop
-					break;
-				}
+			case TERMINAL_OUT_LF:
+				terminal_out_newline();
+				break;
+			case TERMINAL_OUT_BACKSPACE:
+				terminal_out_backspace();
+				break;
+			case TERMINAL_OUT_FF:
+				terminal_out_clear();
+				break;
 			default:
 				//otherwise, output normally
-				terminal_out_putc(buf[i]);
+				terminal_out_putc(buf[0]);
+		}
+	}else {
+		for (i=0; i<length; ++i){
+			terminal_out_putc(buf[i]);
 		}
 	}
 	return length;	// note for now
@@ -105,7 +116,7 @@ ssize_t terminal_out_read(file_t* file, uint8_t* buf,size_t count,off_t* offset)
 	return 0;	// for now
 }
 
-int terminal_out_escape_sequence(uint8_t *buf,int max_length){
+/*int terminal_out_escape_sequence(uint8_t *buf,int max_length){
 	if ((buf[0]!='^')||(buf[1]!='['))
 		return 0;
 	// check if it is a broken escape sequence
@@ -134,33 +145,37 @@ int terminal_out_escape_sequence(uint8_t *buf,int max_length){
 	// just print the broken escape sequence head ^ normally
 	terminal_out_putc(buf[0]);
 	return 1;
-}
+}*/
 
 void terminal_out_putc(uint8_t c){
 	int temp_offset;	//offset for video memory write
+
 	if(c == '\n' || c == '\r') {
 		// new line character
-        terminal_out_newline();
+       	terminal_out_newline();
     } else {
-    	temp_offset = (NUM_COLS * screen_y + screen_x) << 1;
-
-        *(uint8_t *)(VIDEO + temp_offset) = c;
-        *(uint8_t *)(VIDEO + temp_offset + 1) = ATTRIB;
-        screen_x++;
-        screen_y += screen_x/NUM_COLS;	// characters exceed line limit
-        if (screen_x >= NUM_COLS){
-        	// line overflow could go backspace, and this is the
-        	// only case
-        	screen_x %= NUM_COLS;
-    		last_newline = 0;
-    	}
-        if (screen_y >= NUM_ROWS){
-        	// line overflow causing scroll down
-        	terminal_out_scroll_down();
-        	screen_y = NUM_ROWS-1;
-        }
-        terminal_set_cursor();
+    	// if printable
+    	if (c >= ' ' && c<= '~'){
+    		temp_offset = (NUM_COLS * screen_y + screen_x) << 1;
+       		*(uint8_t *)(VIDEO + temp_offset) = c;
+       		*(uint8_t *)(VIDEO + temp_offset + 1) = ATTRIB;
+       		screen_x++;
+       		screen_y += screen_x/NUM_COLS;	// characters exceed line limit
+       		if (screen_x >= NUM_COLS){
+       			// line overflow could go backspace, and this is the
+       			// only case
+       			screen_x %= NUM_COLS;
+    			last_newline = 0;
+    		}
+       		if (screen_y >= NUM_ROWS){
+       			// line overflow causing scroll down
+       			terminal_out_scroll_down();
+       			screen_y = NUM_ROWS-1;
+       		}
+       		terminal_set_cursor();
+       }
     }
+
 }
 
 void terminal_out_newline(){
