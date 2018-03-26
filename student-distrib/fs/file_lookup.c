@@ -10,6 +10,7 @@ inode_t* file_lookup(pathname_t path){
 	vfsmount_t *fs;
 	int i;	// number for path offset
 	int temp_buff_size;
+	int temp_return;
 	// initialize nameidata for this file lookup
 	nameidata_t nd;
 	// 	
@@ -41,8 +42,9 @@ file_lookup_start:
 		return NULL;
 	}
 
-	if (find_file(&nd)){
+	if ((temp_return = find_file(&nd))){
 		//find file failed, errno set in function called
+		errno = -temp_return;
 		return NULL;
 	}
 

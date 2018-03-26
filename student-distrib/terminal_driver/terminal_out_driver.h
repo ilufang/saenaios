@@ -20,6 +20,10 @@
 #define NUM_ROWS    25				///< 25 rows on one screen
 #define ATTRIB      0x7				///< default attribute for characters on the screen
 
+
+#define TERMINAL_OUT_LF  		10	///< number for control code to new line
+#define TERMINAL_OUT_BACKSPACE 	8	///< number for control code to backspace
+#define TERMINAL_OUT_FF 		12	///< number for control code to clear screen
 /**
  *	Perform newline
  *
