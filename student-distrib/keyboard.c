@@ -8,12 +8,6 @@
 
 #define PRESSED     1			///< key state pressed
 #define UNPRESSED   0			///< key state unpressed
-#define KEY_BUF_SIZE    128		///< max keyboard buffer size
-
-/**
- *	test mode
- */
-volatile int read_test_mode = 0;
 
 /**
  *	Keyboard modes corresponding to capslock and shift state

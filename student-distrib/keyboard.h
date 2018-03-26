@@ -60,15 +60,12 @@
 #define LSHIFT_R     0xAA
 #define RSHIFT_R     0xB6
 
+#define KEY_BUF_SIZE    128		///< max keyboard buffer size
+
 /**
  *	Scan code to character mapping
  */
-extern unsigned char kbdreg[128];
-
-/**
- *	Variable indicating read_test mode status
- */
-extern volatile int read_test_mode;
+extern unsigned char kbdreg[KEY_BUF_SIZE];
 
 /**
  *	Initializes keyboard

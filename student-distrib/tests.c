@@ -278,7 +278,30 @@ int test_stdio_with_fd(){
 		printf("read stdout dentry failed\n");
 		return FAIL;
 	}
+    
 
+	return PASS;
+}
+
+int stdin_test(){
+    
+	TEST_HEADER;
+    printf("Testing stdin read. Press '`' to end test.\n");
+    int fd, nbytes;
+    uint8_t buffer[KEY_BUF_SIZE];
+    keyboard_driver_register();
+	fd = open("/dev/stdin",O_RDONLY, 0);
+    if(fd < 0){
+        printf("Unable to open device.");
+    }
+    while(buffer){
+        memset(buffer, 0, KEY_BUF_SIZE);
+        while(read(fd, buffer, nbytes) < 0);
+        if(buffer[0]=='`') break;
+        terminal_print(buffer);
+    }
+    clear();
+    close(fd);
 	return PASS;
 }
 
@@ -524,16 +547,18 @@ void launch_tests() {
     
     // File and directory test
     
-    
+    /*
     TEST_OUTPUT("test_read_file", test_read_file());
     clear();
     
     TEST_OUTPUT("test_read_dir", test_read_dir());
-    clear();
+    clear();*/
     
     // restore keyboard handler for keyboard read test
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
+    
+	TEST_OUTPUT("stdin_test", stdin_test());
     //TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
     terminal_out_clear();
 	TEST_OUTPUT("rtc_test_2", rtc_test_2());
