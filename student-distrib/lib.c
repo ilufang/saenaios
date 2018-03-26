@@ -506,5 +506,5 @@ void test_interrupts(void) {
  *	@param buf: char buffer to be printed
  */
 void terminal_print(int8_t* buf){
-    terminal_out_write((uint8_t*)buf, strlen(buf));
+    terminal_out_write_((uint8_t*)buf, strlen(buf));
 }
