@@ -135,7 +135,7 @@ void rtc_setrate(int rate);
  *	Occured when RTC needs to be turned on.
  */
 
-int32_t rtc_open(const uint8_t *filename);
+int rtc_open();
 
 /**
  *	Close opened rtc and free all the private data.
