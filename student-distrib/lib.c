@@ -3,8 +3,6 @@
 
 #include "lib.h"
 #include "terminal_driver/terminal_out_driver.h"
-#include "rtc.h"
-
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80
@@ -20,11 +18,7 @@ static char* video_mem = (char *)VIDEO;
  * Return Value: none
  * Function: Clears video memory */
 void clear(void) {
-    int32_t i;
-    for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-        *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
-    }
+    terminal_out_clear();
 }
 
 /* Standard printf().
