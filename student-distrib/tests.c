@@ -214,7 +214,7 @@ void read_file_by_name(int8_t* filename){
     uint8_t content[BLOCK_SIZE * 128];
     memset(content, 0x0, BLOCK_SIZE * 128);
     read_data(test_dentry.inode_num, 0, content, file_len);
-    terminal_out_write(content, file_len);
+    terminal_out_write_(content, file_len);
     terminal_print("\nDone reading file: ");
     terminal_print(filename);
     terminal_print("\n");
@@ -238,11 +238,11 @@ int read_file_by_index(uint32_t idx){
     memset(content, 0x0, BLOCK_SIZE * 128);
     // print file content
     read_data(test_dentry.inode_num, 0, content, file_len);
-    terminal_out_write(content, file_len);
+    terminal_out_write_(content, file_len);
     terminal_print("\nDone reading file: ");
     uint32_t namelen = strlen((int8_t*)test_dentry.filename);
     if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
-    terminal_out_write((uint8_t*)test_dentry.filename, namelen);
+    terminal_out_write_((uint8_t*)test_dentry.filename, namelen);
     return 0;
 }
 

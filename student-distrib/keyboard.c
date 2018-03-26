@@ -59,7 +59,7 @@ uint8_t kbd_buf[KEY_BUF_SIZE];
 /**
  *	keyboard driver file operations
  */
-//static file_operations_t keyboard_fop;
+static file_operations_t keyboard_fop;
 
 /**
  *	keycode lookup table for regular keyboard mode
@@ -372,8 +372,8 @@ void regular_key(uint8_t scancode){
     // send control character if control key is pressed
     if(ctrl_status == PRESSED){
         scanchar = kbdctl[scancode];
-        terminal_out_write(&scanchar,1);
-        ctrl_status == UNPRESSED;
+        terminal_out_write_(&scanchar,1);
+        //ctrl_status = UNPRESSED;
         return;
     }
     else{
@@ -403,7 +403,7 @@ void regular_key(uint8_t scancode){
                 // append enter in keyboard buffer
                 buf_push(scanchar); 
                 // write enter control sequence to terminal driver
-                terminal_out_write(&scanchar, 1);
+                terminal_out_write_(&scanchar, 1);
             }
             break;
             
@@ -413,7 +413,7 @@ void regular_key(uint8_t scancode){
                 curr_char_ptr--;
                 kbd_buf[curr_char_ptr] = NULL_CHAR;  
                 // send control sequence to terminal driver
-                terminal_out_write(&scanchar,1);
+                terminal_out_write_(&scanchar,1);
             }
             break;
         
@@ -422,7 +422,7 @@ void regular_key(uint8_t scancode){
             if(curr_char_ptr < KEY_BUF_SIZE-1){
                 // write the character to terminal
                 buf_push(scanchar);
-                terminal_out_write(&scanchar,1);
+                terminal_out_write_(&scanchar,1);
             }
             break;
     }
@@ -560,3 +560,4 @@ int32_t keyboard_close(inode_t* inode, file_t* file){
     clear_buf();
     return 0;
 }
+

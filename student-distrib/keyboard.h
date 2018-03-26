@@ -13,10 +13,10 @@
 #include "i8259.h"
 #include "lib.h"
 #include "terminal_driver/terminal_out_driver.h"
-/*
+
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
-*/
+
 #define DATA_REG    0x60		///< keyboard data register
 #define CTRL_REG    0x64		///< keyboard control register
 
@@ -69,7 +69,7 @@ void keyboard_handler();
 /**
  *	Register keyboard driver in devfs
  */
-//int keyboard_driver_register();
+int keyboard_driver_register();
 
 /**
  *	Keyboard read wrapper
@@ -79,14 +79,14 @@ void keyboard_handler();
  *	@param count: number of byte to read
  *	@param offset: offset to start reading
  */
-//ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset);
+ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset);
 
 /**
  *	Keyboard write function
  *
  *	@note keyboard write is not supported
  */
-//ssize_t keyboard_write(file_t* file, uint8_t *buf, size_t count, off_t *offset);
+ssize_t keyboard_write(file_t* file, uint8_t *buf, size_t count, off_t *offset);
 
 /**
  *	Keyboard open function
@@ -96,7 +96,7 @@ void keyboard_handler();
  *	@param file: file object
  *
  */
-//int32_t keyboard_open(inode_t* inode, file_t* file);
+int32_t keyboard_open(inode_t* inode, file_t* file);
 
 /**
  *	Keyboard close function
@@ -104,7 +104,7 @@ void keyboard_handler();
  *	@note the function does nothing for now
  *	@param fd: index into file descriptor table
  */
-//int32_t keyboard_close(int32_t fd);
+int32_t keyboard_close(int32_t fd);
 
 
 #endif /* _KEYBOARD_H */
