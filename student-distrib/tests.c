@@ -236,9 +236,9 @@ int test_stdio_with_fd(){
 	if (fd < 0){
 		return FAIL;
 	}
-	char clear_sequence[4] = "^[*";
-	clear_sequence[2] = 12;
-	write(fd, clear_sequence, 3);
+	char clear_sequence[4];
+	clear_sequence[0] = 12;
+	write(fd, clear_sequence, 1);
 
 	write(fd, "You should see a cleared screen with this line!",47);
 
@@ -301,7 +301,7 @@ int rtc_test_2() {
 	for (i = 0; i < 10; i++) {
 		write(fd, &freq, sizeof(freq));
 		clear();
-		for (j = 0; j < 20; j++) {
+		for (j = 0; j < 79; j++) {
 			read(fd, &freq, 0); // Read should not modify anything
 			printf("1");
 		}
