@@ -4,10 +4,12 @@
 #include "rtc.h"
 #include "boot/idt.h"
 #include "lib.h"
+#include "errno.h"
 
 static int rtc_status = 0;
-static int rtc_freq = 0;
-static int rtc_count = 1;
+static volatile int rtc_freq = 0;
+static volatile int rtc_count = 1;
+static volatile int rtc_count_prev = 0;
 
 #define RTC_MAX_FREQ 	1024	/* max user frequency is 1024 Hz */
 #define RTC_IS_OPEN 	0x01	/* means rtc is opened in a file */
@@ -103,11 +105,14 @@ int rtc_close() {
 }
 
 int rtc_read() {
+
 	if (rtc_status == 0 || rtc_freq == 0)
 		return 0;
 	while(1) {
-		if (rtc_count % rtc_freq == 0)
+		if (rtc_count != rtc_count_prev && (rtc_count & (rtc_freq-1)) == 0) {
+			rtc_count_prev = rtc_count;
 			return 0;
+		}
 	}
 
 }
@@ -115,13 +120,13 @@ int rtc_read() {
 int rtc_write(int freq) {
 	/* sanity check */
 	if (!RTC_IS_OPEN)
-		return -1;
+		return -EINVAL;
 
 	if (freq < 2 || freq > 1024)
-		return -1;
+		return -EINVAL;
 
 	if (is_power_of_two(freq) == -1)
-		return -1;
+		return -EINVAL;
 	/* set rtc_freq */
 	rtc_freq = RTC_MAX_FREQ / freq;
 

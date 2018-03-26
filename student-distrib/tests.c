@@ -284,6 +284,7 @@ int rtc_test_2() {
 	TEST_HEADER;
 	int i, j;
 	int freq = 2;
+	char tick[] = "0";
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
@@ -291,14 +292,15 @@ int rtc_test_2() {
 	rtc_setrate(0x06);
 	for (i = 0; i < 10; i++) {
 		rtc_write(freq);
-		for (j = 0; j < 100; j++) {
+		for (j = 0; j < 20; j++) {
 			rtc_read();
-			test_interrupts();
+			printf("a");
 		}
+		tick[0]++;
 		freq *= 2;
 	}
 	clear();
-	idt_removeEventListener(RTC_IRQ_NUM);
+	// idt_removeEventListener(RTC_IRQ_NUM);
 }
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
