@@ -875,7 +875,7 @@ RECURSIVE              = YES
 # run.
 
 EXCLUDE                = lib.h boot.S debug.h x86_desc.h multiboot.h i8259.h \
-                         rtc.h keyboard.h
+                         keyboard.h
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
