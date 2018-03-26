@@ -283,6 +283,7 @@ int test_stdio_with_fd(){
 	return PASS;
 }
 
+/*
 int stdin_test(){
     
 	TEST_HEADER;
@@ -304,6 +305,7 @@ int stdin_test(){
     close(fd);
 	return PASS;
 }
+*/
 
 int rtc_test_2() {
 	
@@ -492,18 +494,85 @@ int test_read_dir(){
 
 /**
  *	Test keyboard read handler
+ *
  *	Enable keyboard testing mode, each keypress of enter key
  *	will evoke keyboard_read to read from the keyboard buffer
  *	and output the values the terminal
  */
 
-int test_keyboard_read(){
+int test_keyboard_read() {
 	TEST_HEADER;
-    terminal_print("Press enter to read from keyboard, buffer will be printed to ternimal screen.\nPress backtick to exit test.\n");
-    read_test_mode = 1;
-    while(read_test_mode == 1);
-    return PASS;
-    
+    // terminal_print("Press enter to read from keyboard, buffer will be printed to ternimal screen.\nPress backtick to exit test.\n");
+    // read_test_mode = 1;
+    // while(read_test_mode == 1);
+    // return PASS;
+	char buf[128 + 1];
+	int fd_in, fd_out, count_in, count_out, ret;
+
+	ret = keyboard_driver_register();
+	if (ret != 0 && ret != -EEXIST) {
+		printf("Failed to register stdin driver (err=%d)\n", ret);
+		return FAIL;
+	}
+	ret = terminal_out_driver_register();
+	if (ret != 0 && ret != -EEXIST) {
+		printf("Failed to register stdout driver (err=%d)\n", ret);
+		return FAIL;
+	}
+
+	ret = PASS;
+	fd_in = open("/dev/stdin", O_RDONLY, 0);
+	fd_out = open("/dev/stdout", O_WRONLY, 0);
+	if (fd_out < 0) {
+		printf("kb: cannot open stdout (err=%d)\n", fd_out);
+		ret = FAIL;
+		goto cleanup;
+	}
+	if (fd_in < 0) {
+		printf("kb: cannot open stdin (err=%d)\n", fd_in);
+		ret = FAIL;
+		goto cleanup;
+	}
+	printf("Dumping stdin to stdout (equiv. cat /dev/stdin)...\n"
+		   "Control-D to finish\n");
+	memset(buf, '\0', sizeof(buf));
+	while (buf[0] != '\x04') { // manually detect ^D
+		count_in = read(fd_in, buf, 128);
+		if (count_in < 0) {
+			printf("kb: read failed (err=%d)\n", count_in);
+			ret = FAIL;
+			break;
+		}
+		count_out = write(fd_out, buf, count_in);
+		if (count_out < 0) {
+			printf("kb: write failed (err=%d)\n", count_out);
+			ret = FAIL;
+			break;
+		} else if (count_out != count_in) {
+			printf("kb:write could not flush all bytes.\n"
+				   "read %d bytes, written %d bytes\n", count_in, count_out);
+			ret = FAIL;
+			break;
+		}
+	}
+
+cleanup:
+	if (fd_in >= 0) {
+		fd_in = close(fd_in);
+		if (fd_in != 0) {
+			printf("kb: fail to close stdin (err=%d)\n", fd_in);
+			ret = FAIL;
+		}
+	}
+	if (fd_out >= 0) {
+		fd_out = close(fd_out);
+		if (fd_out != 0) {
+			printf("kb: fail to close stdout (err=%d)\n", fd_out);
+			ret = FAIL;
+		}
+	}
+
+	return ret;
 }
 
 /* Checkpoint 3 tests */
@@ -544,24 +613,13 @@ void launch_tests() {
 
 	// RTC test
 	//TEST_OUTPUT("rtc_test", rtc_test());
-    
+
     // File and directory test
-    
-    /*
     TEST_OUTPUT("test_read_file", test_read_file());
     clear();
-    
+
     TEST_OUTPUT("test_read_dir", test_read_dir());
-    clear();*/
-    
-    // restore keyboard handler for keyboard read test
-	idt_removeEventListener(KBD_IRQ_NUM);
-	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
-    
-	TEST_OUTPUT("stdin_test", stdin_test());
-    //TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
-    terminal_out_clear();
-	TEST_OUTPUT("rtc_test_2", rtc_test_2());
+    clear();
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);
@@ -572,4 +630,8 @@ void launch_tests() {
 	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 
 	fs_test();
+
+    TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
+
+	// TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }

@@ -177,8 +177,11 @@ void entry(unsigned long magic, unsigned long addr) {
 	devfs_installfs();
 	//mount device driver fs
 	mount("","/dev","devfs",0,"");
-	//register std out
+
+	// register drivers
 	terminal_out_driver_register();
+	keyboard_driver_register();
+	rtc_out_driver_register();
 
 #ifdef RUN_TESTS
 	/* Run tests */

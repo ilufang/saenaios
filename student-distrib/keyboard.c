@@ -353,8 +353,8 @@ void shift_buf(int num_bytes){
 
 /**
  *	Helper function to handle regular keypress
- *  
- *	Send a character to terminal. Check for ctrl_l
+ *
+ *	Send a character to terminal
  *
  *	@param scancode: scancode received
  */
@@ -368,8 +368,6 @@ void regular_key(uint8_t scancode){
     if(ctrl_status == PRESSED){
         scanchar = kbdctl[scancode];
         terminal_out_write_(&scanchar,1);
-        //ctrl_status = UNPRESSED;
-        return;
     }
     else{
     // otherwise fetch a scancode according to current mode
@@ -385,33 +383,33 @@ void regular_key(uint8_t scancode){
                 break;
             case caps_shift:
                 scanchar = kbdcs[scancode];
-                break;         
+                break;
         }
     }
-    
+
     switch(scanchar){
         // if enter is pressed, mark the previous enter position
         case ENTER_CHAR:
             if(curr_char_ptr < KEY_BUF_SIZE){
                 // update enter location
-                prev_enter = curr_char_ptr;
+                prev_enter = curr_char_ptr + 1;
                 // append enter in keyboard buffer
-                buf_push(scanchar); 
+                buf_push(scanchar);
                 // write enter control sequence to terminal driver
                 terminal_out_write_(&scanchar, 1);
             }
             break;
-            
+
         // if backspace is pressed, erase a char from key buffer
         case BSB_CHAR:
             if(curr_char_ptr>0 && kbd_buf[curr_char_ptr-1]!='\n'){
                 curr_char_ptr--;
-                kbd_buf[curr_char_ptr] = NULL_CHAR;  
+                kbd_buf[curr_char_ptr] = NULL_CHAR;
                 // send control sequence to terminal driver
                 terminal_out_write_(&scanchar,1);
             }
             break;
-        
+
         // in other cases just sent the keycode
         default:
             if(curr_char_ptr < KEY_BUF_SIZE-1){
@@ -527,21 +525,23 @@ int keyboard_driver_register(){
 
 
 ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
-    // error if there's no enter in buffer
+    // do nothing if there's no enter in buffer
     if(prev_enter < 0){
-        return -1;
+        return 0;
     }
-    int i = 0;
-    // read buffer until a previous enter is reached
-    for(i = 0; i <= prev_enter; i++){
-        buf[i] = kbd_buf[i];
+
+    if (prev_enter < count) {
+        // If the flushable part of internal buffer is smaller than the external
+        // buffer, only copy the length of the flushable part of internal buffer
+        count = prev_enter;
     }
-    shift_buf(prev_enter);
-    return i;
+    memcpy(buf, kbd_buf, count);
+    shift_buf(count);
+    return count;
 }
 
 ssize_t keyboard_write(file_t* file, uint8_t *buf, size_t count, off_t *offset){
-    return -1;
+    return -ENOSYS;
 }
 
 int32_t keyboard_open(inode_t* inode, file_t* file){
