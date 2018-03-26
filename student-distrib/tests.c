@@ -301,7 +301,7 @@ int rtc_test_2() {
 	for (i = 0; i < 10; i++) {
 		write(fd, &freq, sizeof(freq));
 		clear();
-		for (j = 0; j < 20; j++) {
+		for (j = 0; j < 79; j++) {
 			read(fd, &freq, 0); // Read should not modify anything
 			printf("1");
 		}
