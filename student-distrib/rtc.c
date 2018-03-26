@@ -95,7 +95,7 @@ int rtc_open() {
 	return 0;
 }
 
-int rtc_close() {
+int32_t rtc_close(int32_t fd) {
 	/* currently do nothing */
 	rtc_status &= ~RTC_IS_OPEN;
 	rtc_status = 0;
@@ -134,8 +134,12 @@ int rtc_write(int freq) {
 
 /*
 	char prev;
-	char rate_mask;
-
+	char rate_mask; 
+*/
+	int rate = *((int*)(buf));
+	if (rate < 2 || rate > 1024)
+		return -1;
+/*
 	if (rate < 2 || rate > 1024)
 		return -1;
 	if (rate == 2)
