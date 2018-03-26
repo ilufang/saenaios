@@ -38,14 +38,15 @@ void set_cursor(int x, int y){
  * Return Value: none
  * Function: Clears video memory */
 void clear(void) {
-    //terminal_out_clear();
+    terminal_out_clear();
+    /*
     int32_t i;
     screen_x = 0;
     screen_y = 0;
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
-    }
+    }*/
 
 }
 
@@ -193,6 +194,7 @@ int32_t puts(int8_t* s) {
  * Return Value: void
  *  Function: Output a character to the console */
 void putc(uint8_t c) {
+    /*
     if(c == '\n' || c == '\r') {
         screen_y++;
         screen_x = 0;
@@ -205,7 +207,8 @@ void putc(uint8_t c) {
         screen_x %= NUM_COLS;
     }
     set_cursor(screen_x, screen_y);
-    //terminal_out_putc(c);
+    */
+    terminal_out_putc(c);
 }
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);

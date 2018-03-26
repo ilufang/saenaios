@@ -383,6 +383,7 @@ int test_read_file(){
     uint32_t i = 0;
     
     terminal_out_clear();
+    read_file_by_index(17);
     terminal_print("Reading text file...\n");
     read_file_by_name("frame0.txt");
 	terminal_print("Press enter to continue...");
@@ -422,8 +423,9 @@ int test_read_file(){
     
     while(kb_test_last_key != '\n');
     terminal_out_clear();
+    
     terminal_print("Reading all files by index...\n");
-    while(read_file_by_index(i)==0){
+    while(read_file_by_index(i)!=-1){
         kb_test_last_key = '\0';
         i++;
         terminal_print("\nPress enter to read the next file...");
@@ -443,7 +445,9 @@ int test_read_file(){
  */
 int test_read_dir(){
 	TEST_HEADER;
-    clear();
+    idt_removeEventListener(KBD_IRQ_NUM);
+	kb_test_last_key = '\0';
+	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
     terminal_out_clear();
     terminal_print("Testing directory read.\n");
     int32_t fd= dir_open((uint8_t*)".");
@@ -523,16 +527,14 @@ void launch_tests() {
     
     TEST_OUTPUT("test_read_file", test_read_file());
     clear();
-    terminal_out_clear();
     
     TEST_OUTPUT("test_read_dir", test_read_dir());
     clear();
-    terminal_out_clear();
     
     // restore keyboard handler for keyboard read test
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
-    TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
+    //TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
     terminal_out_clear();
 	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 
