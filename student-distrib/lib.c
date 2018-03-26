@@ -2,6 +2,7 @@
  * vim:ts=4 noexpandtab */
 
 #include "lib.h"
+#include "terminal_driver/terminal_out_driver.h"
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80
@@ -19,6 +20,7 @@ void disable_cursor(){
 }
 
 /* set cursor to (x,y) */
+
 void set_cursor(int x, int y){
     screen_x = x;
     screen_y = y;
@@ -36,6 +38,7 @@ void set_cursor(int x, int y){
  * Return Value: none
  * Function: Clears video memory */
 void clear(void) {
+    //terminal_out_clear();
     int32_t i;
     screen_x = 0;
     screen_y = 0;
@@ -43,6 +46,7 @@ void clear(void) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
+
 }
 
 /* Standard printf().
@@ -201,6 +205,7 @@ void putc(uint8_t c) {
         screen_x %= NUM_COLS;
     }
     set_cursor(screen_x, screen_y);
+    //terminal_out_putc(c);
 }
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);

@@ -43,6 +43,23 @@
 #define LSHIFT_R     0xAA		///< keycode left shift released
 #define RSHIFT_R     0xB6		///< keycode right shift released
 
+#define NULL_CHAR   '\0'
+
+#define ENTER_P    0x1C
+#define LCTRL_P    0x1D
+#define LALT_P     0x38
+#define BSB_P      0X0E
+#define LSHIFT_P    0x2A
+#define RSHIFT_P    0x36
+#define CAPS_P      0x3A
+#define L_P         0x26
+#define ENTER_P     0x1C
+
+#define LCTRL_R      0x9D
+#define LALT_R       0xB8
+#define LSHIFT_R     0xAA
+#define RSHIFT_R     0xB6
+
 /**
  *	Scan code to character mapping
  */
@@ -102,9 +119,10 @@ int32_t keyboard_open(inode_t* inode, file_t* file);
  *	Keyboard close function
  *
  *	@note the function does nothing for now
+ *	@param inode: inode of the file to close
  *	@param fd: index into file descriptor table
  */
-int32_t keyboard_close(int32_t fd);
+int32_t keyboard_close(inode_t* inode, file_t* file);
 
 
 #endif /* _KEYBOARD_H */

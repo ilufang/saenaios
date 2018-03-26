@@ -1,6 +1,7 @@
 #include "idt.h"
 
 #include "idt_int.h"
+#include "syscall.h"
 #include "../lib.h"
 #include "../i8259.h"
 
@@ -71,6 +72,7 @@ void idt_construct(idt_desc_t *idt) {
 	}
 
 	// Initialize interrupt 0x80: System call
+	syscall_register_all();
 	idt_make_trap(idt + 0x80, &(idt_int_usr), IDT_DPL_USER);
 }
 
