@@ -278,37 +278,37 @@ int test_stdio_with_fd(){
 		printf("read stdout dentry failed\n");
 		return FAIL;
 	}
-    
+
 
 	return PASS;
 }
 
 /*
 int stdin_test(){
-    
+
 	TEST_HEADER;
-    printf("Testing stdin read. Press '`' to end test.\n");
-    int fd, nbytes;
-    uint8_t buffer[KEY_BUF_SIZE];
-    keyboard_driver_register();
+	printf("Testing stdin read. Press '`' to end test.\n");
+	int fd, nbytes;
+	uint8_t buffer[KEY_BUF_SIZE];
+	keyboard_driver_register();
 	fd = open("/dev/stdin",O_RDONLY, 0);
-    if(fd < 0){
-        printf("Unable to open device.");
-    }
-    while(buffer){
-        memset(buffer, 0, KEY_BUF_SIZE);
-        while(read(fd, buffer, nbytes) < 0);
-        if(buffer[0]=='`') break;
-        terminal_print(buffer);
-    }
-    clear();
-    close(fd);
+	if(fd < 0){
+		printf("Unable to open device.");
+	}
+	while(buffer){
+		memset(buffer, 0, KEY_BUF_SIZE);
+		while(read(fd, buffer, nbytes) < 0);
+		if(buffer[0]=='`') break;
+		terminal_print(buffer);
+	}
+	clear();
+	close(fd);
 	return PASS;
 }
 */
 
 int rtc_test_2() {
-	
+
 	TEST_HEADER;
 	int i, j;
 	int fd;
@@ -318,7 +318,7 @@ int rtc_test_2() {
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
 	rtc_out_driver_register();
-	
+
 	fd = open("/dev/rtc", O_RDWR, 0);
 	if (fd < 0) {
 		printf("Failed to open RTC %d\n", fd);
@@ -349,22 +349,22 @@ int rtc_test_2() {
  *	@param filename: the file name to read
  */
 void read_file_by_name(int8_t* filename){
-    fsys_dentry_t test_dentry;
-    if(read_dentry_by_name((uint8_t*)filename, &test_dentry) == -1){
-        terminal_print(filename);
-        terminal_print(": File does not exist.\n");
-        return;
-    }
-    // pointer to inode of target file
-    fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
-    int32_t file_len = target_inode->length;
-    uint8_t content[BLOCK_SIZE * 128];
-    memset(content, 0x0, BLOCK_SIZE * 128);
-    read_data(test_dentry.inode_num, 0, content, file_len);
-    terminal_out_write_(content, file_len);
-    terminal_print("\nDone reading file: ");
-    terminal_print(filename);
-    terminal_print("\n");
+	fsys_dentry_t test_dentry;
+	if(read_dentry_by_name((uint8_t*)filename, &test_dentry) == -1){
+		terminal_print(filename);
+		terminal_print(": File does not exist.\n");
+		return;
+	}
+	// pointer to inode of target file
+	fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
+	int32_t file_len = target_inode->length;
+	uint8_t content[BLOCK_SIZE * 128];
+	memset(content, 0x0, BLOCK_SIZE * 128);
+	read_data(test_dentry.inode_num, 0, content, file_len);
+	terminal_out_write_(content, file_len);
+	terminal_print("\nDone reading file: ");
+	terminal_print(filename);
+	terminal_print("\n");
 }
 
 /**
@@ -373,24 +373,24 @@ void read_file_by_name(int8_t* filename){
  *	@param idx: the index of file to read
  */
 int read_file_by_index(uint32_t idx){
-    fsys_dentry_t test_dentry;
-    if(read_dentry_by_index(idx, &test_dentry) == -1){
-        terminal_print("File does not exist.\n");
-        return -1;
-    }
-    // pointer to inode of target file
-    fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
-    int32_t file_len = target_inode->length;
-    uint8_t content[BLOCK_SIZE * 128];
-    memset(content, 0x0, BLOCK_SIZE * 128);
-    // print file content
-    read_data(test_dentry.inode_num, 0, content, file_len);
-    terminal_out_write_(content, file_len);
-    terminal_print("\nDone reading file: ");
-    uint32_t namelen = strlen((int8_t*)test_dentry.filename);
-    if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
-    terminal_out_write_((uint8_t*)test_dentry.filename, namelen);
-    return 0;
+	fsys_dentry_t test_dentry;
+	if(read_dentry_by_index(idx, &test_dentry) == -1){
+		terminal_print("File does not exist.\n");
+		return -1;
+	}
+	// pointer to inode of target file
+	fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
+	int32_t file_len = target_inode->length;
+	uint8_t content[BLOCK_SIZE * 128];
+	memset(content, 0x0, BLOCK_SIZE * 128);
+	// print file content
+	read_data(test_dentry.inode_num, 0, content, file_len);
+	terminal_out_write_(content, file_len);
+	terminal_print("\nDone reading file: ");
+	uint32_t namelen = strlen((int8_t*)test_dentry.filename);
+	if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
+	terminal_out_write_((uint8_t*)test_dentry.filename, namelen);
+	return 0;
 }
 
 
@@ -402,93 +402,93 @@ int read_file_by_index(uint32_t idx){
  */
 int test_read_file(){
 	TEST_HEADER;
-    idt_removeEventListener(KBD_IRQ_NUM);
+	idt_removeEventListener(KBD_IRQ_NUM);
 	kb_test_last_key = '\0';
 	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
-    uint32_t i = 0;
-    
-    terminal_out_clear();
-    read_file_by_index(17);
-    terminal_print("Reading text file...\n");
-    read_file_by_name("frame0.txt");
+	uint32_t i = 0;
+
+	terminal_out_clear();
+	read_file_by_index(17);
+	terminal_print("Reading text file...\n");
+	read_file_by_name("frame0.txt");
 	terminal_print("Press enter to continue...");
-	
-    while(kb_test_last_key != '\n');
-    
-	kb_test_last_key = '\0';
-    terminal_out_clear();
-    terminal_print("Reading program binary...\n");
-    read_file_by_name("hello");
-    terminal_print("Press enter to continue...");
-	
-    while(kb_test_last_key != '\n');
+
+	while(kb_test_last_key != '\n');
 
 	kb_test_last_key = '\0';
-    terminal_out_clear();
-    terminal_print("Reading another program binary...\n");
-    read_file_by_name("ls");
-    terminal_print("Press enter to continue...");
-	
-    while(kb_test_last_key != '\n');
-    
+	terminal_out_clear();
+	terminal_print("Reading program binary...\n");
+	read_file_by_name("hello");
+	terminal_print("Press enter to continue...");
+
+	while(kb_test_last_key != '\n');
+
 	kb_test_last_key = '\0';
-    terminal_out_clear();
-    terminal_print("Reading that very long file...\n");
-    read_file_by_name("verylargetextwithverylongname.tx");
-    terminal_print("Press enter to continue...");
-    
-    while(kb_test_last_key != '\n');
-    
-    
-    kb_test_last_key = '\0';
-    terminal_out_clear();
-    terminal_print("Reading a filename that doesn't exist...\n");
-    read_file_by_name("seagullspokeatmyhead");
-    terminal_print("Press enter to continue...");
-    
-    while(kb_test_last_key != '\n');
-    terminal_out_clear();
-    
-    terminal_print("Reading all files by index...\n");
-    while(read_file_by_index(i)!=-1){
-        kb_test_last_key = '\0';
-        i++;
-        terminal_print("\nPress enter to read the next file...");
-        while(kb_test_last_key != '\n');
-        terminal_out_clear();
-    }
-    
-    return PASS;
+	terminal_out_clear();
+	terminal_print("Reading another program binary...\n");
+	read_file_by_name("ls");
+	terminal_print("Press enter to continue...");
+
+	while(kb_test_last_key != '\n');
+
+	kb_test_last_key = '\0';
+	terminal_out_clear();
+	terminal_print("Reading that very long file...\n");
+	read_file_by_name("verylargetextwithverylongname.tx");
+	terminal_print("Press enter to continue...");
+
+	while(kb_test_last_key != '\n');
+
+
+	kb_test_last_key = '\0';
+	terminal_out_clear();
+	terminal_print("Reading a filename that doesn't exist...\n");
+	read_file_by_name("seagullspokeatmyhead");
+	terminal_print("Press enter to continue...");
+
+	while(kb_test_last_key != '\n');
+	terminal_out_clear();
+
+	terminal_print("Reading all files by index...\n");
+	while(read_file_by_index(i)!=-1){
+		kb_test_last_key = '\0';
+		i++;
+		terminal_print("\nPress enter to read the next file...");
+		while(kb_test_last_key != '\n');
+		terminal_out_clear();
+	}
+
+	return PASS;
 }
 
 
 /**
  *	Test read directory handler
- *  
+ *
  *	Read all files in the directory and print their names, sizes
  *	and file types to the sreen.
  */
 int test_read_dir(){
 	TEST_HEADER;
-    idt_removeEventListener(KBD_IRQ_NUM);
+	idt_removeEventListener(KBD_IRQ_NUM);
 	kb_test_last_key = '\0';
 	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
-    terminal_out_clear();
-    terminal_print("Testing directory read.\n");
-    int32_t fd= dir_open((uint8_t*)".");
-    int32_t nbytes = 0;
-    int8_t* file_names[FILENAME_LEN];
-    int32_t count;
-    while(0!=(count = dir_read(fd, file_names, nbytes))){
-        if(-1 == count){
-            terminal_print("Error reading directory.");
-            return FAIL;
-        }
-    }
-    kb_test_last_key = '\0';
-    terminal_print("\nPress enter to end...");
-    while(kb_test_last_key != '\n');
-    return PASS;
+	terminal_out_clear();
+	terminal_print("Testing directory read.\n");
+	int32_t fd= dir_open((uint8_t*)".");
+	int32_t nbytes = 0;
+	int8_t* file_names[FILENAME_LEN];
+	int32_t count;
+	while(0!=(count = dir_read(fd, file_names, nbytes))){
+		if(-1 == count){
+			terminal_print("Error reading directory.");
+			return FAIL;
+		}
+	}
+	kb_test_last_key = '\0';
+	terminal_print("\nPress enter to end...");
+	while(kb_test_last_key != '\n');
+	return PASS;
 }
 
 
@@ -502,10 +502,7 @@ int test_read_dir(){
 
 int test_keyboard_read() {
 	TEST_HEADER;
-    // terminal_print("Press enter to read from keyboard, buffer will be printed to ternimal screen.\nPress backtick to exit test.\n");
-    // read_test_mode = 1;
-    // while(read_test_mode == 1);
-    // return PASS;
+
 	char buf[128 + 1];
 	int fd_in, fd_out, count_in, count_out, ret;
 
@@ -614,12 +611,12 @@ void launch_tests() {
 	// RTC test
 	//TEST_OUTPUT("rtc_test", rtc_test());
 
-    // File and directory test
-    TEST_OUTPUT("test_read_file", test_read_file());
-    clear();
+	// File and directory test
+	TEST_OUTPUT("test_read_file", test_read_file());
+	clear();
 
-    TEST_OUTPUT("test_read_dir", test_read_dir());
-    clear();
+	TEST_OUTPUT("test_read_dir", test_read_dir());
+	clear();
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);
@@ -631,7 +628,7 @@ void launch_tests() {
 
 	fs_test();
 
-    TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
+	TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
 
-	// TEST_OUTPUT("rtc_test_2", rtc_test_2());
+	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }

@@ -71,29 +71,29 @@ uint8_t kbdreg[128] =
  '\'', '`',   0,    /* Left shift */
  '\\', 'z', 'x', 'c', 'v', 'b', 'n',      /* 49 */
   'm', ',', '.', '/',   0,        /* Right shift */
-  '*',
+	'*',
   0,  /* Alt */
   ' ',  /* Space bar */
   0,  /* Caps lock */
   0,  /* 59 - F1 key ... > */
-  0,   0,   0,   0,   0,   0,   0,   0,
+	0,   0,   0,   0,   0,   0,   0,   0,
   0,  /* < ... F10 */
   0,  /* 69 - Num lock*/
   0,  /* Scroll Lock */
   0,  /* Home key */
   0,  /* Up Arrow */
   0,  /* Page Up */
-  '-',
+	'-',
   0,  /* Left Arrow */
-  0,
+	0,
   0,  /* Right Arrow */
-  '+',
+	'+',
   0,  /* 79 - End key*/
   0,  /* Down Arrow */
   0,  /* Page Down */
   0,  /* Insert Key */
   0,  /* Delete Key */
-  0,   0,   0,
+	0,   0,   0,
   0,  /* F11 Key */
   0,  /* F12 Key */
   0,  /* All other keys are undefined */
@@ -116,7 +116,7 @@ uint8_t kbdcaps[128] =
  '\'', '`',   0,		/* Left shift */
  '\\', 'Z', 'X', 'C', 'V', 'B', 'N',			/* 49 */
   'M', ',', '.', '/',   0,				/* Right shift */
-  '*',
+	'*',
 	0,	/* Alt */
   ' ',	/* Space bar */
 	0,	/* Caps lock */
@@ -128,11 +128,11 @@ uint8_t kbdcaps[128] =
 	0,	/* Home key */
 	0,	/* Up Arrow */
 	0,	/* Page Up */
-  '-',
+	'-',
 	0,	/* Left Arrow */
 	0,
 	0,	/* Right Arrow */
-  '+',
+	'+',
 	0,	/* 79 - End key*/
 	0,	/* Down Arrow */
 	0,	/* Page Down */
@@ -161,7 +161,7 @@ uint8_t kbdshift[128] =
  '"', '~',   0,		/* Left shift */
  '|', 'Z', 'X', 'C', 'V', 'B', 'N',			/* 49 */
   'M', '<', '>', '?',   0,				/* Right shift */
-  '*',
+	'*',
 	0,	/* Alt */
   ' ',	/* Space bar */
 	0,	/* Caps lock */
@@ -173,11 +173,11 @@ uint8_t kbdshift[128] =
 	0,	/* Home key */
 	0,	/* Up Arrow */
 	0,	/* Page Up */
-  '-',
+	'-',
 	0,	/* Left Arrow */
 	0,
 	0,	/* Right Arrow */
-  '+',
+	'+',
 	0,	/* 79 - End key*/
 	0,	/* Down Arrow */
 	0,	/* Page Down */
@@ -206,7 +206,7 @@ uint8_t kbdcs[128] =
  '"', '~',   0,		/* Left shift */
  '|', 'z', 'x', 'c', 'v', 'b', 'n',			/* 49 */
   'm', '<', '>', '?',   0,				/* Right shift */
-  '*',
+	'*',
 	0,	/* Alt */
   ' ',	/* Space bar */
 	0,	/* Caps lock */
@@ -218,11 +218,11 @@ uint8_t kbdcs[128] =
 	0,	/* Home key */
 	0,	/* Up Arrow */
 	0,	/* Page Up */
-  '-',
+	'-',
 	0,	/* Left Arrow */
 	0,
 	0,	/* Right Arrow */
-  '+',
+	'+',
 	0,	/* 79 - End key*/
 	0,	/* Down Arrow */
 	0,	/* Page Down */
@@ -250,7 +250,7 @@ uint8_t kbdctl[128] =
  '"', '~',   0,		/* Left shift */
  28, 26, 24, 3, 22, 2, 14,			/* 49 */
   13, '<', '>', '?',   0,				/* Right shift */
-  '*',
+	'*',
 	0,	/* Alt */
   ' ',	/* Space bar */
 	0,	/* Caps lock */
@@ -262,11 +262,11 @@ uint8_t kbdctl[128] =
 	0,	/* Home key */
 	0,	/* Up Arrow */
 	0,	/* Page Up */
-  '-',
+	'-',
 	0,	/* Left Arrow */
 	0,
 	0,	/* Right Arrow */
-  '+',
+	'+',
 	0,	/* 79 - End key*/
 	0,	/* Down Arrow */
 	0,	/* Page Down */
@@ -282,20 +282,20 @@ uint8_t kbdctl[128] =
  *	Helper function to append a char keyboard buffer
  *
  *	Modify keyboard buffer and update current char pointer
- *	If there are 127 elements in the buffer and the new key 
+ *	If there are 127 elements in the buffer and the new key
  *	is not enter, do nothing.
  *
  *	@param c: the char to add to buffer
  */
 void buf_push(uint8_t c){
-    if(curr_char_ptr < KEY_BUF_SIZE){
-        kbd_buf[curr_char_ptr] = c;   
-        curr_char_ptr++;
-    }else if(c == ENTER_CHAR && curr_char_ptr == KEY_BUF_SIZE - 1){
-        kbd_buf[curr_char_ptr] = c;
-        curr_char_ptr++;
-    }
-    return;
+	if(curr_char_ptr < KEY_BUF_SIZE){
+		kbd_buf[curr_char_ptr] = c;
+		curr_char_ptr++;
+	}else if(c == ENTER_CHAR && curr_char_ptr == KEY_BUF_SIZE - 1){
+		kbd_buf[curr_char_ptr] = c;
+		curr_char_ptr++;
+	}
+	return;
 }
 
 
@@ -305,14 +305,14 @@ void buf_push(uint8_t c){
  *	Clears keyboard buffer and reset buffer pointers
  */
 void clear_buf(){
-    int i;
-    // set all character in buffer to null
-    for(i = 0; i < KEY_BUF_SIZE; i++){
-        kbd_buf[i] = NULL_CHAR;
-    }
-    // reset buffer indices
-    curr_char_ptr = 0;
-    prev_enter = -1;
+	int i;
+	// set all character in buffer to null
+	for(i = 0; i < KEY_BUF_SIZE; i++){
+		kbd_buf[i] = NULL_CHAR;
+	}
+	// reset buffer indices
+	curr_char_ptr = 0;
+	prev_enter = -1;
 }
 
 
@@ -324,31 +324,31 @@ void clear_buf(){
  *	@param num_bytes: number of characters to shift
  */
 void shift_buf(int num_bytes){
-    int i;
-    // update buffer indices
-    curr_char_ptr -= num_bytes;
-    prev_enter -= num_bytes;
-    
-    // if numbytes is greater than current byte stored in buffer, clear buffer
-    if(curr_char_ptr < 0){
-        prev_enter = -1;
-        curr_char_ptr = 0;
-        clear_buf();
-        return;
-    }
-    
-    // shift data in buffer
-    uint8_t elements[curr_char_ptr];
-    
-    for(i = 0; i < curr_char_ptr; i++){
-        elements[i] = kbd_buf[num_bytes + i];
-    }
-    
-    clear_buf();
-    // store shifted data
-    for(i = 0; i < curr_char_ptr; i++){
-        kbd_buf[i] = elements[i];
-    }
+	int i;
+	// update buffer indices
+	curr_char_ptr -= num_bytes;
+	prev_enter -= num_bytes;
+
+	// if numbytes is greater than current byte stored in buffer, clear buffer
+	if(curr_char_ptr < 0){
+		prev_enter = -1;
+		curr_char_ptr = 0;
+		clear_buf();
+		return;
+	}
+
+	// shift data in buffer
+	uint8_t elements[curr_char_ptr];
+
+	for(i = 0; i < curr_char_ptr; i++){
+		elements[i] = kbd_buf[num_bytes + i];
+	}
+
+	clear_buf();
+	// store shifted data
+	for(i = 0; i < curr_char_ptr; i++){
+		kbd_buf[i] = elements[i];
+	}
 }
 
 /**
@@ -359,118 +359,118 @@ void shift_buf(int num_bytes){
  *	@param scancode: scancode received
  */
 void regular_key(uint8_t scancode){
-    // do nothing if the key is released
-    if(scancode&RELEASE_OFFSET) return;
-    
-    uint8_t scanchar;
-    
-    // send control character if control key is pressed
-    if(ctrl_status == PRESSED){
-        scanchar = kbdctl[scancode];
-        terminal_out_write_(&scanchar,1);
-    }
-    else{
-    // otherwise fetch a scancode according to current mode
-        switch(curr_mode){
-            case regular:
-                scanchar = kbdreg[scancode];
-                break;
-            case caps:
-                scanchar = kbdcaps[scancode];
-                break;
-            case shift:
-                scanchar = kbdshift[scancode];
-                break;
-            case caps_shift:
-                scanchar = kbdcs[scancode];
-                break;
-        }
-    }
+	// do nothing if the key is released
+	if(scancode&RELEASE_OFFSET) return;
 
-    switch(scanchar){
-        // if enter is pressed, mark the previous enter position
-        case ENTER_CHAR:
-            if(curr_char_ptr < KEY_BUF_SIZE){
-                // update enter location
-                prev_enter = curr_char_ptr + 1;
-                // append enter in keyboard buffer
-                buf_push(scanchar);
-                // write enter control sequence to terminal driver
-                terminal_out_write_(&scanchar, 1);
-            }
-            break;
+	uint8_t scanchar;
 
-        // if backspace is pressed, erase a char from key buffer
-        case BSB_CHAR:
-            if(curr_char_ptr>0 && kbd_buf[curr_char_ptr-1]!='\n'){
-                curr_char_ptr--;
-                kbd_buf[curr_char_ptr] = NULL_CHAR;
-                // send control sequence to terminal driver
-                terminal_out_write_(&scanchar,1);
-            }
-            break;
+	// send control character if control key is pressed
+	if(ctrl_status == PRESSED){
+		scanchar = kbdctl[scancode];
+		terminal_out_write_(&scanchar,1);
+	}
+	else{
+	// otherwise fetch a scancode according to current mode
+		switch(curr_mode){
+			case regular:
+			scanchar = kbdreg[scancode];
+			break;
+			case caps:
+			scanchar = kbdcaps[scancode];
+			break;
+			case shift:
+			scanchar = kbdshift[scancode];
+			break;
+			case caps_shift:
+			scanchar = kbdcs[scancode];
+			break;
+		}
+	}
 
-        // in other cases just sent the keycode
-        default:
-            if(curr_char_ptr < KEY_BUF_SIZE-1){
-                // write the character to terminal
-                buf_push(scanchar);
-                terminal_out_write_(&scanchar,1);
-            }
-            break;
-    }
-    
+	switch(scanchar){
+		// if enter is pressed, mark the previous enter position
+		case ENTER_CHAR:
+		if(curr_char_ptr < KEY_BUF_SIZE){
+				// update enter location
+			prev_enter = curr_char_ptr + 1;
+				// append enter in keyboard buffer
+			buf_push(scanchar);
+				// write enter control sequence to terminal driver
+			terminal_out_write_(&scanchar, 1);
+		}
+		break;
+
+		// if backspace is pressed, erase a char from key buffer
+		case BSB_CHAR:
+		if(curr_char_ptr>0 && kbd_buf[curr_char_ptr-1]!='\n'){
+			curr_char_ptr--;
+			kbd_buf[curr_char_ptr] = NULL_CHAR;
+				// send control sequence to terminal driver
+			terminal_out_write_(&scanchar,1);
+		}
+		break;
+
+		// in other cases just sent the keycode
+		default:
+		if(curr_char_ptr < KEY_BUF_SIZE-1){
+				// write the character to terminal
+			buf_push(scanchar);
+			terminal_out_write_(&scanchar,1);
+		}
+		break;
+	}
+
 }
 
 /**
  *	Helper function to handle shift and capslock
- *  
+ *
  *	Change the current keyboard mode
  *
  *	@param scancode: scancode received
  */
 void update_mode(uint8_t scancode){
-        switch(scancode){
-                
-            // update shift press/release status
-            case LSHIFT_P:
-            case RSHIFT_P:
-                shift_status = PRESSED;
-                if(curr_mode == caps){
-                    curr_mode = caps_shift;
-                }
-                else{
-                    curr_mode = shift;
-                }
-                break;
-            case LSHIFT_R:
-            case RSHIFT_R:
-                shift_status = UNPRESSED;
-                if(curr_mode == caps_shift){
-                    curr_mode = caps;
-                }
-                else{
-                    curr_mode = regular;
-                }
-                break;
-            // update capslock status
-            case CAPS_P:
-                switch(curr_mode){
-                    case caps:
-                        curr_mode = regular;
-                        break;
-                    case regular:
-                        curr_mode = caps;
-                        break;
-                    case shift:
-                        curr_mode = caps_shift;
-                        break;
-                    case caps_shift:
-                        curr_mode = caps;
-                        break;
-                }
-                break;
-        }
+	switch(scancode){
+
+			// update shift press/release status
+		case LSHIFT_P:
+		case RSHIFT_P:
+		shift_status = PRESSED;
+		if(curr_mode == caps){
+			curr_mode = caps_shift;
+		}
+		else{
+			curr_mode = shift;
+		}
+		break;
+		case LSHIFT_R:
+		case RSHIFT_R:
+		shift_status = UNPRESSED;
+		if(curr_mode == caps_shift){
+			curr_mode = caps;
+		}
+		else{
+			curr_mode = regular;
+		}
+		break;
+			// update capslock status
+		case CAPS_P:
+		switch(curr_mode){
+			case caps:
+			curr_mode = regular;
+			break;
+			case regular:
+			curr_mode = caps;
+			break;
+			case shift:
+			curr_mode = caps_shift;
+			break;
+			case caps_shift:
+			curr_mode = caps;
+			break;
+		}
+		break;
+	}
 }
 
 
@@ -479,32 +479,32 @@ void keyboard_handler(){
 	/* reads scancode */
 	scancode = inb(DATA_REG);
 	switch(scancode){
-        // update keyboard status variables
-        case LCTRL_P:
-            ctrl_status = PRESSED;
-            break;
-        case LCTRL_R:
-            ctrl_status = UNPRESSED;
-            break;
-        case LALT_P:
-            alt_status = PRESSED;
-            break;
-        case LALT_R:
-            alt_status = UNPRESSED;
-            break;
-        // check if it's necessary to update keyboard mode
-        case LSHIFT_R:
-        case LSHIFT_P:
-        case RSHIFT_R:
-        case RSHIFT_P:
-        case CAPS_P:
-            update_mode(scancode);
-            break;
-        default:
-            regular_key(scancode);
-            break;
-    }
-    
+		// update keyboard status variables
+		case LCTRL_P:
+		ctrl_status = PRESSED;
+		break;
+		case LCTRL_R:
+		ctrl_status = UNPRESSED;
+		break;
+		case LALT_P:
+		alt_status = PRESSED;
+		break;
+		case LALT_R:
+		alt_status = UNPRESSED;
+		break;
+		// check if it's necessary to update keyboard mode
+		case LSHIFT_R:
+		case LSHIFT_P:
+		case RSHIFT_R:
+		case RSHIFT_P:
+		case CAPS_P:
+		update_mode(scancode);
+		break;
+		default:
+		regular_key(scancode);
+		break;
+	}
+
 	send_eoi(KBD_IRQ_NUM);
 }
 
@@ -514,43 +514,43 @@ void keyboard_init(){
 }
 
 int keyboard_driver_register(){
-    // fill file operation table
-    keyboard_fop.open = &keyboard_open;
-    keyboard_fop.release = &keyboard_close;
-    keyboard_fop.read = &keyboard_read;
-    keyboard_fop.write = &keyboard_write;
-    keyboard_fop.readdir = NULL;
+	// fill file operation table
+	keyboard_fop.open = &keyboard_open;
+	keyboard_fop.release = &keyboard_close;
+	keyboard_fop.read = &keyboard_read;
+	keyboard_fop.write = &keyboard_write;
+	keyboard_fop.readdir = NULL;
 	return (devfs_register_driver("stdin", &keyboard_fop));
 }
 
 
 ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
-    // do nothing if there's no enter in buffer
-    if(prev_enter < 0){
-        return 0;
-    }
+	// do nothing if there's no enter in buffer
+	if(prev_enter < 0){
+		return 0;
+	}
 
-    if (prev_enter < count) {
-        // If the flushable part of internal buffer is smaller than the external
-        // buffer, only copy the length of the flushable part of internal buffer
-        count = prev_enter;
-    }
-    memcpy(buf, kbd_buf, count);
-    shift_buf(count);
-    return count;
+	if (prev_enter < count) {
+		// If the flushable part of internal buffer is smaller than the external
+		// buffer, only copy the length of the flushable part of internal buffer
+		count = prev_enter;
+	}
+	memcpy(buf, kbd_buf, count);
+	shift_buf(count);
+	return count;
 }
 
 ssize_t keyboard_write(file_t* file, uint8_t *buf, size_t count, off_t *offset){
-    return -ENOSYS;
+	return -ENOSYS;
 }
 
 int32_t keyboard_open(inode_t* inode, file_t* file){
-    clear_buf();
-    return 0;
+	clear_buf();
+	return 0;
 }
 
 int32_t keyboard_close(inode_t* inode, file_t* file){
-    clear_buf();
-    return 0;
+	clear_buf();
+	return 0;
 }
 
