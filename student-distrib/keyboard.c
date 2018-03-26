@@ -11,7 +11,7 @@
 #define KEY_BUF_SIZE    128		///< max keyboard buffer size
 
 /**
- *	Scan code to character mapping
+ *	test mode
  */
 volatile int read_test_mode = 0;
 
@@ -57,24 +57,9 @@ int prev_enter = -1;
 uint8_t kbd_buf[KEY_BUF_SIZE];
 
 /**
- *	Escape sequence for backspace
- */
-const uint8_t seq_backspace[3] = {'^', '[', 8};
-
-/**
- *	Escape sequence for control + l
- */
-const uint8_t seq_ctrl_l[3] = {'^', '[', 12};
-
-/**
- *	Escape sequence for enter
- */
-const uint8_t seq_enter[3] = {'^', '[', 13};
-
-/**
  *	keyboard driver file operations
  */
-static file_operations_t keyboard_fop;
+//static file_operations_t keyboard_fop;
 
 /**
  *	keycode lookup table for regular keyboard mode
@@ -256,6 +241,49 @@ uint8_t kbdcs[128] =
 };
 
 /**
+ *	keycode lookup table for capslock + shift keyboard mode
+ *	keycode reference: Bran's Kernel development tutorial
+ */
+uint8_t kbdctl[128] =
+{
+	0,  27, '!', '@', '#', '$', '%', 30, '&', '*',	/* 9 */
+  '(', ')', 31, '+', '\b',	/* Backspace */
+  '\t',			/* Tab */
+  17, 23, 5, 18,	/* 19 */
+  20, 25, 21, 9, 15, 16, 27, 29, '\n',	/* Enter key */
+	0,			/* 29   - Control */
+  1, 19, 4, 6, 7, 8, 10, 11, 12, ':',	/* 39 */
+ '"', '~',   0,		/* Left shift */
+ 28, 26, 24, 3, 22, 2, 14,			/* 49 */
+  13, '<', '>', '?',   0,				/* Right shift */
+  '*',
+	0,	/* Alt */
+  ' ',	/* Space bar */
+	0,	/* Caps lock */
+	0,	/* 59 - F1 key ... > */
+	0,   0,   0,   0,   0,   0,   0,   0,
+	0,	/* < ... F10 */
+	0,	/* 69 - Num lock*/
+	0,	/* Scroll Lock */
+	0,	/* Home key */
+	0,	/* Up Arrow */
+	0,	/* Page Up */
+  '-',
+	0,	/* Left Arrow */
+	0,
+	0,	/* Right Arrow */
+  '+',
+	0,	/* 79 - End key*/
+	0,	/* Down Arrow */
+	0,	/* Page Down */
+	0,	/* Insert Key */
+	0,	/* Delete Key */
+	0,   0,   0,
+	0,	/* F11 Key */
+	0,	/* F12 Key */
+	0,	/* All other keys are undefined */
+};
+/**
  *	Helper function to append a char keyboard buffer
  *
  *	Modify keyboard buffer and update current char pointer
@@ -268,7 +296,7 @@ void buf_push(uint8_t c){
     if(curr_char_ptr < KEY_BUF_SIZE){
         kbd_buf[curr_char_ptr] = c;   
         curr_char_ptr++;
-    }else if(c == ENTER_P && curr_char_ptr == KEY_BUF_SIZE - 1){
+    }else if(c == ENTER_CHAR && curr_char_ptr == KEY_BUF_SIZE - 1){
         kbd_buf[curr_char_ptr] = c;
         curr_char_ptr++;
     }
@@ -328,70 +356,6 @@ void shift_buf(int num_bytes){
     }
 }
 
-
-/**
- *	Helper function handle enter key press
- *
- *	Update position and push an enter char to keyboard buffer, send enter
- *	control sequence to terminal
- *
- *	@note in test_read mode, the function also read from the current
- *		keyboard buffer and print to the screen
- */
-void enter(){
-    if(curr_char_ptr < KEY_BUF_SIZE){
-        // update enter location
-        prev_enter = curr_char_ptr;
-        // append enter in keyboard buffer
-        buf_push('\n'); 
-        //(void)write(1, seq_enter, 3);
-        // write enter control sequence to terminal driver
-        terminal_out_write((uint8_t*)seq_enter, 3);
-    }
-    // read and print buffer content if testing file read
-    if(read_test_mode == 1){
-        uint8_t testbuf[prev_enter];
-        int fd, nbytes;
-        int32_t num_read;
-        num_read = keyboard_read(fd, testbuf, nbytes);
-        terminal_out_write(testbuf, num_read);
-        if(testbuf[0]=='`'){
-            read_test_mode = 0;
-        }
-    }   
-}
-
-/**
- *	Helper function to handle backspace keypress
- *
- *	Erase one character in the keyboard buffer, unless an enter is reached.
- *	Send backspace control sequence to terminal
- */
-void backspace(){
-    // clear a char in keyboard buffer unless there's an enter
-    if(curr_char_ptr>0 && kbd_buf[curr_char_ptr-1]!='\n'){
-        curr_char_ptr--;
-        kbd_buf[curr_char_ptr] = NULL_CHAR;  
-        // send control sequence to terminal driver
-        terminal_out_write((uint8_t*)seq_backspace,3);
-    }
-    //(void)write(1, seq_backspace, 3);
-}
-
-/**
- *	Helper function to handle ctrl+l keypress combination
- *
- *	Sends ctrl_l control sequence to terminal
- *
- *	@note the function does not erase characters entered but not yet read
- *		in keyboard buffer
- */
-void ctrl_l(){
-    //(void)write(1, seq_ctrl_l, 3);  
-    terminal_out_write((uint8_t*)seq_ctrl_l,3);
-}
-
-
 /**
  *	Helper function to handle regular keypress
  *  
@@ -400,48 +364,69 @@ void ctrl_l(){
  *	@param scancode: scancode received
  */
 void regular_key(uint8_t scancode){
-    // check for possible ctrl-l if control key is pressed
+    // do nothing if the key is released
+    if(scancode&RELEASE_OFFSET) return;
+    
+    uint8_t scanchar;
+    
+    // send control character if control key is pressed
     if(ctrl_status == PRESSED){
-        if(scancode == L_P){
-            /* todo: clear screen */
-            /*
-            set_cursor(0,0);
-            clear_buf(curr_char_ptr);
-            clear();
-            */
-            ctrl_l();
-            return;
+        scanchar = kbdctl[scancode];
+        terminal_out_write(&scanchar,1);
+        ctrl_status == UNPRESSED;
+        return;
+    }
+    else{
+    // otherwise fetch a scancode according to current mode
+        switch(curr_mode){
+            case regular:
+                scanchar = kbdreg[scancode];
+                break;
+            case caps:
+                scanchar = kbdcaps[scancode];
+                break;
+            case shift:
+                scanchar = kbdshift[scancode];
+                break;
+            case caps_shift:
+                scanchar = kbdcs[scancode];
+                break;         
         }
     }
-    // for other regular keys just grab the char from lookup table
-    uint8_t scanchar;
-    // do nothing if the key is released
-    if(scancode&0x80) return;
-    switch(curr_mode){
-        case regular:
-            scanchar = kbdreg[scancode];
-            break;
-        case caps:
-            scanchar = kbdcaps[scancode];
-            break;
-        case shift:
-            scanchar = kbdshift[scancode];
-            break;
-        case caps_shift:
-            scanchar = kbdcs[scancode];
-            break;         
-    }
-    if (scanchar == 0 ) return;
     
-    if(curr_char_ptr < KEY_BUF_SIZE-1){
-        // write the character to terminal
-        buf_push(scanchar);
-        //putc(scanchar);
-        uint8_t keybuf[1];
-        keybuf[0] = scanchar;
-        //(void)write(1, keybuf, 1);
-        terminal_out_write(keybuf,1);
+    switch(scanchar){
+        // if enter is pressed, mark the previous enter position
+        case ENTER_CHAR:
+            if(curr_char_ptr < KEY_BUF_SIZE){
+                // update enter location
+                prev_enter = curr_char_ptr;
+                // append enter in keyboard buffer
+                buf_push(scanchar); 
+                // write enter control sequence to terminal driver
+                terminal_out_write(&scanchar, 1);
+            }
+            break;
+            
+        // if backspace is pressed, erase a char from key buffer
+        case BSB_CHAR:
+            if(curr_char_ptr>0 && kbd_buf[curr_char_ptr-1]!='\n'){
+                curr_char_ptr--;
+                kbd_buf[curr_char_ptr] = NULL_CHAR;  
+                // send control sequence to terminal driver
+                terminal_out_write(&scanchar,1);
+            }
+            break;
+        
+        // in other cases just sent the keycode
+        default:
+            if(curr_char_ptr < KEY_BUF_SIZE-1){
+                // write the character to terminal
+                buf_push(scanchar);
+                terminal_out_write(&scanchar,1);
+            }
+            break;
     }
+    
 }
 
 /**
@@ -453,6 +438,7 @@ void regular_key(uint8_t scancode){
  */
 void update_mode(uint8_t scancode){
         switch(scancode){
+                
             // update shift press/release status
             case LSHIFT_P:
             case RSHIFT_P:
@@ -492,9 +478,7 @@ void update_mode(uint8_t scancode){
                 }
                 break;
         }
-
 }
-
 
 
 void keyboard_handler(){
@@ -502,19 +486,6 @@ void keyboard_handler(){
 	/* reads scancode */
 	scancode = inb(DATA_REG);
 	switch(scancode){
-        // check whether we need to handle enter
-        case ENTER_P:
-            enter();
-            break;
-
-        // check if it's necessary to update keyboard mode
-        case LSHIFT_R:
-        case LSHIFT_P:
-        case RSHIFT_R:
-        case RSHIFT_P:
-        case CAPS_P:
-            update_mode(scancode);
-            break;
             
         // update keyboard status variables
         case LCTRL_P:
@@ -529,12 +500,15 @@ void keyboard_handler(){
         case LALT_R:
             alt_status = UNPRESSED;
             break;
-        
-        // check if we need to handle backspace
-        case BSB_P:
-            backspace();
+        // check if it's necessary to update keyboard mode
+        case LSHIFT_R:
+        case LSHIFT_P:
+        case RSHIFT_R:
+        case RSHIFT_P:
+        case CAPS_P:
+            update_mode(scancode);
             break;
-        
+            
         default:
             regular_key(scancode);
             break;
@@ -558,12 +532,8 @@ int keyboard_driver_register(){
 	return (devfs_register_driver("stdin", &keyboard_fop));
 }
 
-ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
-    int32_t fd;
-    return (ssize_t)keyboard_read(fd, buf, count);
-}
 
-int32_t keyboard_read(int32_t fd, uint8_t* buf, int32_t nbytes){
+ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
     // error if there's no enter in buffer
     if(prev_enter < 0){
         return -1;
@@ -590,4 +560,3 @@ int32_t keyboard_close(inode_t* inode, file_t* file){
     clear_buf();
     return 0;
 }
-
