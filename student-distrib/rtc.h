@@ -103,6 +103,14 @@
 #define BIT_SIX     0x40
 
 /**
+ *	Register rtc driver in /dev/
+ *
+ *	Create driver file "/dev/rtc". Enable syscall for rtc driver.
+ */
+
+int rtc_out_driver_register();
+
+/**
  *	Initialize the rtc
  *
  *	Writes to rtc control register, enables irq8 on PIC
