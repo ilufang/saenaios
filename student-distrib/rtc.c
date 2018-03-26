@@ -63,7 +63,7 @@ void rtc_setrate(int rate) {
 /* need to virtualization rtc behaviors */
 //TODO
 
-int rtc_open() {
+int32_t rtc_open() {
 	/* check if rtc is already opened */
 	if (rtc_status & RTC_IS_OPEN)
 		return 0;
@@ -95,7 +95,7 @@ int rtc_open() {
 	return 0;
 }
 
-int rtc_close() {
+int32_t rtc_close() {
 	/* currently do nothing */
 	rtc_status &= ~RTC_IS_OPEN;
 	rtc_status = 0;
@@ -104,7 +104,7 @@ int rtc_close() {
 	return 0;
 }
 
-int rtc_read() {
+int32_t rtc_read() {
 
 	if (rtc_status == 0 || rtc_freq == 0)
 		return 0;
@@ -117,7 +117,7 @@ int rtc_read() {
 
 }
 
-int rtc_write(int freq) {
+int32_t rtc_write(int freq) {
 	/* sanity check */
 	if (!RTC_IS_OPEN)
 		return -EINVAL;

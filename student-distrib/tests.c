@@ -292,9 +292,10 @@ int rtc_test_2() {
 	rtc_setrate(0x06);
 	for (i = 0; i < 10; i++) {
 		rtc_write(freq);
-		for (j = 0; j < 20; j++) {
+		clear();
+		for (j = 0; j < 80; j++) {
 			rtc_read();
-			printf("a");
+			printf("1");
 		}
 		tick[0]++;
 		freq *= 2;

@@ -135,7 +135,7 @@ void rtc_setrate(int rate);
  *	Occured when RTC needs to be turned on.
  */
 
-int rtc_open();
+int32_t rtc_open();
 
 /**
  *	Close opened rtc and free all the private data.
@@ -143,7 +143,7 @@ int rtc_open();
  *	Currently do nothing.
  */
 
-int rtc_close();
+int32_t rtc_close();
 
 /**
  *	Block rtc interrupts at a given frequency. (virtualized)
@@ -152,7 +152,7 @@ int rtc_close();
  *	a giving frequency.
  */
 
-int rtc_read();
+int32_t rtc_read();
 
 /**
  *	Set frequency of RTC interrupts (virtualized)
@@ -160,7 +160,7 @@ int rtc_read();
  *	@param freq: The RTC interrupt frequency (exact frequency). Must be in the range between 2-1024Hz and must be power of 2.
  */
 
-int rtc_write(int freq);
+int32_t rtc_write(int freq);
 
 /**
  *	Check if a number is a power of 2.
