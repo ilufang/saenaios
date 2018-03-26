@@ -144,6 +144,10 @@ void rtc_setrate(int rate);
  *	Initialize frequency to 2 Hz and enable RTC by changing rtc_status. 
  *
  *	Occured when RTC needs to be turned on.
+ *
+ *	@param inode: inode of the opened file.
+ *	@param file:  file struct of the opened file.
+ *
  */
 
 int rtc_open(inode_t* inode, file_t* file);
@@ -152,6 +156,10 @@ int rtc_open(inode_t* inode, file_t* file);
  *	Close opened rtc and free all the private data.
  *	
  *	Currently do nothing.
+ *
+ *	@param inode: inode of the opened file.
+ *	@param file:  file struct of the opened file.
+ *	
  */
 
 int rtc_close(inode_t* inode, file_t* file);
@@ -161,6 +169,12 @@ int rtc_close(inode_t* inode, file_t* file);
  *
  *	While reading, process will not do anyother thing until count reach 
  *	a giving frequency.
+ *
+ *	@param file:  file struct of the opened file.
+ *	@param buf:   private data for the file.
+ *	@param count: datasize of private data.
+ *	@param offset: not used.
+ *
  */
 
 ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset);
@@ -168,7 +182,12 @@ ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset);
 /**
  *	Set frequency of RTC interrupts (virtualized)
  *
- *	@param freq: The RTC interrupt frequency (exact frequency). Must be in the range between 2-1024Hz and must be power of 2.
+ *
+ *	@param file:  file struct of the opened file.
+ *	@param buf:   private data for the file.
+ *	@param count: datasize of private data.
+ *	@param offset: not used.
+ *
  */
 
 ssize_t rtc_write(file_t* file, uint8_t* buf, size_t count, off_t* offset);
