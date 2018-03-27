@@ -69,6 +69,8 @@ int paging_test(){
 	temp = *(int*)(0x600000);
 	// video memory paging test
 	temp = *(int*)(0xB8500);
+	// fs memory paging test
+	temp = *(int*)(0xA00000);
 	printf("kernel memory & video memory paging test passed\n");
 
 	// memory from 0 to the beginning of video memory crashing test
@@ -78,8 +80,8 @@ int paging_test(){
 	//printf("crashing 0xB9000 - 0x3FFFFF space!\n");
 	//temp = *(int*)(0xBA000);
 	// memory after kernel memory crashing test
-	printf("crashing 0x800000 - 4GB space!\n");
-	temp = *(int*)(0x800000);
+	printf("crashing 0xC00000 - 4GB space!\n");
+	temp = *(int*)(0xC00000);
 	assertion_failure();
 	return FAIL; // If execution hits this, BAD!
 }
@@ -613,7 +615,7 @@ void launch_tests() {
 
 	// Paging test
 	// The following test should trigger a fault
-	//TEST_OUTPUT("paging_test", paging_test());
+	// TEST_OUTPUT("paging_test", paging_test());
 
 	// KB test
 	//TEST_OUTPUT("kb_test", kb_test());

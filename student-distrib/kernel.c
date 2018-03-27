@@ -14,7 +14,7 @@
 #include "fsdriver/fsdriver.h"
 
 #include "boot/idt.h"
-#include "boot/page_table_init.h"
+#include "boot/page_table.h"
 
 #include "proc/task.h"
 #include "fs/vfs.h"
@@ -66,6 +66,7 @@ void entry(unsigned long magic, unsigned long addr) {
 		int i;
 		module_t* mod = (module_t*)mbi->mods_addr;
         boot_start_addr = mod->mod_start;
+        
 		while (mod_count < mbi->mods_count) {
 			printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
 			printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
@@ -155,7 +156,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	lidt(idt_desc_ptr);
 
 	/* Initialize Paging */
-	page_init();
+	page_ece391_init();
+	page_dir_add_4MB_entry(boot_start_addr,PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
 
 	/* Init the PIC */
 	i8259_init();
