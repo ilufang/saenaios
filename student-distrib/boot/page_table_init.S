@@ -42,11 +42,9 @@ page_directory:
 # bit 12:8 ignored (0)
 
     .long   0x400000 + 0x083// 0b0000010000011
-    
-    .long   0x800000 + 0x083// 0b0000010000011
 
 # Unallocated: leave blank
-    .rept   1021
+    .rept   1022
     .long   0
     .endr
 

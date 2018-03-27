@@ -7,7 +7,6 @@
 
 #include "types.h"
 
-void set_cursor(int x, int y);
 int32_t printf(int8_t *format, ...);
 void putc(uint8_t c);
 int32_t puts(int8_t *s);
@@ -24,7 +23,6 @@ void* memmove(void* dest, const void* src, uint32_t n);
 int32_t strncmp(const int8_t* s1, const int8_t* s2, uint32_t n);
 int8_t* strcpy(int8_t* dest, const int8_t*src);
 int8_t* strncpy(int8_t* dest, const int8_t*src, uint32_t n);
-void disable_cursor();
 
 /* Userspace address-check functions */
 int32_t bad_userspace_addr(const void* addr, int32_t len);
@@ -32,14 +30,6 @@ int32_t safe_strncpy(int8_t* dest, const int8_t* src, int32_t n);
 
 /* for testing rtc */
 void test_interrupts(void);
-
-/**
- *	Terminal print wrapper
- *
- *	Calls terminal print to output characters to screen.
- *	@param buf: char buffer to be printed
- */
-void terminal_print(int8_t* buf);
 
 /* Port read functions */
 /* Inb reads a byte and returns its value as a zero-extended 32-bit

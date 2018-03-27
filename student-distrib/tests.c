@@ -6,8 +6,6 @@
 #include "boot/idt.h"
 #include "keyboard.h"
 #include "rtc.h"
-#include "fsdriver/fsdriver.h"
-#include "terminal_driver/terminal_out_driver.h"
 
 #include "proc/task.h"
 #include "boot/syscall.h"
@@ -279,36 +277,11 @@ int test_stdio_with_fd(){
 		return FAIL;
 	}
 
-
 	return PASS;
 }
-
-/*
-int stdin_test(){
-
-	TEST_HEADER;
-	printf("Testing stdin read. Press '`' to end test.\n");
-	int fd, nbytes;
-	uint8_t buffer[KEY_BUF_SIZE];
-	keyboard_driver_register();
-	fd = open("/dev/stdin",O_RDONLY, 0);
-	if(fd < 0){
-		printf("Unable to open device.");
-	}
-	while(buffer){
-		memset(buffer, 0, KEY_BUF_SIZE);
-		while(read(fd, buffer, nbytes) < 0);
-		if(buffer[0]=='`') break;
-		terminal_print(buffer);
-	}
-	clear();
-	close(fd);
-	return PASS;
-}
-*/
 
 int rtc_test_2() {
-
+	
 	TEST_HEADER;
 	int i, j;
 	int fd;
@@ -318,7 +291,7 @@ int rtc_test_2() {
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
 	rtc_out_driver_register();
-
+	
 	fd = open("/dev/rtc", O_RDWR, 0);
 	if (fd < 0) {
 		printf("Failed to open RTC %d\n", fd);
@@ -342,236 +315,6 @@ int rtc_test_2() {
 	// idt_removeEventListener(RTC_IRQ_NUM);
 	return PASS;
 }
-
-/**
- *	Test helper function to read file by name
- *
- *	@param filename: the file name to read
- */
-void read_file_by_name(int8_t* filename){
-	fsys_dentry_t test_dentry;
-	if(read_dentry_by_name((uint8_t*)filename, &test_dentry) == -1){
-		terminal_print(filename);
-		terminal_print(": File does not exist.\n");
-		return;
-	}
-	// pointer to inode of target file
-	fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
-	int32_t file_len = target_inode->length;
-	uint8_t content[BLOCK_SIZE * 128];
-	memset(content, 0x0, BLOCK_SIZE * 128);
-	read_data(test_dentry.inode_num, 0, content, file_len);
-	terminal_out_write_(content, file_len);
-	terminal_print("\nDone reading file: ");
-	terminal_print(filename);
-	terminal_print("\n");
-}
-
-/**
- *	Test helper function to read file by index
- *
- *	@param idx: the index of file to read
- */
-int read_file_by_index(uint32_t idx){
-	fsys_dentry_t test_dentry;
-	if(read_dentry_by_index(idx, &test_dentry) == -1){
-		terminal_print("File does not exist.\n");
-		return -1;
-	}
-	// pointer to inode of target file
-	fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (test_dentry.inode_num + 1));
-	int32_t file_len = target_inode->length;
-	uint8_t content[BLOCK_SIZE * 128];
-	memset(content, 0x0, BLOCK_SIZE * 128);
-	// print file content
-	read_data(test_dentry.inode_num, 0, content, file_len);
-	terminal_out_write_(content, file_len);
-	terminal_print("\nDone reading file: ");
-	uint32_t namelen = strlen((int8_t*)test_dentry.filename);
-	if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
-	terminal_out_write_((uint8_t*)test_dentry.filename, namelen);
-	return 0;
-}
-
-
-/**
- *	Test read file handler
- *
- *	@note: the function will replace the original keyboard handler with
- *         test_kb_handler easier operation
- */
-int test_read_file(){
-	TEST_HEADER;
-	idt_removeEventListener(KBD_IRQ_NUM);
-	kb_test_last_key = '\0';
-	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
-	uint32_t i = 0;
-
-	terminal_out_clear();
-	read_file_by_index(17);
-	terminal_print("Reading text file...\n");
-	read_file_by_name("frame0.txt");
-	terminal_print("Press enter to continue...");
-
-	while(kb_test_last_key != '\n');
-
-	kb_test_last_key = '\0';
-	terminal_out_clear();
-	terminal_print("Reading program binary...\n");
-	read_file_by_name("hello");
-	terminal_print("Press enter to continue...");
-
-	while(kb_test_last_key != '\n');
-
-	kb_test_last_key = '\0';
-	terminal_out_clear();
-	terminal_print("Reading another program binary...\n");
-	read_file_by_name("ls");
-	terminal_print("Press enter to continue...");
-
-	while(kb_test_last_key != '\n');
-
-	kb_test_last_key = '\0';
-	terminal_out_clear();
-	terminal_print("Reading that very long file...\n");
-	read_file_by_name("verylargetextwithverylongname.tx");
-	terminal_print("Press enter to continue...");
-
-	while(kb_test_last_key != '\n');
-
-
-	kb_test_last_key = '\0';
-	terminal_out_clear();
-	terminal_print("Reading a filename that doesn't exist...\n");
-	read_file_by_name("seagullspokeatmyhead");
-	terminal_print("Press enter to continue...");
-
-	while(kb_test_last_key != '\n');
-	terminal_out_clear();
-
-	terminal_print("Reading all files by index...\n");
-	while(read_file_by_index(i)!=-1){
-		kb_test_last_key = '\0';
-		i++;
-		terminal_print("\nPress enter to read the next file...");
-		while(kb_test_last_key != '\n');
-		terminal_out_clear();
-	}
-
-	return PASS;
-}
-
-
-/**
- *	Test read directory handler
- *
- *	Read all files in the directory and print their names, sizes
- *	and file types to the sreen.
- */
-int test_read_dir(){
-	TEST_HEADER;
-	idt_removeEventListener(KBD_IRQ_NUM);
-	kb_test_last_key = '\0';
-	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
-	terminal_out_clear();
-	terminal_print("Testing directory read.\n");
-	int32_t fd= dir_open((uint8_t*)".");
-	int32_t nbytes = 0;
-	int8_t* file_names[FILENAME_LEN];
-	int32_t count;
-	while(0!=(count = dir_read(fd, file_names, nbytes))){
-		if(-1 == count){
-			terminal_print("Error reading directory.");
-			return FAIL;
-		}
-	}
-	kb_test_last_key = '\0';
-	terminal_print("\nPress enter to end...");
-	while(kb_test_last_key != '\n');
-	return PASS;
-}
-
-
-/**
- *	Test keyboard read handler
- *
- *	Enable keyboard testing mode, each keypress of enter key
- *	will evoke keyboard_read to read from the keyboard buffer
- *	and output the values the terminal
- */
-
-int test_keyboard_read() {
-	TEST_HEADER;
-
-	char buf[128 + 1];
-	int fd_in, fd_out, count_in, count_out, ret;
-
-	ret = keyboard_driver_register();
-	if (ret != 0 && ret != -EEXIST) {
-		printf("Failed to register stdin driver (err=%d)\n", ret);
-		return FAIL;
-	}
-	ret = terminal_out_driver_register();
-	if (ret != 0 && ret != -EEXIST) {
-		printf("Failed to register stdout driver (err=%d)\n", ret);
-		return FAIL;
-	}
-
-	ret = PASS;
-	fd_in = open("/dev/stdin", O_RDONLY, 0);
-	fd_out = open("/dev/stdout", O_WRONLY, 0);
-	if (fd_out < 0) {
-		printf("kb: cannot open stdout (err=%d)\n", fd_out);
-		ret = FAIL;
-		goto cleanup;
-	}
-	if (fd_in < 0) {
-		printf("kb: cannot open stdin (err=%d)\n", fd_in);
-		ret = FAIL;
-		goto cleanup;
-	}
-	printf("Dumping stdin to stdout (equiv. cat /dev/stdin)...\n"
-		   "Control-D to finish\n");
-	memset(buf, '\0', sizeof(buf));
-	while (buf[0] != '\x04') { // manually detect ^D
-		count_in = read(fd_in, buf, 128);
-		if (count_in < 0) {
-			printf("kb: read failed (err=%d)\n", count_in);
-			ret = FAIL;
-			break;
-		}
-		count_out = write(fd_out, buf, count_in);
-		if (count_out < 0) {
-			printf("kb: write failed (err=%d)\n", count_out);
-			ret = FAIL;
-			break;
-		} else if (count_out != count_in) {
-			printf("kb:write could not flush all bytes.\n"
-				   "read %d bytes, written %d bytes\n", count_in, count_out);
-			ret = FAIL;
-			break;
-		}
-	}
-
-cleanup:
-	if (fd_in >= 0) {
-		fd_in = close(fd_in);
-		if (fd_in != 0) {
-			printf("kb: fail to close stdin (err=%d)\n", fd_in);
-			ret = FAIL;
-		}
-	}
-	if (fd_out >= 0) {
-		fd_out = close(fd_out);
-		if (fd_out != 0) {
-			printf("kb: fail to close stdout (err=%d)\n", fd_out);
-			ret = FAIL;
-		}
-	}
-
-	return ret;
-}
-
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -595,28 +338,23 @@ void launch_tests() {
 	TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
 	// IDT tests
-	//TEST_OUTPUT("idt_test", idt_test());
+	TEST_OUTPUT("idt_test", idt_test());
 	// The following test should trigger a fault
 	// TEST_OUTPUT("idt_test_de", idt_test_de());
 	// The following test should not trigger any fault
-	//TEST_OUTPUT("idt_test_usr", idt_test_usr());
+	TEST_OUTPUT("idt_test_usr", idt_test_usr());
 
 	// Paging test
 	// The following test should trigger a fault
-	//TEST_OUTPUT("paging_test", paging_test());
+	// TEST_OUTPUT("paging_test", paging_test());
 
 	// KB test
-	//TEST_OUTPUT("kb_test", kb_test());
+	// TEST_OUTPUT("kb_test", kb_test());
 
 	// RTC test
-	//TEST_OUTPUT("rtc_test", rtc_test());
+	// TEST_OUTPUT("rtc_test", rtc_test());
 
-	// File and directory test
-	TEST_OUTPUT("test_read_file", test_read_file());
-	clear();
-
-	TEST_OUTPUT("test_read_dir", test_read_dir());
-	clear();
+	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 
 	// Restore IRQ Handlers
 	idt_removeEventListener(KBD_IRQ_NUM);
@@ -627,8 +365,4 @@ void launch_tests() {
 	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 
 	fs_test();
-
-	TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
-
-	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }
