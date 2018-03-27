@@ -356,19 +356,6 @@ int rtc_test_2() {
  *	@param filename: the file name to read
  */
 void read_file_by_name(int8_t* filename){
-	int fd = 0;
-	if(file_open((uint8_t*)filename)!=0){
-		printf("Failed to open file.\n");
-		return;
-	}
-	uint8_t content[BLOCK_SIZE * 128];
-	int32_t file_len = file_read(fd, content, BLOCK_SIZE * 128);
-	if(file_len < 0){
-		printf("Failed to read file.\n");
-		return;
-    }
-    file_close(fd);
-    /*
 	fsys_dentry_t test_dentry;
 	if(read_dentry_by_name((uint8_t*)filename, &test_dentry) == -1){
 		terminal_print(filename);
@@ -380,7 +367,7 @@ void read_file_by_name(int8_t* filename){
 	int32_t file_len = target_inode->length;
 	uint8_t content[BLOCK_SIZE * 128];
 	memset(content, 0x0, BLOCK_SIZE * 128);
-	read_data(test_dentry.inode_num, 0, content, file_len);*/
+	read_data(test_dentry.inode_num, 0, content, file_len);
 	terminal_out_write_(content, file_len);
 	terminal_print("\nDone reading file: ");
 	terminal_print(filename);
@@ -432,7 +419,6 @@ int test_read_file(){
 	while(kb_test_last_key != '\n');
 
 
-	kb_test_last_key = '\0';
 	terminal_out_clear();
 	// read_file_by_index(17);
 	terminal_print("Reading text file...\n");
@@ -510,7 +496,6 @@ int test_read_dir(){
 			terminal_print("Error reading directory.");
 			return FAIL;
 		}
-		printf("FILE NAME: %s\n", (int8_t*)file_names);
 	}
 	kb_test_last_key = '\0';
 	terminal_print("\nPress enter to end...");

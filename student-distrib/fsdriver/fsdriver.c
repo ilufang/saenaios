@@ -187,7 +187,7 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes){
     if(readpos>=dentry_count) return 0;
     if(read_dentry_by_index (readpos, &dir_entry) == 0){
         // read dentry and print information, update offset of corresponding file
-        //fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (dir_entry.inode_num + 1));
+        fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (dir_entry.inode_num + 1));
         // make sure that filename length doesn't exceed 32 chars
         uint32_t namelen = strlen((int8_t*)dir_entry.filename);
         if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
@@ -196,7 +196,6 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes){
         // copy filename into buffer
         memcpy((int8_t*)buf, (int8_t*)dir_entry.filename, namelen);
         // print file information
-        /*
         int32_t file_len = target_inode->length;
         terminal_print("FILE NAME: ");
         terminal_print(buf);
@@ -206,7 +205,7 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes){
         terminal_print("    FILE TYPE: ");
         int8_t type_str_buf[ITOA_BUF_SIZE];
         terminal_print(itoa(dir_entry.filetype, type_str_buf, 10));
-        terminal_print("\n");*/
+        terminal_print("\n");
         bytesread = namelen;
         // update read position offset
         dirfile->pos = readpos+1;
