@@ -30,7 +30,7 @@ int32_t read_dentry_by_name (const uint8_t* fname, fsys_dentry_t* dentry){
             return 0;
         }
     }
-    
+
     return -1;
 }
 
@@ -90,13 +90,13 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
         n_copy = BLOCK_SIZE - offset % BLOCK_SIZE;
     }
     // ptr to source address of current copy operation
-    uint8_t* cpy_src = (uint8_t*)(data_block_ptr + 
-                                  target_inode ->data_block_num[block_idx] * BLOCK_SIZE + 
+    uint8_t* cpy_src = (uint8_t*)(data_block_ptr +
+                                  target_inode ->data_block_num[block_idx] * BLOCK_SIZE +
                                   offset % BLOCK_SIZE);
     while(rem_len > 0){
         (void)memcpy(buf, cpy_src, n_copy);
         rem_len -= n_copy;
-        read_len += n_copy; 
+        read_len += n_copy;
         if(rem_len <= 0){
             return read_len;
         }
@@ -156,7 +156,7 @@ int32_t file_read(int32_t fd, void* buf, int32_t nbytes){
     uint32_t bytes_read = read_data(inode, file_loc, (uint8_t*)buf, (uint32_t)nbytes);
     // update file offset position for successful read
     if(bytes_read != -1){
-        test_fd_arr[fd]->pos += bytes_read;   
+        test_fd_arr[fd]->pos += bytes_read;
     }
     return bytes_read;
 }
@@ -187,7 +187,7 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes){
     if(readpos>=dentry_count) return 0;
     if(read_dentry_by_index (readpos, &dir_entry) == 0){
         // read dentry and print information, update offset of corresponding file
-        //fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (dir_entry.inode_num + 1));
+        fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (dir_entry.inode_num + 1));
         // make sure that filename length doesn't exceed 32 chars
         uint32_t namelen = strlen((int8_t*)dir_entry.filename);
         if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
@@ -196,17 +196,16 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes){
         // copy filename into buffer
         memcpy((int8_t*)buf, (int8_t*)dir_entry.filename, namelen);
         // print file information
-        /*
         int32_t file_len = target_inode->length;
-        terminal_print("FILE NAME: ");
-        terminal_print(buf);
-        terminal_print("    FILE SIZE: ");
+        // terminal_print("FILE NAME: ");
+        // terminal_print(buf);
+        terminal_print("FILE SIZE: ");
         int8_t len_str_buf[ITOA_BUF_SIZE];
         terminal_print(itoa(file_len, len_str_buf, 10));
-        terminal_print("    FILE TYPE: ");
+        terminal_print(", FILE TYPE: ");
         int8_t type_str_buf[ITOA_BUF_SIZE];
         terminal_print(itoa(dir_entry.filetype, type_str_buf, 10));
-        terminal_print("\n");*/
+        terminal_print(", ");
         bytesread = namelen;
         // update read position offset
         dirfile->pos = readpos+1;
