@@ -11,6 +11,9 @@
 
 #include "types.h"
 #include "i8259.h"
+#include "lib.h"
+#include "fs/vfs.h"
+#include "fs/fs_devfs.h"
 
 /**
  *	RTC_IRQ_NUM
@@ -100,6 +103,14 @@
 #define BIT_SIX     0x40
 
 /**
+ *	Register rtc driver in /dev/
+ *
+ *	Create driver file "/dev/rtc". Enable syscall for rtc driver.
+ */
+
+int rtc_out_driver_register();
+
+/**
  *	Initialize the rtc
  *
  *	Writes to rtc control register, enables irq8 on PIC
@@ -133,34 +144,53 @@ void rtc_setrate(int rate);
  *	Initialize frequency to 2 Hz and enable RTC by changing rtc_status. 
  *
  *	Occured when RTC needs to be turned on.
+ *
+ *	@param inode: inode of the opened file.
+ *	@param file:  file struct of the opened file.
+ *
  */
 
-int rtc_open();
+int rtc_open(inode_t* inode, file_t* file);
 
 /**
  *	Close opened rtc and free all the private data.
  *	
  *	Currently do nothing.
+ *
+ *	@param inode: inode of the opened file.
+ *	@param file:  file struct of the opened file.
+ *	
  */
 
-int rtc_close();
+int rtc_close(inode_t* inode, file_t* file);
 
 /**
  *	Block rtc interrupts at a given frequency. (virtualized)
  *
  *	While reading, process will not do anyother thing until count reach 
  *	a giving frequency.
+ *
+ *	@param file:  file struct of the opened file.
+ *	@param buf:   private data for the file.
+ *	@param count: datasize of private data.
+ *	@param offset: not used.
+ *
  */
 
-int rtc_read();
+ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset);
 
 /**
  *	Set frequency of RTC interrupts (virtualized)
  *
- *	@param freq: The RTC interrupt frequency (exact frequency). Must be in the range between 2-1024Hz and must be power of 2.
+ *
+ *	@param file:  file struct of the opened file.
+ *	@param buf:   private data for the file.
+ *	@param count: datasize of private data.
+ *	@param offset: not used.
+ *
  */
 
-int rtc_write(int freq);
+ssize_t rtc_write(file_t* file, uint8_t* buf, size_t count, off_t* offset);
 
 /**
  *	Check if a number is a power of 2.

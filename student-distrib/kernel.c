@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "tests.h"
+#include "fsdriver/fsdriver.h"
 
 #include "boot/idt.h"
 #include "boot/page_table_init.h"
@@ -64,6 +65,7 @@ void entry(unsigned long magic, unsigned long addr) {
 		int mod_count = 0;
 		int i;
 		module_t* mod = (module_t*)mbi->mods_addr;
+        boot_start_addr = mod->mod_start;
 		while (mod_count < mbi->mods_count) {
 			printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
 			printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
@@ -169,15 +171,17 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * without showing you any output */
 	printf("Enabling Interrupts\n");
 	sti();
-
 	//create a basic process
 	task_create_kernel_pid();
 	//install device driver fs
 	devfs_installfs();
 	//mount device driver fs
 	mount("","/dev","devfs",0,"");
-	//register std out
+
+	// register drivers
 	terminal_out_driver_register();
+	keyboard_driver_register();
+	rtc_out_driver_register();
 
 #ifdef RUN_TESTS
 	/* Run tests */

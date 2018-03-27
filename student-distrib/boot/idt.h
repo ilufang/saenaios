@@ -17,8 +17,8 @@
 
 #include "../x86_desc.h"
 
-#define KEYBOARD_VEC    0x21
-#define RTC_VEC         0x28
+#define KEYBOARD_VEC    0x21			///< keyboard interrupt vector in idt table 
+#define RTC_VEC         0x28			///< rtc interrupt vector in idt table
 
 /**
  *	Construct IDT table.
