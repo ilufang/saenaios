@@ -173,6 +173,8 @@ void terminal_out_putc(uint8_t c){
        			screen_y = NUM_ROWS-1;
        		}
        		terminal_set_cursor();
+       }else{
+       		terminal_out_putc('.');
        }
     }
 
