@@ -543,9 +543,9 @@ int test_keyboard_read() {
 		goto cleanup;
 	}
 	printf("Dumping stdin to stdout (equiv. cat /dev/stdin)...\n"
-		   "Control-D to finish\n");
+		   "Enter 'exit' to finish\n");
 	memset(buf, '\0', sizeof(buf));
-	while (buf[0] != '\x04') { // manually detect ^D
+	while (strncmp(buf, "exit", 4) != 0) {
 		count_in = read(fd_in, buf, 128);
 		if (count_in < 0) {
 			printf("kb: read failed (err=%d)\n", count_in);
