@@ -9,29 +9,9 @@
 #define NUM_ROWS    25
 #define ATTRIB      0x7
 
-static int screen_x;
-static int screen_y;
+// static int screen_x;
+// static int screen_y;
 static char* video_mem = (char *)VIDEO;
-
-void disable_cursor(){
-    
-	outb(0x0A, 0x3D4);
-	outb(0x20, 0x3D5);
-}
-
-/* set cursor to (x,y) */
-
-void set_cursor(int x, int y){
-    screen_x = x;
-    screen_y = y;
-    int pos = y * NUM_COLS + x;
- 
-	outb(0x0F,0x3D4);
-	outb((uint8_t) (pos & 0xFF), 0x3D5);
-	outb(0x0E, 0x3D4);
-	outb((uint8_t) ((pos >> 8) & 0xFF), 0x3D5);
-}
-
 
 /* void clear(void);
  * Inputs: void
@@ -39,15 +19,6 @@ void set_cursor(int x, int y){
  * Function: Clears video memory */
 void clear(void) {
     terminal_out_clear();
-    /*
-    int32_t i;
-    screen_x = 0;
-    screen_y = 0;
-    for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-        *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
-    }*/
-
 }
 
 /* Standard printf().
@@ -194,20 +165,16 @@ int32_t puts(int8_t* s) {
  * Return Value: void
  *  Function: Output a character to the console */
 void putc(uint8_t c) {
-    /*
-    if(c == '\n' || c == '\r') {
+/*    if(c == '\n' || c == '\r') {
         screen_y++;
         screen_x = 0;
     } else {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
-        //screen_x %= NUM_COLS;
-        screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
         screen_x %= NUM_COLS;
-    }
-    set_cursor(screen_x, screen_y);
-    */
+        screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
+    }*/
     terminal_out_putc(c);
 }
 
@@ -504,15 +471,4 @@ void test_interrupts(void) {
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
         video_mem[i << 1]++;
     }
-}
-
-
-/**
- *	Terminal print wrapper
- *
- *	Calls terminal print to output characters to screen.
- *	@param buf: char buffer to be printed
- */
-void terminal_print(int8_t* buf){
-    terminal_out_write_((uint8_t*)buf, strlen(buf));
 }
