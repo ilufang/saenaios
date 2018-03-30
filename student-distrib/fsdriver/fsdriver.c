@@ -6,55 +6,44 @@
 
 
 
-static mp3fs_bootblock_t* boot_ptr;
+int32_t boot_start_addr;
 // temporary file array used for testing
 fsys_file_t * test_fd_arr[FSYS_MAX_FILE];
 
-// static data for fsdriver
-// super block object
-static  super_block_t mp3fs_sb;
-// inode buffer
-static  inode_t mp3fs_file_table[MP3FS_MAX_FILE_NUM];
-
-// static function tables
-static super_operations_t mp3fs_s_op;
-static inode_operations_t mp3fs_i_op;
-static file_operations_t mp3fs_f_op;
-
-int32_t read_dentry_by_name (const uint8_t* fname, mp3fs_dentry_t* dentry){
+int32_t read_dentry_by_name (const uint8_t* fname, fsys_dentry_t* dentry){
     // ptr to bootblock
-    // bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
+    bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
     // total num of dentry
     int32_t dentry_count = boot_ptr->dir_count;
     // ptr to dentry array
-    mp3fs_dentry_t* dentry_arr = (mp3fs_dentry_t *)(boot_ptr->direntries);
+    fsys_dentry_t* dentry_arr = (fsys_dentry_t *)(boot_ptr->direntries);
     // iteration var
     int i = 0;
     uint32_t len = strlen((int8_t*)fname);
     //if(len > FILENAME_LEN) len = FILENAME_LEN;
     // iterate through all dentries
     for(i = 0; i < dentry_count; i++){
-        mp3fs_dentry_t curr_dentry = dentry_arr[i];
+        fsys_dentry_t curr_dentry = dentry_arr[i];
         // found matchin string
         if(strncmp((int8_t*)fname, (int8_t*)curr_dentry.filename, len) == 0){
             (void)memcpy(dentry, &curr_dentry, DENTRY_SIZE);
             return 0;
         }
     }
-    
+
     return -1;
 }
 
-int32_t read_dentry_by_index (uint32_t index, mp3fs_dentry_t* dentry){
+int32_t read_dentry_by_index (uint32_t index, fsys_dentry_t* dentry){
     // ptr to bootblock
-    // bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
+    bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
     // total num of dentry
     int32_t dentry_count = boot_ptr->dir_count;
     // check for invalid dentry index
     if(index >= dentry_count || index < 0){
         return -1;
     }
-    mp3fs_dentry_t* dentry_arr = (mp3fs_dentry_t *)(boot_ptr->direntries);
+    fsys_dentry_t* dentry_arr = (fsys_dentry_t *)(boot_ptr->direntries);
     (void)memcpy(dentry, &(dentry_arr[index]), DENTRY_SIZE);
     return 0;
 }
@@ -62,13 +51,13 @@ int32_t read_dentry_by_index (uint32_t index, mp3fs_dentry_t* dentry){
 
 int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length){
     // ptr to bootblock
-    // bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
+    bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
     // total num of inode
     int32_t ind_count = boot_ptr->inode_count;
     // total num of data block
     int32_t dblock_count = boot_ptr->data_count;
     // pointer to inode of target file
-    mp3fs_inode_t * target_inode = (mp3fs_inode_t*)(boot_ptr + BLOCK_SIZE * (inode + 1));
+    fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (inode + 1));
     // size of target file
     uint32_t target_file_len = (uint32_t)(target_inode->length);
     // check for invalid inode idx
@@ -80,7 +69,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
         return 0;
     }
     // ptr to start of data block
-    uint8_t * data_block_ptr = (uint8_t*)(boot_ptr + BLOCK_SIZE * (ind_count + 1));
+    uint8_t * data_block_ptr = (uint8_t*)(boot_start_addr + BLOCK_SIZE * (ind_count + 1));
     //uint8_t * data_block_ptr = (uint8_t*)0x450000;
     // length copied
     int read_len = 0;
@@ -101,13 +90,13 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
         n_copy = BLOCK_SIZE - offset % BLOCK_SIZE;
     }
     // ptr to source address of current copy operation
-    uint8_t* cpy_src = (uint8_t*)(data_block_ptr + 
-                                  target_inode ->data_block_num[block_idx] * BLOCK_SIZE + 
+    uint8_t* cpy_src = (uint8_t*)(data_block_ptr +
+                                  target_inode ->data_block_num[block_idx] * BLOCK_SIZE +
                                   offset % BLOCK_SIZE);
     while(rem_len > 0){
         (void)memcpy(buf, cpy_src, n_copy);
         rem_len -= n_copy;
-        read_len += n_copy; 
+        read_len += n_copy;
         if(rem_len <= 0){
             return read_len;
         }
@@ -125,194 +114,109 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
     return read_len;
 }
 
-// functions below connect with vfs
-int mp3fs_installfs(int32_t bootblock_start_addr){
-    // get address of boot block from parameter
-    boot_ptr = (mp3fs_bootblock_t*)bootblock_start_addr;
 
-    //mp3fs_inode_index = 0;
-
-    file_system_t mp3fs;
-
-    mp3fs_s_op.alloc_inode = &mp3fs_s_op_alloc_inode;
-    mp3fs_s_op.open_inode = &mp3fs_s_op_open_inode;
-    mp3fs_s_op.free_inode = &mp3fs_s_op_free_inode;
-    mp3fs_s_op.read_inode = &mp3fs_s_op_read_inode;
-    mp3fs_s_op.write_inode = &mp3fs_s_op_write_inode;
-    mp3fs_s_op.drop_inode = &mp3fs_s_op_drop_inode;
-
-    mp3fs_i_op.lookup = &mp3fs_i_op_lookup;
-    mp3fs_i_op.readlink = &mp3fs_i_op_readlink;
-
-    mp3fs_f_op.open = &mp3fs_f_op_open;
-    mp3fs_f_op.release = &mp3fs_f_op_close;
-    mp3fs_f_op.read = &mp3fs_f_op_read;
-    mp3fs_f_op.write = &mp3fs_f_op_write;
-    mp3fs_f_op.readdir = &mp3fs_f_op_readdir;
-
-    strcpy(mp3fs.name, "mp3fs");
-
-    mp3fs.get_sb = &mp3fs_get_sb;
-    
-    mp3fs.kill_sb = &mp3fs_kill_sb;
-
-    return fstab_register_fs(&mp3fs);
-}
-
-super_block_t* mp3fs_get_sb(struct s_file_system *fs, int flags,
-                                    const char *dev,const char *opts) {
-    int i; // iterator
-    // initialize & inflate super_block
-    mp3fs_sb.fstype = fstab_get_fs("mp3fs");
-
-    mp3fs_sb.s_op = &mp3fs_s_op;
-
-    // get root dentry's (i.e. root dir) inode number
-    mp3fs_sb.root = ((mp3fs_dentry_t*)(boot_ptr + DENTRY_SIZE))->inode_num;
-
-    // initialize file table
-    // of course brutal force table
-    for (i=0;i<MP3FS_MAX_FILE_NUM;++i){
-        mp3fs_file_table[i].open_count = 0;
-        mp3fs_file_table[i].ino = i;
+int32_t file_open(const uint8_t* filename){
+    int i = 0;
+    fsys_dentry_t dentry;
+    // filename does not exist
+    if(read_dentry_by_name(filename, &dentry) == -1){
+        return -1;
     }
-    return &mp3fs_sb;
-}
-
-void mp3fs_kill_sb(){
-    // do nothing for now
-}
-
-inode_t* mp3fs_s_op_alloc_inode(super_block_t* sb){
-    // should not be called for now
-    errno = ENOSYS;
-    return NULL;
-}
-
-inode_t* mp3fs_s_op_open_inode(super_block_t* sb, ino_t ino){
-    // search for the ino given
-    if ((!sb) || (ino<=0) || (ino>MP3FS_MAX_FILE_NUM)){
-        errno = EINVAL;
-        return NULL;
+    // create and fill in file struct
+    fsys_file_t file;
+    file.inode = dentry.inode_num;
+    file.open_count++;
+    file.pos = 0;
+    fsys_fops_t f_ops;
+    f_ops.open = &file_open;
+    f_ops.close = &file_close;
+    f_ops.read = &file_read;
+    f_ops.write = &file_write;
+    // find an available fd
+    for(i = 0; i < FSYS_MAX_FILE; i++){
+        if(!test_fd_arr[i]){
+            test_fd_arr[i] = &file;
+            return 0;
+        }
     }
-    // search for the inodes in the memory
-    if (mp3fs_file_table[ino].open_count){
-        // found in inodes in memory
-        ++mp3fs_file_table[ino].open_count;
-        return &mp3fs_file_table[ino];
-    }
-    // then go for the disk although it should not reach here
-    // found that in the disk, then get it from 'disk'!
-    return _mp3fs_fetch_inode(ino);
+    // if there's not available fd, return -1
+    return -1;
 }
 
-int mp3fs_s_op_free_inode(inode_t* inode){
-    // sanity check
-    if ((!inode) || (inode->open_count==0)){
-        return -EINVAL;
-    }
-    inode->open_count--;
+int32_t file_close(int32_t fd){
+    // free the corresponding fd
+    test_fd_arr[fd] = NULL;
     return 0;
 }
 
-int mp3fs_s_op_read_inode(inode_t* inode){
-    // should not be called for now
-    return -ENOSYS;
-}
-
-int mp3fs_s_op_write_inode(inode_t* inode){
-    // should not be called for now
-    return -ENOSYS;
-}
-
-int mp3fs_s_op_drop_inode(inode_t* inode){
-    // should not be called for now
-    return -ENOSYS;
-}
-
-inode_t* _mp3fs_fetch_inode(ino_t ino){
-    mp3fs_dentry_t* temp_dentry;
-
-    temp_dentry = (mp3fs_dentry_t*)(boot_ptr + DENTRY_SIZE*ino);
-    // ah, fetch from disk
-    mp3fs_file_table[ino].file_type = temp_dentry->filetype;
-    mp3fs_file_table[ino].open_count = 1;   // should be 1 isn't it?
-    // TODO mp3fs_file_table[ino].mode
-    mp3fs_file_table[ino].sb = &mp3fs_sb;
-    mp3fs_file_table[ino].i_op = &mp3fs_i_op;
-    mp3fs_file_table[ino].f_op = &mp3fs_f_op;
-    // no private data for now
-    return &mp3fs_file_table[ino];
-}
-
-ino_t mp3fs_i_op_lookup(inode_t* inode, const char* path){
-    int temp_return;
-    mp3fs_dentry_t temp_mp3fs_dentry;
-    if ((!inode) || (!path)){
-        return -EINVAL;
+int32_t file_read(int32_t fd, void* buf, int32_t nbytes){
+    // use file array and fd to get inode and offset information
+    uint32_t inode = test_fd_arr[fd]->inode;
+    uint32_t file_loc = test_fd_arr[fd]->pos;
+    uint32_t bytes_read = read_data(inode, file_loc, (uint8_t*)buf, (uint32_t)nbytes);
+    // update file offset position for successful read
+    if(bytes_read != -1){
+        test_fd_arr[fd]->pos += bytes_read;
     }
-    if ((temp_return = read_dentry_by_name((uint8_t*)path, &temp_mp3fs_dentry))){
-        // must be error
-        return -ENOENT;
-    }
-    // found
-    return temp_mp3fs_dentry.inode_num;
+    return bytes_read;
 }
 
-int mp3fs_i_op_readlink(inode_t* inode, char* buf){
-    // should not be called
-    return -ENOSYS;
+int32_t file_write(int32_t fd, void* buf, int32_t nbytes){
+    // return -1 for a read-only file system
+    return -1;
 }
 
-int mp3fs_f_op_open(struct s_inode *inode, struct s_file *file){
-    // sanity check
-    if ((!inode) || (!file)){
-        return -EINVAL;
-    }
-    // inflate the file object according to the inode
-    file->inode = inode;
-    // TODO mode file->mode
-    file->pos = 0;
-    file->f_op = &mp3fs_f_op;
-    // no private data
+int32_t dir_open(const uint8_t* filename){
+    // same as file open?
+    return file_open((uint8_t*)".");
+}
+
+int32_t dir_close(int32_t fd){
     return 0;
 }
 
-int mp3fs_f_op_close(struct s_inode *inode, struct s_file *file){
-    // sanity check
-    if ((!inode) || (!file))
-        return -EINVAL;
-    // no private data 
-    return 0;
+int32_t dir_read(int32_t fd, void* buf, int32_t nbytes){
+    int32_t bytesread = 0;
+    fsys_dentry_t dir_entry;
+    fsys_file_t *dirfile = test_fd_arr[fd];
+    uint32_t readpos = dirfile->pos;
+    bootblock_t * boot_ptr = (bootblock_t *)boot_start_addr;
+    // total num of dentry
+    int32_t dentry_count = boot_ptr->dir_count;
+    // check for invalid dentry index
+    if(readpos>=dentry_count) return 0;
+    if(read_dentry_by_index (readpos, &dir_entry) == 0){
+        // read dentry and print information, update offset of corresponding file
+        fsys_inode_t * target_inode = (fsys_inode_t*)(boot_start_addr + BLOCK_SIZE * (dir_entry.inode_num + 1));
+        // make sure that filename length doesn't exceed 32 chars
+        uint32_t namelen = strlen((int8_t*)dir_entry.filename);
+        if(namelen>FILENAME_LEN) namelen = FILENAME_LEN;
+        // clear buffer
+        memset((int8_t*)buf, '\0', FILENAME_LEN);
+        // copy filename into buffer
+        memcpy((int8_t*)buf, (int8_t*)dir_entry.filename, namelen);
+        // print file information
+        int32_t file_len = target_inode->length;
+        // terminal_print("FILE NAME: ");
+        // terminal_print(buf);
+        terminal_print("FILE SIZE: ");
+        int8_t len_str_buf[ITOA_BUF_SIZE];
+        terminal_print(itoa(file_len, len_str_buf, 10));
+        terminal_print(", FILE TYPE: ");
+        int8_t type_str_buf[ITOA_BUF_SIZE];
+        terminal_print(itoa(dir_entry.filetype, type_str_buf, 10));
+        terminal_print(", ");
+        bytesread = namelen;
+        // update read position offset
+        dirfile->pos = readpos+1;
+        return bytesread;
+    }
+    // if read failed return -1
+    return -1;
 }
 
-ssize_t mp3fs_f_op_read(struct s_file *file, uint8_t *buf, size_t count,
-                            off_t *offset){
-    return read_data(file->inode->ino, *offset, buf, count);
+int32_t dir_write(int32_t fd, void* buf, int32_t nbytes){
+    // return -1 for a read only file system
+    return -1;
 }
 
-ssize_t mp3fs_f_op_write(struct s_file *file, uint8_t *buf, size_t count,
-                            off_t *offset){
-    return 0;
-}
-
-int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent){
-    // sanity check
-    if ((!file) || (!dirent)){
-        return -EINVAL;
-    }
-    int i;  //iterator
-    mp3fs_dentry_t temp_mp3fs_dentry;
-    for (i = dirent->index + 1; i < MP3FS_MAX_FILE_NUM; ++i){
-        if (!read_dentry_by_index(i, &temp_mp3fs_dentry))
-            //found
-            break;
-    }
-    if (i >= MP3FS_MAX_FILE_NUM){
-        return -ENOENT;
-    }
-    dirent->ino = i;
-    strcpy(dirent->filename, temp_mp3fs_dentry.filename);
-    dirent->index = i;
-    return 0;
-}

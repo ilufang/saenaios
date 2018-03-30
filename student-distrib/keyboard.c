@@ -368,6 +368,7 @@ void regular_key(uint8_t scancode){
 	if(ctrl_status == PRESSED){
 		scanchar = kbdctl[scancode];
 		terminal_out_write_(&scanchar,1);
+		return;
 	}
 	else{
 	// otherwise fetch a scancode according to current mode
