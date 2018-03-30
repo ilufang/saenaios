@@ -367,7 +367,8 @@ void regular_key(uint8_t scancode){
 	// send control character if control key is pressed
 	if(ctrl_status == PRESSED){
 		scanchar = kbdctl[scancode];
-		// terminal_out_write_(&scanchar,1);
+		terminal_out_write_(&scanchar,1);
+		return;
 	}
 	else{
 	// otherwise fetch a scancode according to current mode
