@@ -11,6 +11,8 @@
 
 file_t vfs_files[VFS_MAX_OPEN_FILES];
 
+#define DIRENT_INDEX_AUTO	-2
+
 int syscall_ece391_open(int pathaddr, int b, int c) {
 	return syscall_open(pathaddr, 0, 0);
 }
@@ -89,6 +91,7 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 		if (size < VFS_FILENAME_LEN) {
 			return -EINVAL;
 		}
+		dent = DIRENT_INDEX_AUTO; // Workaround ece391_read auto dir listing
 		ret = syscall_getdents(fd, (int)&dent, 0);
 		if (ret == 0) {
 			strcpy((char *)bufaddr, dent.filename);
@@ -146,6 +149,8 @@ int syscall_write(int fd, int bufaddr, int count) {
 int syscall_getdents(int fd, int bufaddr, int c) {
 	task_t *proc;
 	file_t *file;
+	struct dirent *dent;
+	int ret;
 
 	if (!bufaddr) {
 		return -EINVAL;
@@ -163,7 +168,17 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 		return -ENOSYS;
 	}
 	// TODO: no permission check
-	return (*file->f_op->readdir)(file, (struct dirent *)bufaddr);
+	dent = (struct dirent *)bufaddr;
+	if (dent.index == DIRENT_INDEX_AUTO) {
+		// Workaround ece391_read auto dir listing
+		dent.index = file->pos + 1;
+		ret = (*file->f_op->readdir)(file, dent);
+		if (ret >= 0) {
+			file->pos++;
+		}
+		return ret;
+	} else
+		return (*file->f_op->readdir)(file, dent);
 }
 
 file_t *vfs_open_file(inode_t *inode, int mode) {
