@@ -6,8 +6,8 @@
  *	vim:ts=4 noexpandtab
  */
 
-#ifndef _FSDRIVER_H
-#define _FSDRIVER_H
+#ifndef _MP3FS_DRIVER_H
+#define _MP3FS_DRIVER_H
 
 #include "../types.h"
 #include "../i8259.h"
@@ -113,7 +113,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 
 
 //functions below connect with vfs
-int mp3fs_installfs();
+int mp3fs_installfs(int32_t bootblock_start_addr);
 
 super_block_t* mp3fs_get_sb(file_system_t* fs,int flags, const char *dev,const char *opts);
 
