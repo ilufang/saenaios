@@ -6,6 +6,7 @@
 #include "boot/idt.h"
 #include "keyboard.h"
 #include "rtc.h"
+#include "fsdriver/mp3fs_test.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "boot/page_table.h"
 
@@ -518,11 +519,16 @@ void launch_tests() {
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
 
+	
+	
+
 	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 
 	fs_test();
 
 	TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
+	// File and directory test
+	TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
 
 	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }
