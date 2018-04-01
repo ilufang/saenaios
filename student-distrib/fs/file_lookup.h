@@ -8,7 +8,7 @@
 
 #include "vfs.h"
 #include "fstab.h"
-#include "../types.h"
+#include "../lib.h"
 
 /**
  *	struct for nameidata

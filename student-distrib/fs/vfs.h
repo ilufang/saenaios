@@ -14,10 +14,10 @@
 #define VFS_FILENAME_LEN	32	///< Maximum filename length
 #define VFS_MAX_OPEN_FILES	256 ///< System-wide open files limit
 
-#define FTYPE_REGULAR	1	///< File type: regular file
-#define FTYPE_DIRECTORY	2	///< File type: directory
-#define FTYPE_SYMLINK	3	///< File type: symbolic link
-#define FTYPE_DEVICE	4	///< File type: special device file
+#define FTYPE_REGULAR	'f'	///< File type: regular file
+#define FTYPE_DIRECTORY	'd'	///< File type: directory
+#define FTYPE_SYMLINK	'l'	///< File type: symbolic link
+#define FTYPE_DEVICE	'p'	///< File type: special device file
 
 // Forward declarations
 struct s_file;

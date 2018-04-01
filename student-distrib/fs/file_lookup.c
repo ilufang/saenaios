@@ -9,16 +9,13 @@
 inode_t* file_lookup(pathname_t path){
 	vfsmount_t *fs;
 	int i;	// number for path offset
-	int temp_buff_size;
+	
 	int temp_return;
 	// initialize nameidata for this file lookup
 	nameidata_t nd;
 	//
 	nd.depth = 0;
 	nd.path = path;
-
-	char pathtemp[sym_link_buff_size];
-	int pathtemp_length;
 
 file_lookup_start:
 	if (!(fs = fstab_get_mountpoint(nd.path, &i))) {
@@ -59,6 +56,10 @@ file_lookup_start:
 
 	// handle sym link
 	if (nd.inode -> file_type == FTYPE_SYMLINK){
+#ifdef REAL_SYM_LINK
+		char pathtemp[sym_link_buff_size];
+		int pathtemp_length;
+		int temp_buff_size;
 		// update nd for sym link
 		if (nd.inode -> i_op -> readlink){
 			if ((pathtemp_length = (*(nd.inode -> i_op -> readlink))(nd.inode,pathtemp))<0){
@@ -82,6 +83,13 @@ file_lookup_start:
 		//update appended link and then restart lookup process
 		nd.path = path;
 		goto file_lookup_start;
+#else
+		strcpy(path, "/dev/rtc");
+		nd.path = path;
+		// TODO discard previously found inode
+		nd.inode->sb->s_op->free_inode(nd.inode);
+		goto file_lookup_start;
+#endif
 	}
 
 	// lookup finish, nothing to release
