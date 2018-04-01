@@ -2,7 +2,7 @@
 
 int launch_mp3fs_driver_test(){
 	int temp_return;
-	int fd;
+	int fd, prev_fd;
 	struct dirent* temp_dirent;
 	uint8_t buf[128];
 	int temp_size;
@@ -33,12 +33,19 @@ int launch_mp3fs_driver_test(){
 			while ((temp_size = read(fd, buf, 128))>0){
 				write(0, buf, temp_size);
 			}
-			printf("\n\nPress enter to continue");
+			if (write(fd, buf, 128) != -EROFS){
+				printf("mp3fs write failed\n");
+				return 0;
+			}
+			printf("\n \nreading file %s \nusing fd number %d \n",temp_dirent -> filename, fd);
+			printf("Press enter to continue");
 			close(fd);
+			
 			if (read(fd_in, &temp_input, 1)<=0){
 				printf("read key failed\n");
 				return 0;
 			}
+			clear();
 		}
 	}
 	return 1;

@@ -317,7 +317,7 @@ ssize_t mp3fs_f_op_read(struct s_file *file, uint8_t *buf, size_t count,
 
 ssize_t mp3fs_f_op_write(struct s_file *file, uint8_t *buf, size_t count,
                             off_t *offset){
-    return 0;
+    return -EROFS;
 }
 
 int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent){
