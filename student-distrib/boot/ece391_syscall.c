@@ -6,12 +6,14 @@ static uint8_t elf_signature[4] = {0x7f, 0x45, 0x4c, 0x46};
 
 int32_t syscall_ece391_execute(const uint8_t* command){
 	
+	cli();
 	// parse command & argument
 	// trim front spaces
 	uint8_t exec_command[FILENAME_LEN];
+	memset(&exec_command, 0, FILENAME_LEN);
 	int command_idx = 0;
 	int i = 0;
-	fsys_dentry_t exec_dentry;
+	mp3fs_dentry_t exec_dentry;
 	
 	while(command[command_idx]==' '&&command[command_idx]!='\0'){
 		command_idx++;
@@ -39,8 +41,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	}
 	
 	// file is not an executable
-	if(exec_magic_buf[0]!=elf_signature[0]||exec_magic_buf[1]!=elf_signature[1]||
-	  exec_magic_buf[2]!=elf_signature[2]||exec_magic_buf[3]!=elf_signature[3]){
+	if(strncmp((int8_t*)exec_magic_buf, (int8_t*)elf_signature, ELF_MAGIC_SIZE)!=0){
 		return -1;
 	}
 
@@ -51,20 +52,27 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	}
 	
 	// TODO: setup program paging
-	page_table_add_entry(128 * M_BYTE, (8 + new_pid) * M_BYTE, PAGE_TAB_ENT_USR);
+	page_dir_add_4MB_entry(128 * M_BYTE, (12 + new_pid) * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	page_flush_tlb();
 	
-	int32_t exec_entry;
+	uint8_t exec_entry[4];
 	// read entry point failed
 	if(read_data(exec_dentry.inode_num, 24, (uint8_t*)exec_entry, ELF_MAGIC_SIZE)!=4){
 		return -1;
 	}
+	int32_t entry_addr = 0;
+	entry_addr |= exec_entry[3]<<24;
+	entry_addr |= exec_entry[2]<<16;
+	entry_addr |= exec_entry[1]<<8;
+	entry_addr |= exec_entry[0];
+	
+	//uint8_t content[M_BYTE];
 	// load program & check for failure
 	if(read_data(exec_dentry.inode_num, 0, (uint8_t*)PROG_IMG_OFFSET, M_BYTE)<0){
 		return -1;
 	}
 	
-	// TODO: setup pcb
+	// TODO: initialize fd
 	pcb_t* curr_pcb = get_curr_pcb();
 	
 	// save registers in parent pcb
@@ -90,42 +98,45 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	tss.ss0 = KERNEL_DS;
 	tss.esp0 = 8 * M_BYTE - (new_pid) * 8 * K_BYTE - 4;
 	
+	sti();
+	
 	// context switch (how to get stack segment?)
 	asm volatile (
 			"								\n\
-			movl	$0x2B, %%eax			\n\
+			movl	%2, %%eax				\n\
 			movw	%%ax, %%ds				\n\
-            pushl	$0x2B					\n\
-            pushl	$0x83FFFFC				\n\
+            pushl	%%eax					\n\
+            pushl	%3						\n\
 			pushfl							\n\
-            pushl	$0x28					\n\
+            pushl	%1						\n\
 			pushl	%0						\n\
 			iret							\n\
 			IRET_RETURN:					\n\
 			"
             : 
-            : "r"(exec_entry)
+            : "r"(entry_addr), "r"(USER_CS), "r"(USER_DS), "r"(SW_STACK)
 			: "%eax"
 	);
 	
 	
 }
 
-int32_t halt(uint8_t status){
+int32_t syscall_ece391_halt(uint8_t status){
 	
 	pcb_t* curr_pcb = get_curr_pcb();
 	pcb_t* parent_pcb = get_pcb_addr(curr_pcb->parent_pid);
 	
 	// TODO: restore parent paging
-	page_table_add_entry(128 * M_BYTE, (8 + parent_pcb->pid) * M_BYTE, PAGE_TAB_ENT_USR);
+	page_tab_add_entry(128 * M_BYTE, (8 + parent_pcb->curr_pid) * M_BYTE, PAGE_TAB_ENT_USER);
 	page_flush_tlb();
 	
 	// TODO: restore fds
 	int i = 0;
+	/*
 	for(i = 0; i < PCB_MAX_FILE; i++){
-		if(curr_pcb->fd_arr[i])
+		if((curr_pcb->fd_arr[i])!=NULL)
 			close(i);
-	}
+	}*/
 	
 	proc_list[curr_pcb->curr_pid] = NULL;
 	parent_pcb->state = PROC_STATE_RUNNING;
@@ -138,7 +149,7 @@ int32_t halt(uint8_t status){
 			movb	%%bl, %%al				\n\
             pushl	%2						\n\
             popfl							\n\
-			jmp IRET_RETURN					\n\
+			jmp		IRET_RETURN				\n\
 			"
             : 
             : "r"(parent_pcb->esp), "r"(parent_pcb->ebp), "r"(parent_pcb->flags)

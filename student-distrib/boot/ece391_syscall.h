@@ -9,12 +9,12 @@
 
 #include "../lib.h"
 #include "../fs/vfs.h"
-#include "../fsdriver/fsdriver.h"
+#include "../fsdriver/mp3fs_driver.h"
 #include "../proc/task.h"
 #include "../proc/pcb.h"
 #include "../../libc/src/syscalls.h"
 #include "../x86_desc.h"
-#include "../boot/page_table.h"
+#include "page_table.h"
 
 // why is there a 48000 offset in discussion slide though
 #define PROG_IMG_OFFSET 0x8048000   ///< starting point to load an program image

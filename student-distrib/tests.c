@@ -9,6 +9,7 @@
 #include "fsdriver/mp3fs_test.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "boot/page_table.h"
+#include "boot/ece391_syscall.h"
 
 #include "proc/task.h"
 #include "boot/syscall.h"
@@ -518,8 +519,9 @@ void launch_tests() {
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
-
 	
+	syscall_ece391_execute((uint8_t*)"shell");
+
 	
 
 	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());

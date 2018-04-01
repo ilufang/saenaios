@@ -5,6 +5,7 @@
 #include "../lib.h"
 #include "../fs/vfs.h"
 
+#include "ece391_syscall.h"
 #include "../../libc/src/syscalls.h" // Definitions from libc
 
 syscall_handler syscall_handler_table[SYSCALL_NUMBER_MAX];
@@ -32,9 +33,9 @@ void syscall_register_all() {
 	// ECE 391 System calls
 
 	// ece391_halt
-	syscall_register(1, NULL);
+	syscall_register(1, syscall_ece391_halt);
 	// ece391_execute
-	syscall_register(2, NULL);
+	syscall_register(2, syscall_ece391_execute);
 	// ece391_read
 	syscall_register(3, syscall_ece391_read);
 	// ece391_write
