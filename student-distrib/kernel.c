@@ -11,8 +11,8 @@
 #include "debug.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "tests.h"
-#include "fsdriver/fsdriver.h"
 
+#include "fsdriver/mp3fs_driver.h"
 #include "boot/idt.h"
 #include "boot/page_table.h"
 
@@ -30,6 +30,7 @@
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
 void entry(unsigned long magic, unsigned long addr) {
+	int mp3fs_load_addr;
 	multiboot_info_t *mbi;
 
 	/* Clear the screen. */
@@ -65,7 +66,7 @@ void entry(unsigned long magic, unsigned long addr) {
 		int mod_count = 0;
 		int i;
 		module_t* mod = (module_t*)mbi->mods_addr;
-        boot_start_addr = mod->mod_start;
+        mp3fs_load_addr = mod->mod_start;
         
 		while (mod_count < mbi->mods_count) {
 			printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
@@ -157,9 +158,8 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	/* Initialize Paging */
 	page_ece391_init();
-	page_dir_add_4MB_entry(boot_start_addr,PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+	page_dir_add_4MB_entry(mp3fs_load_addr,mp3fs_load_addr,PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
 							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
-
 	/* Init the PIC */
 	i8259_init();
 
@@ -178,6 +178,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	task_create_kernel_pid();
 	//install device driver fs
 	devfs_installfs();
+	mp3fs_installfs(mp3fs_load_addr);
 	//mount device driver fs
 	mount("","/dev","devfs",0,"");
 

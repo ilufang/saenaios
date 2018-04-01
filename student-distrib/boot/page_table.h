@@ -43,7 +43,7 @@ int page_dir_add_4KB_entry(int start_addr, void* new_page_table, int flags);
  *	@param flags: flags of the page directory entry
  *	@note NEED ERROR CHECK for future dynamic situation
  */
-int page_dir_add_4MB_entry(int start_addr, int flags);
+int page_dir_add_4MB_entry(int virtual_addr, int real_addr, int flags);
 
 /**
  *	Add a 4KB page entry in the page table
@@ -53,7 +53,17 @@ int page_dir_add_4MB_entry(int start_addr, int flags);
  *	@param flags: flags of the page table entry
  *	@note NEED ERROR CHECK for future dynamic situation
  */
-int page_tab_add_entry(int start_addr, int flags);
+int page_tab_add_entry(int virtual_addr, int real_addr, int flags);
+
+/**
+ *
+ *	Flush tlb for changing process
+ *
+ * 	This would flush all page cache (except global ones)
+ * 	
+ *	@note flush this much tlb would slower the cpu
+ */
+void page_flush_tlb();
 
 typedef int page_directory_entry_t;		///< page directory entry
 

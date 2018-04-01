@@ -78,7 +78,10 @@ struct dirent *readdir(DIR *dirp) {
 		return NULL;
 	}
 	errno = -getdents(dirp->fd, &(dirp->dent));
-	return &(dirp->dent);
+	if (errno == 0)
+		return &(dirp->dent);
+	else
+		return NULL;
 }
 
 long telldir(DIR *dirp) {
