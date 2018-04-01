@@ -79,7 +79,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	asm volatile (
 			"								\n\
 			movl	%%esp, %%eax			\n\
-            movl	%%ebp, %%ebx			\n\
+			movl	%%ebp, %%ebx			\n\
 			pushfl							\n\
 			popl	%%ecx					\n\
 			"
@@ -105,16 +105,16 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 			"								\n\
 			movl	%2, %%eax				\n\
 			movw	%%ax, %%ds				\n\
-            pushl	%%eax					\n\
-            pushl	%3						\n\
+			pushl	%%eax					\n\
+			pushl	%3						\n\
 			pushfl							\n\
-            pushl	%1						\n\
+			pushl	%1						\n\
 			pushl	%0						\n\
 			iret							\n\
 			IRET_RETURN:					\n\
 			"
-            : 
-            : "r"(entry_addr), "r"(USER_CS), "r"(USER_DS), "r"(SW_STACK)
+			: 
+			: "r"(entry_addr), "r"(USER_CS), "r"(USER_DS), "r"(SW_STACK)
 			: "%eax"
 	);
 	

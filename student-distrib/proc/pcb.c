@@ -1,6 +1,7 @@
 #include "pcb.h"
 
 #include "../fs/vfs.h"
+/* 8kb-10 0000 0000 0000 */
 #define PCB_BITMASK		0xFFFFE000		///< bitmask to reach the top of process's 8kb stack
 
 pcb_t* proc_list[PCB_MAX_PROC];
@@ -15,8 +16,8 @@ pcb_t* get_curr_pcb(){
 	pcb_t* pcb_ptr;
 	asm volatile (
 			"								\n\
-            andl	%%esp, %%eax			\n\
-            "
+			andl	%%esp, %%eax			\n\
+			"
             : "=a"(pcb_ptr)
             : "a"(PCB_BITMASK)
             : "cc"
