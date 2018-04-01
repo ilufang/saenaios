@@ -21,6 +21,8 @@
 typedef struct s_task {
 	int status; ///< Current status of this task
 	file_t *files[TASK_MAX_OPEN_FILES]; ///< File descriptor pool
+	uid_t uid; ///< User ID of the process
+	gid_t gid; ///< Group ID of the process
 } task_t;
 
 /**

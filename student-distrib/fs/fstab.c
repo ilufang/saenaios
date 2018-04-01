@@ -2,6 +2,7 @@
 
 #include "../errno.h"
 #include "../lib.h"
+#include "../proc/task.h"
 
 #include "../../libc/src/syscalls.h" // Definitions from libc
 
@@ -15,7 +16,7 @@ int fstab_register_fs(file_system_t *fs) {
 	int avail_idx = -1, i;
 
 	if (!fs || fs->name[0] == '\0') {
-		return -EINVAL;
+		return -EFAULT;
 	}
 
 	for (i = 0; i < FSTAB_MAX_FS; i++) {
@@ -39,7 +40,7 @@ int fstab_unregister_fs(const char *name) {
 	int i;
 
 	if (!name) {
-		return -EINVAL;
+		return -EFAULT;
 	}
 
 	for (i = 0; i < FSTAB_MAX_FS; i++) {
@@ -56,7 +57,7 @@ file_system_t *fstab_get_fs(const char *name) {
 	int i;
 
 	if (!name) {
-		errno = EINVAL;
+		errno = EFAULT;
 		return NULL;
 	}
 
@@ -74,7 +75,11 @@ vfsmount_t *fstab_get_mountpoint(const char *path, int *offset) {
 	int max_match = 0, max_idx = -1, i, j;
 	char *mntname;
 
-	if (!path || !offset || path[0] != '/') {
+	if (!path || !offset) {
+		errno = EFAULT;
+		return NULL;
+	}
+	if (path[0] != '/') {
 		errno = EINVAL;
 		return NULL;
 	}
@@ -103,18 +108,27 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 	struct sys_mount_opts *opts;
 	int i, avail_idx = -1;
 	file_system_t *fs = NULL;
+	task_t *proc;
 
 	if (!typeaddr || !destaddr || !optaddr) {
-		return -EINVAL;
+		return -EFAULT;
 	}
+
+	// mount call privilege check
+	proc = task_list + task_current_pid();
+	if (proc->status != TASK_ST_RUNNING) {
+		return -ESRCH;
+	}
+	if (proc->uid != 0 && proc->gid != 0) {
+		return -EPERM;
+	}
+
 	type = (char *) typeaddr;
 	opts = (struct sys_mount_opts *) optaddr;
 	errno = -path_cd(dest, (char *)destaddr);
 	if (errno != 0) {
 		return -errno;
 	}
-
-	// TODO: permission checks
 
 	// Lookup filesystem by name
 	for (i = 0; i < FSTAB_MAX_FS; i++) {
@@ -123,10 +137,23 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 			break;
 		}
 	}
-
 	if (!fs) {
 		return -ENODEV;
 	}
+
+	// Mountpoint permission check
+	i = strlen(dest);
+	if (dest[i-1] == '/') {
+		dest[i-1] = '\0';
+		i--;
+	}
+	if (file_lookup(dest) == NULL) {
+		// Cannot access mount point
+		return -errno;
+	}
+	dest[i] = '/';
+	dest[i+1] = '\0';
+
 
 	for (i = 0; i < FSTAB_MAX_MNT; i++) {
 		if (avail_idx < 0 && fstab_mnt[i].mountpoint[0] == '\0') {
@@ -155,7 +182,7 @@ int syscall_umount(int targetaddr, int b, int c) {
 	int i;
 
 	if (!targetaddr) {
-		return -EINVAL;
+		return -EFAULT;
 	}
 
 	errno = -path_cd(target, (char *)targetaddr);

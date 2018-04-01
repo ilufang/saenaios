@@ -8,11 +8,12 @@
 
 #include "vfs.h"
 #include "fstab.h"
+#include "../types.h"
 
 /**
  *	struct for nameidata
  *
- *	nameidata is only used in path finding, 
+ *	nameidata is only used in path finding,
  *	it stores the result from last path find, and thus the source for
  *	next path finding
  *
@@ -38,12 +39,26 @@ int find_file(nameidata_t* nd);
 
 /**
  *	look up a file for the path given, and return the inode of the found file
- *	
- *	the path should be a absolute path, then this function find the 
+ *
+ *	the path should be a absolute path, then this function find the
  *	fs corresponding to the path, and lookup the path to find the file
  *
  *	@param path: string of the path of the file to lookup
- * 	@return the inode pointer of the file found
+ * 	@return the inode pointer of the file found, or the negative of an errno if
+ *			the file could not be found or the caller has insufficient
+ *			permissions.
  */
 inode_t* file_lookup(pathname_t path);
+
+/**
+ *	Check access permission for inode with given identity
+ *
+ *	@param inode: the inode to be accessed
+ *	@param uid: user ID
+ *	@param gid: group ID
+ *	@param mask: the requested permissions (see masks in libc sys/stat.h)
+ *	@return 0 if access granted, or the negative of an errno if access denied
+ */
+int file_permission(inode_t *inode, uid_t uid, gid_t gid, int mask);
+
 #endif
