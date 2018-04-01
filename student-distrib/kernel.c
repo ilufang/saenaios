@@ -11,7 +11,6 @@
 #include "debug.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "tests.h"
-#include "fsdriver/fsdriver.h"
 
 #include "boot/idt.h"
 #include "boot/page_table.h"
@@ -31,6 +30,7 @@
    pointed by ADDR. */
 void entry(unsigned long magic, unsigned long addr) {
 	multiboot_info_t *mbi;
+	int boot_start_addr;
 
 	/* Clear the screen. */
 	clear();
@@ -157,7 +157,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	/* Initialize Paging */
 	page_ece391_init();
-	page_dir_add_4MB_entry(boot_start_addr,PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+	page_dir_add_4MB_entry(boot_start_addr, boot_start_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
 							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
 
 	/* Init the PIC */
