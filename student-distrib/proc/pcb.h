@@ -9,6 +9,8 @@
 #include "../types.h"
 #include "../fs/vfs.h"
 #include "task.h"
+#include "../libc.h"
+#include "../boot/syscall.h"
 
 #define PROC_STATE_READY	0
 #define PROC_STATE_RUNNING	1
@@ -30,7 +32,7 @@ typedef struct s_pcb {
 	int32_t ebp;
 	int32_t flags;
 	int32_t state;
-	file_t fd_arr[PCB_MAX_FILE]; ///< File descriptor array for current process
+	file_t* fd_arr[PCB_MAX_FILE]; ///< File descriptor array for current process
 } pcb_t;
 
 

@@ -6,6 +6,7 @@
 
 #include "file_lookup.h"
 #include "../proc/task.h"
+#include "../proc/pcb.h"
 
 #include "../../libc/src/syscalls.h" // Definitions from libc
 
@@ -17,6 +18,7 @@ int syscall_ece391_open(int pathaddr, int b, int c) {
 
 int syscall_open(int pathaddr, int flags, int mode) {
 	task_t *proc;
+	pcb_t* curr_pcb = get_curr_pcb();
 	pathname_t path = "/";
 	int i, avail_fd = -1;
 	inode_t *inode;
@@ -33,7 +35,12 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	}
 
 	for (i = 0; i < TASK_MAX_OPEN_FILES; i++) {
+		/*
 		if (proc->files[i] == NULL) {
+			avail_fd = i;
+			break;
+		}*/
+		if (curr_pcb->fd_arr[i] == NULL) {
 			avail_fd = i;
 			break;
 		}
@@ -55,7 +62,7 @@ int syscall_open(int pathaddr, int flags, int mode) {
 		vfs_close_file(file);
 		return -errno;
 	}
-
+	curr_pcb->fd_arr[avail_fd] = file;
 	proc->files[avail_fd] = file;
 	return avail_fd;
 }
@@ -64,11 +71,13 @@ int syscall_close(int fd, int b, int c) {
 	task_t *proc;
 	file_t *file;
 
+	pcb_t* curr_pcb = get_curr_pcb();
 	proc = task_list + task_current_pid();
 	if (proc->status != TASK_ST_RUNNING) {
 		return -ESRCH;
 	}
-	file = proc->files[fd];
+	//file = proc->files[fd];
+	file = curr_pcb->fd_arr[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
@@ -78,6 +87,7 @@ int syscall_close(int fd, int b, int c) {
 		vfs_close_file(file);
 	}
 	proc->files[fd] = NULL;
+	curr_pcb->fd_arr[fd] = NULL;
 	return 0;
 }
 
@@ -98,9 +108,12 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 }
 
 int syscall_read(int fd, int bufaddr, int count) {
+	
 	task_t *proc;
 	file_t *file;
 
+	pcb_t* curr_pcb = get_curr_pcb();
+	
 	if (!bufaddr) {
 		return -EINVAL;
 	}
@@ -109,7 +122,8 @@ int syscall_read(int fd, int bufaddr, int count) {
 	if (proc->status != TASK_ST_RUNNING) {
 		return -ESRCH;
 	}
-	file = proc->files[fd];
+	//file = proc->files[fd];
+	file = curr_pcb->fd_arr[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
@@ -123,7 +137,8 @@ int syscall_read(int fd, int bufaddr, int count) {
 int syscall_write(int fd, int bufaddr, int count) {
 	task_t *proc;
 	file_t *file;
-
+	pcb_t* curr_pcb = get_curr_pcb();
+	
 	if (!bufaddr) {
 		return -EINVAL;
 	}
@@ -132,7 +147,8 @@ int syscall_write(int fd, int bufaddr, int count) {
 	if (proc->status != TASK_ST_RUNNING) {
 		return -ESRCH;
 	}
-	file = proc->files[fd];
+	//file = proc->files[fd];
+	file = curr_pcb->fd_arr[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
@@ -147,6 +163,8 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	task_t *proc;
 	file_t *file;
 
+	pcb_t* curr_pcb = get_curr_pcb;
+	
 	if (!bufaddr) {
 		return -EINVAL;
 	}
@@ -155,7 +173,8 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	if (proc->status != TASK_ST_RUNNING) {
 		return -ESRCH;
 	}
-	file = proc->files[fd];
+	//file = proc->files[fd];
+	file = curr_pcb -> fd_arr[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}

@@ -186,6 +186,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	terminal_out_driver_register();
 	keyboard_driver_register();
 	rtc_out_driver_register();
+	
 
 #ifdef RUN_TESTS
 	/* Run tests */

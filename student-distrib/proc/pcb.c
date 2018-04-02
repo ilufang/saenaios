@@ -6,7 +6,19 @@
 
 pcb_t* proc_list[PCB_MAX_PROC];
 
-
+// clear all existing processes and create the first task
+void proc_init(){
+	int i = 0;
+	for(i = 0; i < PCB_MAX_PROC; i++){
+		proc_list[i] = NULL;	
+	}
+	pcb_t* init_pcb = get_pcb_addr(0);
+	proc_list[0] = init_pcb;
+	int32_t fd_in, fd_out;
+	fd_in = open("/dev/stdin", O_RDONLY, 0);
+	fd_out = open("/dev/stdout", O_WRONLY, 0);
+	init_pcb->parent_pid = -1;
+}
 
 pcb_t* get_pcb_addr(int32_t process_num){
 	return (pcb_t*)(8 * M_BYTE - (process_num + 1) * 8 * K_BYTE);

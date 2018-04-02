@@ -474,6 +474,13 @@ cleanup:
 }
 
 /* Checkpoint 3 tests */
+int test_execute(){
+	TEST_HEADER;
+	proc_init();
+	syscall_ece391_execute((uint8_t*)"shell");
+	return PASS;
+}
+
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
 
@@ -493,7 +500,7 @@ void launch_tests() {
 	clear();
 	printf("Running tests...\n");
 
-	TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
+	//TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
 	TEST_OUTPUT("paging test",paging_test());
 
@@ -520,13 +527,13 @@ void launch_tests() {
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
 	
-	syscall_ece391_execute((uint8_t*)"shell");
-
 	
 
-	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
+	//TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
+	
+	TEST_OUTPUT("Syscall execute test", test_execute());
 
-	fs_test();
+	//fs_test();
 
 	TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
 	// File and directory test

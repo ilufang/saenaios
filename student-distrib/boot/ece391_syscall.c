@@ -52,7 +52,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	}
 	
 	// TODO: setup program paging
-	page_dir_add_4MB_entry(128 * M_BYTE, (12 + new_pid) * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
+	page_dir_add_4MB_entry(128 * M_BYTE, PHYS_MEM_OFFSET + (new_pid - 1) * 4 * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	page_flush_tlb();
 	
 	uint8_t exec_entry[4];
@@ -87,16 +87,25 @@ int32_t syscall_ece391_execute(const uint8_t* command){
             : /* no inputs */
     );
 	
+	(curr_pcb->flags)|=0x200;
 	
 	pcb_t* new_pcb = get_pcb_addr(new_pid);
 	new_pcb->curr_pid = new_pid;
 	new_pcb->parent_pid = curr_pcb->curr_pid;
 	new_pcb->state = PROC_STATE_RUNNING;
+	// hard code fd 0 and 1???
+	new_pcb->fd_arr[0] = curr_pcb->fd_arr[0];
+	new_pcb->fd_arr[1] = curr_pcb->fd_arr[1];
+	new_pcb->fd_arr[0]->open_count++;
+	new_pcb->fd_arr[1]->open_count++;
 	curr_pcb->state = PROC_STATE_WAITING;
+	proc_list[new_pid] = new_pcb;
 	
 	// modify tss
 	tss.ss0 = KERNEL_DS;
+	// set tss.esp0 to point to the new kernel stack
 	tss.esp0 = 8 * M_BYTE - (new_pid) * 8 * K_BYTE - 4;
+	int usr_stack = (128 + 4) * M_BYTE - 4; 
 	
 	sti();
 	
@@ -111,10 +120,12 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 			pushl	%1						\n\
 			pushl	%0						\n\
 			iret							\n\
-			IRET_RETURN:					\n\
+			EXEC_RETURN:					\n\
+			leave							\n\
+			ret								\n\
 			"
 			: 
-			: "r"(entry_addr), "r"(USER_CS), "r"(USER_DS), "r"(SW_STACK)
+			: "r"(entry_addr), "r"(USER_CS), "r"(USER_DS), "r"(usr_stack)
 			: "%eax"
 	);
 	
@@ -125,18 +136,23 @@ int32_t syscall_ece391_halt(uint8_t status){
 	
 	pcb_t* curr_pcb = get_curr_pcb();
 	pcb_t* parent_pcb = get_pcb_addr(curr_pcb->parent_pid);
+	int parent_addr = PHYS_MEM_OFFSET + (curr_pcb->parent_pid - 1) * 4 * M_BYTE;
 	
 	// TODO: restore parent paging
-	page_tab_add_entry(128 * M_BYTE, (8 + parent_pcb->curr_pid) * M_BYTE, PAGE_TAB_ENT_USER);
+	page_dir_add_4MB_entry(128 * M_BYTE, parent_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	page_flush_tlb();
 	
 	// TODO: restore fds
 	int i = 0;
-	/*
+	
 	for(i = 0; i < PCB_MAX_FILE; i++){
 		if((curr_pcb->fd_arr[i])!=NULL)
 			close(i);
-	}*/
+	}
+	
+	
+	// set tss.esp0 to point to parent kernel stack
+	tss.esp0 = parent_pcb->esp;
 	
 	proc_list[curr_pcb->curr_pid] = NULL;
 	parent_pcb->state = PROC_STATE_RUNNING;
@@ -146,13 +162,13 @@ int32_t syscall_ece391_halt(uint8_t status){
 			movl	%0, %%esp				\n\
 			movl	%1, %%ebp				\n\
 			xorl	%%eax, %%eax			\n\
-			movb	%%bl, %%al				\n\
-            pushl	%2						\n\
-            popfl							\n\
-			jmp		IRET_RETURN				\n\
+			movb	%3, %%al				\n\
+			pushl	%2						\n\
+			popfl							\n\
+			jmp		EXEC_RETURN				\n\
 			"
             : 
-            : "r"(parent_pcb->esp), "r"(parent_pcb->ebp), "r"(parent_pcb->flags)
+            : "r"(parent_pcb->esp), "r"(parent_pcb->ebp), "r"(parent_pcb->flags), "r"(status)
 			: "%eax"
 	);
 }
