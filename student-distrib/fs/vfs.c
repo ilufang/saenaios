@@ -18,7 +18,7 @@ int syscall_ece391_open(int pathaddr, int b, int c) {
 
 int syscall_open(int pathaddr, int flags, int mode) {
 	task_t *proc;
-	pcb_t* curr_pcb = get_curr_pcb();
+	pcb_t* curr_pcb = get_active_pcb();
 	pathname_t path = "/";
 	int i, avail_fd = -1;
 	inode_t *inode;
@@ -71,7 +71,7 @@ int syscall_close(int fd, int b, int c) {
 	task_t *proc;
 	file_t *file;
 
-	pcb_t* curr_pcb = get_curr_pcb();
+	pcb_t* curr_pcb = get_active_pcb();
 	proc = task_list + task_current_pid();
 	if (proc->status != TASK_ST_RUNNING) {
 		return -ESRCH;
@@ -112,7 +112,7 @@ int syscall_read(int fd, int bufaddr, int count) {
 	task_t *proc;
 	file_t *file;
 
-	pcb_t* curr_pcb = get_curr_pcb();
+	pcb_t* curr_pcb = get_active_pcb();
 	
 	if (!bufaddr) {
 		return -EINVAL;
@@ -137,7 +137,7 @@ int syscall_read(int fd, int bufaddr, int count) {
 int syscall_write(int fd, int bufaddr, int count) {
 	task_t *proc;
 	file_t *file;
-	pcb_t* curr_pcb = get_curr_pcb();
+	pcb_t* curr_pcb = get_active_pcb();
 	
 	if (!bufaddr) {
 		return -EINVAL;
@@ -163,7 +163,7 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	task_t *proc;
 	file_t *file;
 
-	pcb_t* curr_pcb = get_curr_pcb;
+	pcb_t* curr_pcb = get_active_pcb;
 	
 	if (!bufaddr) {
 		return -EINVAL;

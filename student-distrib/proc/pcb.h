@@ -61,4 +61,10 @@ pcb_t* get_pcb_addr(int32_t process_num);
 int32_t get_new_pid();
 
 
+void set_active_pcb(int pid);
+
+
+pcb_t* get_active_pcb();
+
+
 #endif

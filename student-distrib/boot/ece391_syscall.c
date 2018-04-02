@@ -94,12 +94,13 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	new_pcb->parent_pid = curr_pcb->curr_pid;
 	new_pcb->state = PROC_STATE_RUNNING;
 	// hard code fd 0 and 1???
-	new_pcb->fd_arr[0] = curr_pcb->fd_arr[0];
-	new_pcb->fd_arr[1] = curr_pcb->fd_arr[1];
-	new_pcb->fd_arr[0]->open_count++;
-	new_pcb->fd_arr[1]->open_count++;
 	curr_pcb->state = PROC_STATE_WAITING;
 	proc_list[new_pid] = new_pcb;
+	set_active_pcb(new_pid);
+	
+	int32_t fd_in, fd_out;
+	fd_in = open("/dev/stdin", O_RDONLY, 0);
+	fd_out = open("/dev/stdout", O_WRONLY, 0);
 	
 	// modify tss
 	tss.ss0 = KERNEL_DS;
@@ -154,6 +155,7 @@ int32_t syscall_ece391_halt(uint8_t status){
 	// set tss.esp0 to point to parent kernel stack
 	tss.esp0 = parent_pcb->esp;
 	
+	set_active_pcb(curr_pcb->parent_pid);
 	proc_list[curr_pcb->curr_pid] = NULL;
 	parent_pcb->state = PROC_STATE_RUNNING;
 	
