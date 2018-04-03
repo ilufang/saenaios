@@ -12,9 +12,9 @@
 #include "../libc.h"
 #include "../boot/syscall.h"
 
-#define PROC_STATE_READY	0
-#define PROC_STATE_RUNNING	1
-#define PROC_STATE_WAITING	2
+#define PROC_STATE_READY	0		///< pcb process state ready
+#define PROC_STATE_RUNNING	1		///< pcb process state running
+#define PROC_STATE_WAITING	2		///< pcb process state waiting
 
 #define PCB_MAX_FILE	8			///< max file supported by a task
 #define PCB_FILE_START	2			///< start index of fd after stdin and stdout
@@ -58,13 +58,36 @@ pcb_t* get_curr_pcb();
  */
 pcb_t* get_pcb_addr(int32_t process_num);
 
+/**
+ *	Generates a new pid
+ *
+ *	Find an available pid
+ *	@return the new pid
+ */
 int32_t get_new_pid();
 
+/**
+ *	Update the active pcb
+ *
+ *	@param pid: the new active pid
+ *	@return 0 on success, -1 on error
+ */
+int set_active_pcb(int pid);
 
-void set_active_pcb(int pid);
-
-
+/**
+ *	Return the currently active pcb
+ *
+ *	@return pointer to the current active pcb
+ */
 pcb_t* get_active_pcb();
+
+/**
+ *	Initialize the first process
+ *
+ *	Create the first process without memory allocation. fd 0 and 1
+ *	should be automatically opened
+ */
+void proc_init();
 
 
 #endif

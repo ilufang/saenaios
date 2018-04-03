@@ -163,7 +163,7 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	task_t *proc;
 	file_t *file;
 
-	pcb_t* curr_pcb = get_active_pcb;
+	pcb_t* curr_pcb = get_active_pcb();
 	
 	if (!bufaddr) {
 		return -EINVAL;

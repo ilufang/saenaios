@@ -21,13 +21,22 @@
 // why is there a 48000 offset in discussion slide though
 #define PROG_IMG_OFFSET 0x8048000   ///< starting point to load an program image
 #define	RPL_USR			0x03		///< bitmask offset for privilege level 3
-#define SW_USR_CS		0x0023
-#define SW_USR_DS		0x002B
-#define PHYS_MEM_OFFSET	0xC00000
+#define PHYS_MEM_OFFSET	0xC00000	///< starting offset of physical memory.
 
+/**
+ *	Execute syscall handler
+ *
+ *	@param command: the command to execute
+ *	@return -1 on execution error or value returned from the program
+ */
 int32_t syscall_ece391_execute(const uint8_t* command);
 
-int32_t syscall_ece391_halt(uint8_t stauts);
+/**
+ *	Halt syscall handler
+ *
+ *	@return the return value from the halted process
+ */
+int32_t syscall_ece391_halt(uint8_t status);
 
 
 #endif

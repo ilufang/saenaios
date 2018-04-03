@@ -10,11 +10,16 @@
 #include "terminal_driver/terminal_out_driver.h"
 #include "boot/page_table.h"
 #include "boot/ece391_syscall.h"
+#include "proc/pcb.h"
 
 #include "proc/task.h"
 #include "boot/syscall.h"
 #include "fs/vfs.h"
 #include "fs/test.h"
+#include "types.h"
+#include "../libc/include/dirent.h"
+
+#include "../syscalls/ece391syscall.h"
 
 static inline void assertion_failure(){
 	/* Use exception #15 for assertions, otherwise
@@ -474,10 +479,71 @@ cleanup:
 }
 
 /* Checkpoint 3 tests */
+
+/**
+ *	Testing execute and halt system call
+ *
+ *	@return 0 on fail, 1 on pass
+ */
 int test_execute(){
 	TEST_HEADER;
+	printf("Testing execute system call handler.\n");
+	printf("Trying to execute an invalid command.\n");
 	proc_init();
-	syscall_ece391_execute((uint8_t*)"shell");
+	if(syscall_ece391_execute((uint8_t*)"everydayiworryallday")==-1){
+		printf("Exec failed\n");
+	}
+
+	printf("Trying to execute an empty command.\n");
+	if(syscall_ece391_execute((uint8_t*)"  ")==-1){
+		printf("Exec failed\n");
+	}
+	
+	
+	printf("Trying to execute a text file.\n");
+	if(syscall_ece391_execute((uint8_t*)"frame1.txt")==-1){
+		printf("Exec failed\n");
+	}
+	
+	
+	printf("Executing testprint(directly).\n");
+	if(syscall_ece391_execute((uint8_t*)"testprint")==-1){
+		printf("Exec failed\n");
+	}
+	
+	printf("Executing shell.\n");
+	if(syscall_ece391_execute((uint8_t*)"shell")==-1){
+		printf("Exec failed\n");
+	}
+	
+	printf("Testing syscall assembly linkage wrapper\n");
+	printf("Executing testprint(directly)\n");
+	mp3_execute((uint8_t*)"testprint");
+	printf("Executing shell\n");
+	mp3_execute((uint8_t*)"shell");
+	
+	return PASS;
+}
+
+/**
+ *	Testing pcb functions
+ *
+ *	@return 0 on fail, 1 on pass
+ */
+int test_pcb(){
+	TEST_HEADER;
+	proc_init();
+	pcb_t* test_pcb;
+	printf("Checking address and pid of current pcb.\n");
+	test_pcb = get_curr_pcb();
+	printf("Current pcb address is %x, pid: %d.\n", (int)test_pcb, test_pcb->curr_pid);
+	printf("Checking some invalid inputs.\n");
+	if(set_active_pcb(10)==-1){
+		printf("Setting invalid active pcb!\n");
+	}
+	if(get_pcb_addr(-1)==-1){
+		printf("Invalid process number!\n");
+	}
 	return PASS;
 }
 
@@ -528,9 +594,10 @@ void launch_tests() {
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
 	
 	
-
+	
 	//TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 	
+	TEST_OUTPUT("pcb functions test", test_pcb());
 	TEST_OUTPUT("Syscall execute test", test_execute());
 
 	//fs_test();
