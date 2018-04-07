@@ -56,7 +56,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	}
 	
 	// TODO: setup program paging
-	page_dir_add_4MB_entry(128 * M_BYTE, PHYS_MEM_OFFSET + (new_pid - 1) * 4 * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
+	page_dir_add_4MB_entry(128 * M_BYTE, PHYS_MEM_OFFSET + (new_pid) * 4 * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	page_flush_tlb();
 	
 	uint8_t exec_entry[4];
@@ -148,7 +148,7 @@ int32_t syscall_ece391_halt(uint8_t status){
 	cli();
 	task_t* curr_task = get_curr_task();
 	task_t* parent_task = get_task_addr(curr_task->parent_pid);
-	int parent_addr = PHYS_MEM_OFFSET + (curr_task->parent_pid - 1) * 4 * M_BYTE;
+	int parent_addr = PHYS_MEM_OFFSET + (curr_task->parent_pid) * 4 * M_BYTE;
 	
 	// TODO: restore parent paging
 	page_dir_add_4MB_entry(128 * M_BYTE, parent_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
@@ -169,6 +169,19 @@ int32_t syscall_ece391_halt(uint8_t status){
 	task_list[curr_task->curr_pid] = NULL;
 	parent_task->status = TASK_ST_RUNNING;
 	sti();
+	
+	if(parent_task->curr_pid == 0){
+		asm volatile (
+			"								\n\
+			movl	%0, %%esp				\n\
+			movl	%1, %%ebp				\n\
+			"
+            : 
+            : "r"(parent_task->esp), "r"(parent_task->ebp)
+			: "%eax"
+		);
+		syscall_ece391_execute((uint8_t*)"shell");
+	}
 	// retore parent process and return to execute return
 	asm volatile (
 			"								\n\

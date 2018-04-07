@@ -520,8 +520,6 @@ int test_execute(){
 	*/
 	
 	printf("Testing syscall assembly linkage wrapper\n");
-	printf("Executing testprint(directly)\n");
-	mp3_execute((uint8_t*)"testprint");
 	printf("Executing shell\n");
 	mp3_execute((uint8_t*)"shell");
 	close(fd_in);
