@@ -1,3 +1,6 @@
+RETVAL:
+	.long	0
+
 .globl idt_int_de
 .globl idt_int_nmi
 .globl idt_int_bp
@@ -295,10 +298,32 @@ idt_int_irq_size:
 	.long	idt_int_irq21 - idt_int_irq20
 
 idt_int_usr:
+	
+	pushal
+	pushfl
+	
+	cmpl	$22, %eax
+	jg		syscall_invalid
+	cmpl	$1, %eax
+	jl		syscall_invalid
+	
 	pushl	%edx
 	pushl	%ecx
 	pushl	%ebx
 	pushl	%eax
 	call	syscall_invoke
 	addl	$16, %esp
+	
+	jmp		syscall_ret
+
+syscall_invalid:
+	movl	$-1, %eax
+	jmp		syscall_ret
+	
+syscall_ret:
+	movl	%eax, RETVAL
+	popfl
+	popal
+	movl	RETVAL, %eax
 	iret
+	

@@ -11,7 +11,6 @@
 #include "../fs/vfs.h"
 #include "../fsdriver/mp3fs_driver.h"
 #include "../proc/task.h"
-#include "../proc/pcb.h"
 #include "../../libc/src/syscalls.h"
 #include "../x86_desc.h"
 #include "page_table.h"

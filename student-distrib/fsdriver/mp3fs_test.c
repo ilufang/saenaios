@@ -8,7 +8,7 @@ int launch_mp3fs_driver_test(){
 	int temp_size;
 	DIR* temp_dir;
 
-	int fd_in;
+	int fd_in, fd_out;
 	char temp_input;
 	
 	if ((temp_return = mount("","/","mp3fs",0,""))){
@@ -21,17 +21,22 @@ int launch_mp3fs_driver_test(){
 		printf("open mp3fs root dir failed");
 		return 0;
 	}
-
+	
 	if ((fd_in = open("/dev/stdin", O_RDONLY, 0)) < 0){
 		printf("open stdin failed\n");
 		return 0;
 	}
-
+	if ((fd_out = open("/dev/stdout", O_RDONLY, 0)) < 0){
+		printf("open stdout failed\n");
+		return 0;
+	}
+	
+	
 	while ((temp_dirent = readdir(temp_dir))){
 		// iterate through all files
 		if ((fd = open(temp_dirent -> filename, O_RDONLY,0))){
 			while ((temp_size = read(fd, buf, 128))>0){
-				write(0, buf, temp_size);
+				write(fd_out, buf, temp_size);
 			}
 			if (write(fd, buf, 128) != -EROFS){
 				printf("mp3fs write failed\n");
@@ -48,5 +53,7 @@ int launch_mp3fs_driver_test(){
 			clear();
 		}
 	}
+	close(fd_in);
+	close(fd_out);
 	return 1;
 }

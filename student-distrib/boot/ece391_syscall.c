@@ -79,9 +79,9 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 		return -1;
 	}
 	
-	pcb_t* curr_pcb = get_curr_pcb();
+	task_t* curr_task = get_curr_task();
 	
-	// save registers in parent pcb
+	// save registers in parent task
 	asm volatile (
 			"								\n\
 			movl	%%esp, %%eax			\n\
@@ -89,26 +89,23 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 			pushfl							\n\
 			popl	%%ecx					\n\
 			"
-            : "=a"(curr_pcb->esp), "=b"(curr_pcb->ebp), "=c"(curr_pcb->flags)
+            : "=a"(curr_task->esp), "=b"(curr_task->ebp), "=c"(curr_task->flags)
             : /* no inputs */
     );
 	
-	(curr_pcb->flags)|=0x200;
+	(curr_task->flags)|=0x200;
 	
-	pcb_t* new_pcb = get_pcb_addr(new_pid);
-	new_pcb->curr_pid = new_pid;
-	new_pcb->parent_pid = curr_pcb->curr_pid;
-	new_pcb->state = PROC_STATE_RUNNING;
+	task_t* new_task = get_task_addr(new_pid);
+	new_task->curr_pid = new_pid;
+	new_task->parent_pid = curr_task->curr_pid;
+	new_task->status = TASK_ST_RUNNING;
 	// hard code fd 0 and 1???
-	curr_pcb->state = PROC_STATE_WAITING;
-	proc_list[new_pid] = new_pcb;
-	if(set_active_pcb(new_pid)==-1){
-		return -1;
-	}
+	curr_task->status = TASK_ST_NA;
+	new_task->files[0] = curr_task->files[0];
+	new_task->files[1] = curr_task->files[1];
+ 	task_list[new_pid] = new_task;
 	
-	int32_t fd_in, fd_out;
-	fd_in = open("/dev/stdin", O_RDONLY, 0);
-	fd_out = open("/dev/stdout", O_WRONLY, 0);
+	
 	
 	// modify tss
 	tss.ss0 = KERNEL_DS;
@@ -121,11 +118,15 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	// context switch
 	asm volatile (
 			"								\n\
+			cli								\n\
 			movl	%2, %%eax				\n\
 			movw	%%ax, %%ds				\n\
 			pushl	%%eax					\n\
 			pushl	%3						\n\
 			pushfl							\n\
+			popl	%%eax					\n\
+			orl		$0x200, %%eax			\n\
+			pushl	%%eax					\n\
 			pushl	%1						\n\
 			pushl	%0						\n\
 			iret							\n\
@@ -144,9 +145,10 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 
 int32_t syscall_ece391_halt(uint8_t status){
 	
-	pcb_t* curr_pcb = get_curr_pcb();
-	pcb_t* parent_pcb = get_pcb_addr(curr_pcb->parent_pid);
-	int parent_addr = PHYS_MEM_OFFSET + (curr_pcb->parent_pid - 1) * 4 * M_BYTE;
+	cli();
+	task_t* curr_task = get_curr_task();
+	task_t* parent_task = get_task_addr(curr_task->parent_pid);
+	int parent_addr = PHYS_MEM_OFFSET + (curr_task->parent_pid - 1) * 4 * M_BYTE;
 	
 	// TODO: restore parent paging
 	page_dir_add_4MB_entry(128 * M_BYTE, parent_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
@@ -155,34 +157,29 @@ int32_t syscall_ece391_halt(uint8_t status){
 	// TODO: restore fds
 	int i = 0;
 	
-	for(i = 0; i < PCB_MAX_FILE; i++){
-		if((curr_pcb->fd_arr[i])!=NULL)
+	for(i = 0; i < TASK_MAX_OPEN_FILES; i++){
+		if((curr_task->files[i])!=NULL)
 			close(i);
 	}
 	
 	
 	// set tss.esp0 to point to parent kernel stack
-	tss.esp0 = parent_pcb->esp;
+	tss.esp0 = parent_task->esp;
 	
-	if(set_active_pcb(curr_pcb->parent_pid)==-1){
-		return -1;
-	}
-	proc_list[curr_pcb->curr_pid] = NULL;
-	parent_pcb->state = PROC_STATE_RUNNING;
-	
+	task_list[curr_task->curr_pid] = NULL;
+	parent_task->status = TASK_ST_RUNNING;
+	sti();
 	// retore parent process and return to execute return
 	asm volatile (
 			"								\n\
 			movl	%0, %%esp				\n\
 			movl	%1, %%ebp				\n\
 			xorl	%%eax, %%eax			\n\
-			movb	%3, %%al				\n\
-			pushl	%2						\n\
-			popfl							\n\
+			movb	%2, %%al				\n\
 			jmp		EXEC_RETURN				\n\
 			"
             : 
-            : "r"(parent_pcb->esp), "r"(parent_pcb->ebp), "r"(parent_pcb->flags), "r"(status)
+            : "r"(parent_task->esp), "r"(parent_task->ebp), "r"(status)
 			: "%eax"
 	);
 	

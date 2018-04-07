@@ -10,7 +10,6 @@
 #include "terminal_driver/terminal_out_driver.h"
 #include "boot/page_table.h"
 #include "boot/ece391_syscall.h"
-#include "proc/pcb.h"
 
 #include "proc/task.h"
 #include "boot/syscall.h"
@@ -19,7 +18,6 @@
 #include "types.h"
 #include "../libc/include/dirent.h"
 
-#include "../syscalls/ece391syscall.h"
 
 static inline void assertion_failure(){
 	/* Use exception #15 for assertions, otherwise
@@ -77,7 +75,7 @@ int paging_test(){
 	// video memory paging test
 	temp = *(int*)(0xB8500);
 	// fs memory paging test
-	temp = *(int*)(0xA00000);
+	//temp = *(int*)(0xA00000);
 	printf("kernel memory & video memory paging test passed\n");
 
 	// memory from 0 to the beginning of video memory crashing test
@@ -487,9 +485,13 @@ cleanup:
  */
 int test_execute(){
 	TEST_HEADER;
+	
+	int32_t fd_in, fd_out;
+	fd_in = open("/dev/stdin", O_RDONLY, 0);
+	fd_out = open("/dev/stdout", O_WRONLY, 0);
+	
 	printf("Testing execute system call handler.\n");
 	printf("Trying to execute an invalid command.\n");
-	proc_init();
 	if(syscall_ece391_execute((uint8_t*)"everydayiworryallday")==-1){
 		printf("Exec failed\n");
 	}
@@ -505,7 +507,7 @@ int test_execute(){
 		printf("Exec failed\n");
 	}
 	
-	
+	/*
 	printf("Executing testprint(directly).\n");
 	if(syscall_ece391_execute((uint8_t*)"testprint")==-1){
 		printf("Exec failed\n");
@@ -515,12 +517,15 @@ int test_execute(){
 	if(syscall_ece391_execute((uint8_t*)"shell")==-1){
 		printf("Exec failed\n");
 	}
+	*/
 	
 	printf("Testing syscall assembly linkage wrapper\n");
 	printf("Executing testprint(directly)\n");
 	mp3_execute((uint8_t*)"testprint");
 	printf("Executing shell\n");
 	mp3_execute((uint8_t*)"shell");
+	close(fd_in);
+	close(fd_out);
 	
 	return PASS;
 }
@@ -530,6 +535,7 @@ int test_execute(){
  *
  *	@return 0 on fail, 1 on pass
  */
+ /*
 int test_pcb(){
 	TEST_HEADER;
 	proc_init();
@@ -538,14 +544,11 @@ int test_pcb(){
 	test_pcb = get_curr_pcb();
 	printf("Current pcb address is %x, pid: %d.\n", (int)test_pcb, test_pcb->curr_pid);
 	printf("Checking some invalid inputs.\n");
-	if(set_active_pcb(10)==-1){
-		printf("Setting invalid active pcb!\n");
-	}
 	if(get_pcb_addr(-1)==-1){
 		printf("Invalid process number!\n");
 	}
 	return PASS;
-}
+}*/
 
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -597,10 +600,11 @@ void launch_tests() {
 	
 	//TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 	
-	TEST_OUTPUT("pcb functions test", test_pcb());
+	//TEST_OUTPUT("pcb functions test", test_pcb());
 	TEST_OUTPUT("Syscall execute test", test_execute());
 
-	//fs_test();
+	//proc_init();
+	fs_test();
 
 	TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
 	// File and directory test
