@@ -82,7 +82,7 @@ vfsmount_t *fstab_get_mountpoint(const char *path, int *offset) {
 	for (i = 0; i < FSTAB_MAX_MNT; i++) {
 		mntname = fstab_mnt[i].mountpoint;
 		for (j = 0; path[j] == mntname[j] && path[j] != '\0'; j++);
-		if ((j > max_match) && (mntname[j] == '\0')) {
+		if (j > max_match && mntname[j] == '\0') {
 			max_match = j;
 			max_idx = i;
 		}

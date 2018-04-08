@@ -332,24 +332,25 @@ int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent){
     }*/
     int i;  //iterator
     mp3fs_dentry_t temp_mp3fs_dentry;
-	/*
-    for (i = dirent->index + 1; i < MP3FS_MAX_FILE_NUM; ++i){
+	
+    for (i = dirent->index; i < MP3FS_MAX_FILE_NUM; ++i){
         if (!read_dentry_by_index(i, &temp_mp3fs_dentry))
             //found
             break;
     }
     if (i >= MP3FS_MAX_FILE_NUM){
         return -ENOENT;
-    }*/
+    }
+	/*
 	if (!read_dentry_by_index(count, &temp_mp3fs_dentry)){
 		count++;
 	}
 	else{
 		count = 0;
         return -ENOENT;
-    }
-    dirent->ino = count - 1;
-    strcpy(dirent->filename, temp_mp3fs_dentry.filename);
-    dirent->index = count - 1;
+    }*/
+    dirent->ino = i;
+    strncpy(dirent->filename, temp_mp3fs_dentry.filename, 32);
+    dirent->index = i;
     return 0;
 }
