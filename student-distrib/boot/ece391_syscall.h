@@ -37,5 +37,13 @@ int32_t syscall_ece391_execute(const uint8_t* command);
  */
 int32_t syscall_ece391_halt(uint8_t status);
 
+/**
+ *	Getargs syscall handler
+ *
+ *	@param buf: buffer to copy arguments
+ *	@param nbytes: number of bytes to copy
+ *	@return -1 on error, 0 on success
+ */
+int32_t syscall_ece391_getargs(uint8_t* buf, int32_t nbytes);
 
 #endif

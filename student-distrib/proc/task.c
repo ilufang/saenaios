@@ -3,9 +3,10 @@
 #include "../fs/vfs.h"
 
 task_t* task_list[TASK_MAX_PROC];
+/*
 file_t* stdin_file;
 file_t* stdout_file;
-
+*/
 pid_t task_current_pid() {
 	task_t* curr_task = get_curr_task();
 	return (pid_t)(curr_task->curr_pid);
@@ -43,6 +44,7 @@ task_t* get_task_addr(int32_t process_num){
 // TODO: debug workaround to hardcode stdin and stdout for kernel code
 
 void task_create_kernel_pid() {
+	// initialize the kernel task
 	task_t* init_task = get_task_addr(0);
 	// should open fd 0 and 1
 	init_task->parent_pid = -1;

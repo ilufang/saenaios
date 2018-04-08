@@ -110,6 +110,7 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 		if (ret == -ENOENT)
 			ret = 0;
 	}
+	if(ret < 0) ret = -1;
 	return ret;
 }
 

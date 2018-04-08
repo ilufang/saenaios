@@ -24,16 +24,19 @@
 /* 8kb-10 0000 0000 0000 */
 #define PCB_BITMASK		0xFFFFE000		///< bitmask to reach the top of process's 8kb stack
 
+#define MAX_ARGS		128				///< arguments stored for the current process
+
 /**
  *	Structure for a process in the PID table
  */
 typedef struct s_task {
-	int32_t curr_pid;
-	int32_t parent_pid;
-	int32_t esp;
-	int32_t ebp;
-	int32_t flags;
+	int32_t curr_pid;		///< current process id
+	int32_t parent_pid;		///< parent process id
+	int32_t esp;			///< esp pointer
+	int32_t ebp;			///< ebp pointer
+	int32_t flags;			///< flags stored for current process
 	int32_t status; ///< Current status of this task
+	uint8_t args[MAX_ARGS];
 	file_t *files[TASK_MAX_OPEN_FILES]; ///< File descriptor pool
 } task_t;
 
@@ -41,10 +44,10 @@ typedef struct s_task {
  *	List of processes
  */
 extern task_t* task_list[TASK_MAX_PROC];
-
+/*
 extern file_t* stdin_file;
 extern file_t* stdout_file;
-
+*/
 /**
  *	Get the PID of the currently executing process
  *

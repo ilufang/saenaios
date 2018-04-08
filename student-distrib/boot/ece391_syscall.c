@@ -14,6 +14,10 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	int i = 0;
 	mp3fs_dentry_t exec_dentry;
 	
+	// invalid parameter
+	if(!command){
+		return -1;
+	}
 	while(command[command_idx]==' '&&command[command_idx]!='\0'){
 		command_idx++;
 	}
@@ -30,6 +34,28 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 		printf("Empty command\n");
 		return -1;
 	}
+	
+	int32_t new_pid = get_new_pid();
+	// no more available pid
+	if(new_pid < 0){
+		printf("No more available pid\n");
+		return -1;
+	}
+	task_t* new_task = get_task_addr(new_pid);
+	i = 0;
+	while(command[command_idx]==' '){
+		command_idx++;
+	}
+	memset(&(new_task->args), 0, MAX_ARGS);
+	
+	while(command[command_idx]!='\0'&&command[command_idx]!=' '&&command[command_idx]!='\n'){
+		new_task->args[i] = command[command_idx];
+		i++;
+		command_idx++;
+		if(i>MAX_ARGS)
+			break;
+	}
+	
 	// executable file does not exist
 	if(read_dentry_by_name(exec_command, &exec_dentry)!=0){
 		printf("File name does not exist\n");
@@ -48,12 +74,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 		return -1;
 	}
 
-	int32_t new_pid = get_new_pid();
-	// no more available pid
-	if(new_pid < 0){
-		printf("No more available pid\n");
-		return -1;
-	}
+	
 	
 	// TODO: setup program paging
 	page_dir_add_4MB_entry(128 * M_BYTE, PHYS_MEM_OFFSET + (new_pid) * 4 * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
@@ -95,7 +116,6 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	
 	(curr_task->flags)|=0x200;
 	
-	task_t* new_task = get_task_addr(new_pid);
 	new_task->curr_pid = new_pid;
 	new_task->parent_pid = curr_task->curr_pid;
 	new_task->status = TASK_ST_RUNNING;
@@ -104,6 +124,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	new_task->files[0] = curr_task->files[0];
 	new_task->files[1] = curr_task->files[1];
  	task_list[new_pid] = new_task;
+	
 	
 	
 	
@@ -146,15 +167,17 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 int32_t syscall_ece391_halt(uint8_t status){
 	
 	cli();
+	// get current task
 	task_t* curr_task = get_curr_task();
 	task_t* parent_task = get_task_addr(curr_task->parent_pid);
+	// calculate parent address
 	int parent_addr = PHYS_MEM_OFFSET + (curr_task->parent_pid) * 4 * M_BYTE;
 	
-	// TODO: restore parent paging
+	// restore parent paging
 	page_dir_add_4MB_entry(128 * M_BYTE, parent_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	page_flush_tlb();
 	
-	// TODO: restore fds
+	// close fds of current task
 	int i = 0;
 	
 	for(i = 0; i < TASK_MAX_OPEN_FILES; i++){
@@ -162,6 +185,7 @@ int32_t syscall_ece391_halt(uint8_t status){
 			close(i);
 	}
 	
+	memset(&(curr_task->args), 0, MAX_ARGS);
 	
 	// set tss.esp0 to point to parent kernel stack
 	tss.esp0 = parent_task->esp;
@@ -170,6 +194,7 @@ int32_t syscall_ece391_halt(uint8_t status){
 	parent_task->status = TASK_ST_RUNNING;
 	sti();
 	
+	// check if its the first shell
 	if(parent_task->curr_pid == 0){
 		asm volatile (
 			"								\n\
@@ -200,4 +225,32 @@ int32_t syscall_ece391_halt(uint8_t status){
 	return 0;
 }
 
+
+int32_t syscall_ece391_getargs(uint8_t* buf, int32_t nbytes){
+	// sanity check
+	if(!buf){
+		return -1;
+	}
+	// clear buffer in case of leftover from previous operations
+	memset(buf, 0, nbytes);
+	int i = 0;
+	// get current task
+	task_t* curr_task = get_curr_task();
+	// copy arguments into buffer
+	while(curr_task->args[i]!='\0' && i < nbytes){
+		// check whether it fits
+		if(i >= nbytes - 1 && curr_task->args[i]!='\0')
+			return -1;
+		
+		buf[i] = curr_task->args[i];
+		i++;
+		// get to end of args buffer in pcb
+		if(i >= MAX_ARGS){
+			*(buf + i) = '\0';
+			break;
+		}
+	}
+	return 0;
+	
+}
 

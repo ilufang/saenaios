@@ -45,7 +45,7 @@ void syscall_register_all() {
 	// ece391_close
 	syscall_register(6, syscall_close);
 	// ece391_getargs
-	syscall_register(7, NULL);
+	syscall_register(7, syscall_ece391_getargs);
 	// ece391_vidmap
 	syscall_register(8, NULL);
 	// ece391_set_handler

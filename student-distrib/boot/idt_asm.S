@@ -300,30 +300,30 @@ idt_int_irq_size:
 idt_int_usr:
 	
 	pushal
-	pushfl
+	pushfl		// save registers
 	
 	cmpl	$22, %eax
 	jg		syscall_invalid
 	cmpl	$1, %eax
-	jl		syscall_invalid
+	jl		syscall_invalid		// check for invalid syscall number
 	
 	pushl	%edx
 	pushl	%ecx
 	pushl	%ebx
 	pushl	%eax
 	call	syscall_invoke
-	addl	$16, %esp
+	addl	$16, %esp			// push arguments and call jump table
 	
 	jmp		syscall_ret
 
 syscall_invalid:
 	movl	$-1, %eax
-	jmp		syscall_ret
+	jmp		syscall_ret			// return -1 for invalid argument
 	
 syscall_ret:
 	movl	%eax, RETVAL
 	popfl
 	popal
-	movl	RETVAL, %eax
+	movl	RETVAL, %eax		// return value in eax, restore registers
 	iret
 	
