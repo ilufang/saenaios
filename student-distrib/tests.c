@@ -486,10 +486,7 @@ cleanup:
 int test_execute(){
 	TEST_HEADER;
 	
-	int32_t fd_in, fd_out;
-	fd_in = open("/dev/stdin", O_RDONLY, 0);
-	fd_out = open("/dev/stdout", O_WRONLY, 0);
-	
+	/*
 	printf("Testing execute system call handler.\n");
 	printf("Trying to execute an invalid command.\n");
 	if(syscall_ece391_execute((uint8_t*)"everydayiworryallday")==-1){
@@ -507,7 +504,7 @@ int test_execute(){
 		printf("Exec failed\n");
 	}
 	
-	/*
+	
 	printf("Executing testprint(directly).\n");
 	if(syscall_ece391_execute((uint8_t*)"testprint")==-1){
 		printf("Exec failed\n");
@@ -519,6 +516,9 @@ int test_execute(){
 	}
 	*/
 	
+	int32_t fd_in, fd_out;
+	fd_in = open("/dev/stdin", O_RDONLY, 0);
+	fd_out = open("/dev/stdout", O_WRONLY, 0);
 	printf("Testing syscall assembly linkage wrapper\n");
 	printf("Executing shell\n");
 	mp3_execute((uint8_t*)"shell");
@@ -599,14 +599,17 @@ void launch_tests() {
 	//TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 	
 	//TEST_OUTPUT("pcb functions test", test_pcb());
+	mount("","/","mp3fs",0,"");
 	TEST_OUTPUT("Syscall execute test", test_execute());
 
+	// File and directory test
+
+	TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
+	
 	//proc_init();
 	fs_test();
 
 	TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
-	// File and directory test
-	TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
 
 	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }

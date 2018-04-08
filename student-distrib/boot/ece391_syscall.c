@@ -56,7 +56,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	}
 	
 	// TODO: setup program paging
-	page_dir_add_4MB_entry(128 * M_BYTE, PHYS_MEM_OFFSET + (new_pid) * 4 * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
+	page_dir_add_4MB_entry(128 * M_BYTE, PHYS_MEM_OFFSET + (new_pid -1 ) * 4 * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	page_flush_tlb();
 	
 	uint8_t exec_entry[4];
@@ -148,7 +148,7 @@ int32_t syscall_ece391_halt(uint8_t status){
 	cli();
 	task_t* curr_task = get_curr_task();
 	task_t* parent_task = get_task_addr(curr_task->parent_pid);
-	int parent_addr = PHYS_MEM_OFFSET + (curr_task->parent_pid) * 4 * M_BYTE;
+	int parent_addr = PHYS_MEM_OFFSET + (curr_task->parent_pid - 1) * 4 * M_BYTE;
 	
 	// TODO: restore parent paging
 	page_dir_add_4MB_entry(128 * M_BYTE, parent_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);

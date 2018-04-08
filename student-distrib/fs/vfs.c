@@ -12,7 +12,7 @@
 file_t vfs_files[VFS_MAX_OPEN_FILES];
 
 int syscall_ece391_open(int pathaddr, int b, int c) {
-	return syscall_open(pathaddr, 0, 0);
+	return syscall_open(pathaddr, O_RDONLY, 0);
 }
 
 int syscall_open(int pathaddr, int flags, int mode) {
@@ -95,14 +95,17 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 	int ret;
 	struct dirent dent;
 	ret = syscall_read(fd, bufaddr, size);
-	if (ret == EISDIR) {
+	if (ret == -EISDIR) {
 		if (size < VFS_FILENAME_LEN) {
 			return -EINVAL;
 		}
 		ret = syscall_getdents(fd, (int)&dent, 0);
 		if (ret == 0) {
 			strcpy((char *)bufaddr, dent.filename);
+			ret = strlen((char*)dent.filename) < VFS_FILENAME_LEN ? strlen((char*)dent.filename) : VFS_FILENAME_LEN;
 		}
+		if (ret == -ENOENT)
+			ret = 0;
 	}
 	return ret;
 }
@@ -110,7 +113,7 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 int syscall_read(int fd, int bufaddr, int count) {
 	
 	task_t *proc;
-	file_t *file;
+	file_t *file; 
 
 	//pcb_t* curr_pcb = get_active_pcb();
 	
@@ -119,7 +122,7 @@ int syscall_read(int fd, int bufaddr, int count) {
 	}
 
 	//proc = task_list + task_current_pid();
-	proc = task_list[task_current_pid()];
+	proc = task_list[task_current_pid()]; 
 	if (proc->status != TASK_ST_RUNNING) {
 		return -ESRCH;
 	}

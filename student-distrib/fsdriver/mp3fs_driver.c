@@ -21,6 +21,7 @@ static  inode_t mp3fs_file_table[MP3FS_MAX_FILE_NUM];
 static super_operations_t mp3fs_s_op;
 static inode_operations_t mp3fs_i_op;
 static file_operations_t mp3fs_f_op;
+static int count = 0;
 
 static char mp3fs_ftype_string[5] = "ldf";
 
@@ -331,6 +332,7 @@ int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent){
     }*/
     int i;  //iterator
     mp3fs_dentry_t temp_mp3fs_dentry;
+	/*
     for (i = dirent->index + 1; i < MP3FS_MAX_FILE_NUM; ++i){
         if (!read_dentry_by_index(i, &temp_mp3fs_dentry))
             //found
@@ -338,9 +340,16 @@ int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent){
     }
     if (i >= MP3FS_MAX_FILE_NUM){
         return -ENOENT;
+    }*/
+	if (!read_dentry_by_index(count, &temp_mp3fs_dentry)){
+		count++;
+	}
+	else{
+		count = 0;
+        return -ENOENT;
     }
-    dirent->ino = i;
+    dirent->ino = count - 1;
     strcpy(dirent->filename, temp_mp3fs_dentry.filename);
-    dirent->index = i;
+    dirent->index = count - 1;
     return 0;
 }

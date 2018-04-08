@@ -20,7 +20,7 @@
 // why is there a 48000 offset in discussion slide though
 #define PROG_IMG_OFFSET 0x8048000   ///< starting point to load an program image
 #define	RPL_USR			0x03		///< bitmask offset for privilege level 3
-#define PHYS_MEM_OFFSET	0xC00000	///< starting offset of physical memory.
+#define PHYS_MEM_OFFSET	0x800000	///< starting offset of physical memory.
 
 /**
  *	Execute syscall handler
