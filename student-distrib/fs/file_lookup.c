@@ -9,11 +9,11 @@
 inode_t* file_lookup(pathname_t path){
 	vfsmount_t *fs;
 	int i;	// number for path offset
-	
 	int temp_return;
-	// initialize nameidata for this file lookup
 	nameidata_t nd;
-	//
+	inode_t *mntnode;
+
+	// initialize nameidata for this file lookup
 	nd.depth = 0;
 	nd.path = path;
 
@@ -25,10 +25,13 @@ file_lookup_start:
 	if (i > 1) {
 		// File not in rootfs, check mountpoint prefix access permission
 		path[i-1] = '\0';
-		if (!file_lookup(path)) {
+		mntnode = file_lookup(path);
+		if (!mntnode) {
 			// Failed to access mount point, errno set by function
 			return NULL;
 		}
+		// OK. Release mntnode
+		(*mntnode->sb->s_op->free_inode)(mntnode);
 		path[i-1] = '/'; // Restore path
 	}
 	// update nameidata
@@ -48,7 +51,7 @@ file_lookup_start:
 		return NULL;
 	}
 
-	if ((temp_return = find_file(&nd))){
+	if ((temp_return = file_find(&nd))){
 		//find file failed, errno set in function called
 		errno = -temp_return;
 		return NULL;
@@ -96,7 +99,7 @@ file_lookup_start:
 	return nd.inode;
 }
 
-int find_file(nameidata_t* nd){
+int file_find(nameidata_t* nd){
 	ino_t temp_ino;
 	task_t *proc;
 	uid_t uid;

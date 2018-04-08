@@ -179,8 +179,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	//install device driver fs
 	devfs_installfs();
 	mp3fs_installfs(mp3fs_load_addr);
-	//mount device driver fs
-	mount("","/dev","devfs",0,"");
+	//mount filesystems
+	mount("", "/", "mp3fs", 0, "");
+	mount("", "/dev/", "devfs", 0, "");
 
 	// register drivers
 	terminal_out_driver_register();

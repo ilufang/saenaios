@@ -19,6 +19,21 @@
 #define SYSCALL_UMOUNT		21
 #define SYSCALL_GETDENTS	22
 
+#define SYSCALL_LSEEK		25
+#define SYSCALL_CHMOD		26
+#define SYSCALL_CHOWN		27
+#define SYSCALL_LINK		28
+#define SYSCALL_UNLINK		29
+#define SYSCALL_SYMLINK		30
+#define SYSCALL_READLINK	31
+#define SYSCALL_TRUNCATE	32
+#define SYSALL_STAT			33
+#define SYSCALL_RENAME		34
+#define SYSCALL_GETCWD		35
+#define SYSCALL_CHDIR		36
+#define SYSCALL_MKDIR		37
+#define SYSCALL_RMDIR		38
+
 struct __attribute__((__packed__)) sys_mount_opts {
 	const char *source;
 	unsigned long mountflags;

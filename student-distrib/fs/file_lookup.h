@@ -35,7 +35,7 @@ typedef struct s_nameidata{
  *	@return	0 on success, -errno for error
  *	@note still need fix for permission checking
  */
-int find_file(nameidata_t* nd);
+int file_find(nameidata_t* nd);
 
 /**
  *	look up a file for the path given, and return the inode of the found file

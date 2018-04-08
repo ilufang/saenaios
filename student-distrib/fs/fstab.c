@@ -3,6 +3,7 @@
 #include "../errno.h"
 #include "../lib.h"
 #include "../proc/task.h"
+#include "file_lookup.h"
 
 #include "../../libc/src/syscalls.h" // Definitions from libc
 
@@ -109,6 +110,7 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 	int i, avail_idx = -1;
 	file_system_t *fs = NULL;
 	task_t *proc;
+	inode_t *mntnode;
 
 	if (!typeaddr || !destaddr || !optaddr) {
 		return -EFAULT;
@@ -147,9 +149,25 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 		dest[i-1] = '\0';
 		i--;
 	}
-	if (file_lookup(dest) == NULL) {
-		// Cannot access mount point
-		return -errno;
+	// Check mountpoint permissions if not mounting rootfs
+	if (i != 0) {
+		mntnode = file_lookup(dest);
+		if (mntnode == NULL) {
+			// Cannot access mount point
+			return -errno;
+		}
+		if (mntnode->file_type != FTYPE_DIRECTORY) {
+			(*mntnode->sb->s_op->free_inode)(mntnode);
+			return -ENOTDIR;
+		}
+		// Check for RWX permission on the mount point
+		errno = -file_permission(mntnode, proc->uid, proc->gid, 7);
+		if (errno != 0) {
+			(*mntnode->sb->s_op->free_inode)(mntnode);
+			return -EPERM;
+		}
+		// OK. Release inode
+		(*mntnode->sb->s_op->free_inode)(mntnode);
 	}
 	dest[i] = '/';
 	dest[i+1] = '\0';
@@ -180,6 +198,7 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 int syscall_umount(int targetaddr, int b, int c) {
 	pathname_t target = "/";
 	int i;
+	task_t *proc;
 
 	if (!targetaddr) {
 		return -EFAULT;
@@ -190,7 +209,14 @@ int syscall_umount(int targetaddr, int b, int c) {
 		return -errno;
 	}
 
-	// TODO: permission checks
+	// mount call privilege check
+	proc = task_list + task_current_pid();
+	if (proc->status != TASK_ST_RUNNING) {
+		return -ESRCH;
+	}
+	if (proc->uid != 0 && proc->gid != 0) {
+		return -EPERM;
+	}
 
 	for (i = 0; i < FSTAB_MAX_MNT; i++) {
 		if (strncmp(target, fstab_mnt[i].mountpoint, PATH_MAX_LEN) == 0) {
