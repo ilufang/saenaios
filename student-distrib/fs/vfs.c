@@ -198,7 +198,7 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	dent = (struct dirent *)bufaddr;
 	if (dent->index == DIRENT_INDEX_AUTO) {
 		// Workaround ece391_read auto dir listing
-		dent->index = file->pos;
+		dent->index = file->pos - 1;
 		ret = (*file->f_op->readdir)(file, dent);
 		if (ret >= 0) {
 			file->pos++;

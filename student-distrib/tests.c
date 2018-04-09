@@ -76,7 +76,7 @@ int paging_test(){
 	temp = *(int*)(0xB8500);
 	// fs memory paging test
 	//temp = *(int*)(0xA00000);
-	printf("kernel memory & video memory paging test passed\n");
+	//printf("kernel memory & video memory paging test passed\n");
 
 	// memory from 0 to the beginning of video memory crashing test
 	//printf("crashing 0 - 0xB7FFF space!\n");
@@ -88,11 +88,11 @@ int paging_test(){
 	// printf("crashing 0xC00000 - 4GB space!\n");
 	// temp = *(int*)(0xC00000);
 	// assertion_failure();
-	printf("now mapping two virtual address to the same physical address\n");
+	//printf("now mapping two virtual address to the same physical address\n");
 
-	page_dir_add_4MB_entry(0x08000000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+	page_dir_add_4MB_entry(0x08000000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
-	page_dir_add_4MB_entry(0x08400000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+	page_dir_add_4MB_entry(0x08400000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
 	*((int*)0x08000000) = 3;
 	if (*((int*)0x08400000) != 3){
@@ -106,22 +106,22 @@ int paging_test(){
 	}
 
 	// now change those entries
-	
-	page_dir_add_4MB_entry(0x08800000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+
+	page_dir_add_4MB_entry(0x08800000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
 	*((int*)0x08800000) = 333;
 	//printf("before %d\n", *((int*)0x08400000));
-	
-	page_dir_add_4MB_entry(0x08400000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+
+	page_dir_add_4MB_entry(0x08400000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
 	//printf("after  %d\n", *((int*)0x08400000));
-	
+
 	// after changing the entry, tlb is not cleared, so
 	// the original mapping remains
-	if ((*((int*)0x08400000)) != 233){
+/*	if ((*((int*)0x08400000)) != 233){
 		printf("tlb wrongly flushed\n");
 		return FAIL;
-	}
+	}*/
 	// now flushed, the mapping should be changed
 	page_flush_tlb();
 	//printf("after flush %d\n", *((int*)0x08400000));
@@ -479,56 +479,6 @@ cleanup:
 /* Checkpoint 3 tests */
 
 /**
- *	Testing execute and halt system call
- *
- *	@return 0 on fail, 1 on pass
- */
-int test_execute(){
-	TEST_HEADER;
-	
-	/*
-	printf("Testing execute system call handler.\n");
-	printf("Trying to execute an invalid command.\n");
-	if(syscall_ece391_execute((uint8_t*)"everydayiworryallday")==-1){
-		printf("Exec failed\n");
-	}
-
-	printf("Trying to execute an empty command.\n");
-	if(syscall_ece391_execute((uint8_t*)"  ")==-1){
-		printf("Exec failed\n");
-	}
-	
-	
-	printf("Trying to execute a text file.\n");
-	if(syscall_ece391_execute((uint8_t*)"frame1.txt")==-1){
-		printf("Exec failed\n");
-	}
-	
-	
-	printf("Executing testprint(directly).\n");
-	if(syscall_ece391_execute((uint8_t*)"testprint")==-1){
-		printf("Exec failed\n");
-	}
-	
-	printf("Executing shell.\n");
-	if(syscall_ece391_execute((uint8_t*)"shell")==-1){
-		printf("Exec failed\n");
-	}
-	*/
-	
-	int32_t fd_in, fd_out;
-	fd_in = open("/dev/stdin", O_RDONLY, 0);
-	fd_out = open("/dev/stdout", O_WRONLY, 0);
-	printf("Testing syscall assembly linkage wrapper\n");
-	printf("Executing shell\n");
-	syscall_ece391_execute((int)"shell",0,0);
-	close(fd_in);
-	close(fd_out);
-	
-	return PASS;
-}
-
-/**
  *	Testing pcb functions
  *
  *	@return 0 on fail, 1 on pass
@@ -593,23 +543,16 @@ void launch_tests() {
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
-	
-	
-	
-	//TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
-	
-	//TEST_OUTPUT("pcb functions test", test_pcb());
-	mount("","/","mp3fs",0,"");
-	TEST_OUTPUT("Syscall execute test", test_execute());
+
+	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 
 	// File and directory test
 
-	TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
-	
-	//proc_init();
+	// TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
+
 	fs_test();
 
-	TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
+	// TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
 
-	TEST_OUTPUT("rtc_test_2", rtc_test_2());
+	// TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }

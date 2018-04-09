@@ -326,14 +326,11 @@ int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent){
     if ((!file) || (!dirent)){
         return -EINVAL;
     }
-/*    if (dirent->index==-1){
-        // no no we don't start with -1, we start with 0
-        dirent->index = 0;
-    }*/
+
     int i;  //iterator
     mp3fs_dentry_t temp_mp3fs_dentry;
-	
-    for (i = dirent->index; i < MP3FS_MAX_FILE_NUM; ++i){
+
+    for (i = dirent->index + 1; i < MP3FS_MAX_FILE_NUM; ++i){
         if (!read_dentry_by_index(i, &temp_mp3fs_dentry))
             //found
             break;
