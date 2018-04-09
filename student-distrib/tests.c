@@ -548,7 +548,7 @@ void launch_tests() {
 
 	// File and directory test
 
-	TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
+	// TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
 
 	fs_test();
 

@@ -78,7 +78,7 @@ struct dirent *readdir(DIR *dirp) {
 		return NULL;
 	}
 	errno = -getdents(dirp->fd, &(dirp->dent));
-	if (errno != 0)
+	if (errno == 0)
 		return &(dirp->dent);
 	else
 		return NULL;
