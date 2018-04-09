@@ -38,12 +38,12 @@ volatile uint8_t alt_status = UNPRESSED;
 /**
  *	Index of current character in key buffer
  */
-int curr_char_ptr = 0;
+volatile int curr_char_ptr = 0;
 
 /**
  *	Index of previous enter in key buffer
  */
-int prev_enter = -1;
+volatile int prev_enter = -1;
 
 /**
  *	Keyboard buffer for user input
@@ -527,8 +527,7 @@ int keyboard_driver_register(){
 
 ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
 	// do nothing if there's no enter in buffer
-	if(prev_enter < 0){
-		return 0;
+	while (prev_enter < 0){
 	}
 
 	if (prev_enter < count) {

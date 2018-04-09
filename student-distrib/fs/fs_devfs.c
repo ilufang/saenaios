@@ -238,7 +238,7 @@ int devfs_f_op_readdir(file_t* file, struct dirent* dirent){
 		return -ENOENT;
 	}
 	dirent->ino = i;
-	strcpy(dirent->filename, devfs_table[file->pos].name);
+	strcpy(dirent->filename, devfs_table[i].name);
 	dirent->index = i;
 	return 0;
 }
