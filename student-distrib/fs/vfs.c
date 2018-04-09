@@ -84,10 +84,9 @@ int syscall_close(int fd, int b, int c) {
 		return -EBADF;
 	}
 	(*(file->f_op->release))(file->inode, file);
-	file->open_count--;
-	if (file->open_count == 0) {
-		vfs_close_file(file);
-	}
+
+	vfs_close_file(file);
+
 	proc->files[fd] = NULL;
 	//curr_pcb->fd_arr[fd] = NULL;
 	return 0;
@@ -98,14 +97,14 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 	struct dirent dent;
 	ret = syscall_read(fd, bufaddr, size);
 	if (ret == -EISDIR) {
-		if (size < VFS_FILENAME_LEN) {
-			return -EINVAL;
-		}
 		dent.index = DIRENT_INDEX_AUTO; // Workaround ece391_read auto dir listing
 		ret = syscall_getdents(fd, (int)&dent, 0);
 		if (ret == 0) {
-			strcpy((char *)bufaddr, dent.filename);
-			ret = strlen((char*)dent.filename) < VFS_FILENAME_LEN ? strlen((char*)dent.filename) : VFS_FILENAME_LEN;
+			ret = strlen((char*)dent.filename);
+			if (ret > size) {
+				ret = size;
+			}
+			strncpy((char *)bufaddr, dent.filename, ret);
 		}
 		if (ret == -ENOENT)
 			ret = 0;
@@ -113,6 +112,7 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 	if(ret < 0) ret = -1;
 	return ret;
 }
+
 
 int syscall_read(int fd, int bufaddr, int count) {
 	

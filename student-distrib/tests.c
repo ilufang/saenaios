@@ -521,7 +521,7 @@ int test_execute(){
 	fd_out = open("/dev/stdout", O_WRONLY, 0);
 	printf("Testing syscall assembly linkage wrapper\n");
 	printf("Executing shell\n");
-	syscall_ece391_execute((uint8_t*)"shell");
+	syscall_ece391_execute((int)"shell",0,0);
 	close(fd_in);
 	close(fd_out);
 	

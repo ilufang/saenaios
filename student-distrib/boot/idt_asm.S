@@ -326,4 +326,3 @@ syscall_ret:
 	popal
 	movl	RETVAL, %eax		// return value in eax, restore registers
 	iret
-	

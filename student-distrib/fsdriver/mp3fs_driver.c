@@ -21,7 +21,7 @@ static  inode_t mp3fs_file_table[MP3FS_MAX_FILE_NUM];
 static super_operations_t mp3fs_s_op;
 static inode_operations_t mp3fs_i_op;
 static file_operations_t mp3fs_f_op;
-static int count = 0;
+//static int count = 0;
 
 static char mp3fs_ftype_string[5] = "ldf";
 
@@ -34,13 +34,13 @@ int32_t read_dentry_by_name (const uint8_t* fname, mp3fs_dentry_t* dentry){
     mp3fs_dentry_t* dentry_arr = (mp3fs_dentry_t *)(boot_ptr->direntries);
     // iteration var
     int i = 0;
-    uint32_t len = strlen((int8_t*)fname);
+    //uint32_t len = strlen((int8_t*)fname);
     //if(len > FILENAME_LEN) len = FILENAME_LEN;
     // iterate through all dentries
     for(i = 0; i < dentry_count; i++){
         mp3fs_dentry_t curr_dentry = dentry_arr[i];
         // found matching string
-        if(strncmp((int8_t*)fname, (int8_t*)curr_dentry.filename, len) == 0){
+        if(strncmp((int8_t*)fname, (int8_t*)curr_dentry.filename, FILENAME_LEN) == 0){
             (void)memcpy(dentry, &curr_dentry, DENTRY_SIZE);
             return 0;
         }

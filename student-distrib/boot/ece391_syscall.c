@@ -4,7 +4,8 @@
 
 static uint8_t elf_signature[4] = {0x7f, 0x45, 0x4c, 0x46};		///< executable file signature
 
-int32_t syscall_ece391_execute(const uint8_t* command){
+int32_t syscall_ece391_execute(int command_addr, int b, int c){
+	char* command = (char*)command_addr;
 	cli();
 	// parse command & argument
 	// trim front spaces
@@ -31,14 +32,14 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	}
 	// invalid command
 	if(i <= 0){
-		printf("Empty command\n");
+		//printf("Empty command\n");
 		return -1;
 	}
 	
 	int32_t new_pid = get_new_pid();
 	// no more available pid
 	if(new_pid < 0){
-		printf("No more available pid\n");
+		//printf("No more available pid\n");
 		return -1;
 	}
 	task_t* new_task = get_task_addr(new_pid);
@@ -58,19 +59,19 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	
 	// executable file does not exist
 	if(read_dentry_by_name(exec_command, &exec_dentry)!=0){
-		printf("File name does not exist\n");
+		//printf("File name does not exist\n");
 		return -1;
 	}
 	uint8_t exec_magic_buf[ELF_MAGIC_SIZE];
 	// read from file failed
 	if(read_data(exec_dentry.inode_num, 0, exec_magic_buf, ELF_MAGIC_SIZE)!=ELF_MAGIC_SIZE){
-		printf("Error reading file\n");
+		//printf("Error reading file\n");
 		return -1;
 	}
 	
 	// file is not an executable
 	if(strncmp((int8_t*)exec_magic_buf, (int8_t*)elf_signature, ELF_MAGIC_SIZE)!=0){
-		printf("Trying to execute a non-executable file\n");
+		//printf("Trying to execute a non-executable file\n");
 		return -1;
 	}
 
@@ -83,7 +84,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	uint8_t exec_entry[4];
 	// read entry point failed
 	if(read_data(exec_dentry.inode_num, 24, (uint8_t*)exec_entry, ELF_MAGIC_SIZE)!=ELF_MAGIC_SIZE){
-		printf("Error reading entry point\n");
+		//printf("Error reading entry point\n");
 		return -1;
 	}
 	int32_t entry_addr = 0;
@@ -96,7 +97,7 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	// uint8_t content[M_BYTE];
 	// load program & check for failure
 	if(read_data(exec_dentry.inode_num, 0, (uint8_t*)PROG_IMG_OFFSET, 4 * M_BYTE)<0){
-		printf("Error loading program\n");
+		//printf("Error loading program\n");
 		return -1;
 	}
 	
@@ -123,6 +124,9 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	curr_task->status = TASK_ST_NA;
 	new_task->files[0] = curr_task->files[0];
 	new_task->files[1] = curr_task->files[1];
+	for (i=2;i<TASK_MAX_OPEN_FILES;++i){
+		new_task->files[i] = NULL;
+	}
  	task_list[new_pid] = new_task;
 	
 	
@@ -164,8 +168,9 @@ int32_t syscall_ece391_execute(const uint8_t* command){
 	
 }
 
-int32_t syscall_ece391_halt(uint8_t status){
-	
+int32_t syscall_ece391_halt(int status_in, int b, int c){
+	// take the lower 8 bits
+	uint8_t status = status_in & 0xFF;	
 	cli();
 	// get current task
 	task_t* curr_task = get_curr_task();
@@ -180,7 +185,7 @@ int32_t syscall_ece391_halt(uint8_t status){
 	// close fds of current task
 	int i = 0;
 	
-	for(i = 0; i < TASK_MAX_OPEN_FILES; i++){
+	for(i = 2; i < TASK_MAX_OPEN_FILES; i++){
 		if((curr_task->files[i])!=NULL)
 			close(i);
 	}
@@ -188,7 +193,7 @@ int32_t syscall_ece391_halt(uint8_t status){
 	memset(&(curr_task->args), 0, MAX_ARGS);
 	
 	// set tss.esp0 to point to parent kernel stack
-	tss.esp0 = parent_task->esp;
+	tss.esp0 = 8 * M_BYTE - (parent_task->curr_pid) * 8 * K_BYTE - 4;
 	
 	task_list[curr_task->curr_pid] = NULL;
 	parent_task->status = TASK_ST_RUNNING;
@@ -205,7 +210,7 @@ int32_t syscall_ece391_halt(uint8_t status){
             : "r"(parent_task->esp), "r"(parent_task->ebp)
 			: "%eax"
 		);
-		syscall_ece391_execute((uint8_t*)"shell");
+		syscall_ece391_execute((int)"shell",0,0);
 	}
 	// retore parent process and return to execute return
 	asm volatile (
@@ -226,7 +231,10 @@ int32_t syscall_ece391_halt(uint8_t status){
 }
 
 
-int32_t syscall_ece391_getargs(uint8_t* buf, int32_t nbytes){
+int32_t syscall_ece391_getargs(int buf_in, int nbytes, int c){
+	// input wrap
+	uint8_t* buf = (uint8_t*)buf_in;
+
 	// sanity check
 	if(!buf){
 		return -1;
