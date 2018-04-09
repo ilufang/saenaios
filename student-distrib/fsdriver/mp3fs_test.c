@@ -25,10 +25,13 @@ int launch_mp3fs_driver_test(){
 
 	if ((fd_in = open("/dev/stdin", O_RDONLY, 0)) < 0){
 		printf("open stdin failed: %d\n", fd_in);
+		closedir(temp_dir);
 		return 0;
 	}
 	if ((fd_out = open("/dev/stdout", O_RDONLY, 0)) < 0){
 		printf("open stdout failed: %d\n", fd_out);
+		close(fd_in);
+		closedir(temp_dir);
 		return 0;
 	}
 
@@ -56,5 +59,6 @@ int launch_mp3fs_driver_test(){
 	}
 	close(fd_in);
 	close(fd_out);
+	closedir(temp_dir);
 	return 1;
 }
