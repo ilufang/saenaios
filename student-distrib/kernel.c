@@ -67,7 +67,7 @@ void entry(unsigned long magic, unsigned long addr) {
 		int i;
 		module_t* mod = (module_t*)mbi->mods_addr;
         mp3fs_load_addr = mod->mod_start;
-        
+
 		while (mod_count < mbi->mods_count) {
 			printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
 			printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
@@ -158,7 +158,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	/* Initialize Paging */
 	page_ece391_init();
-	page_dir_add_4MB_entry(mp3fs_load_addr,mp3fs_load_addr,PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+	page_dir_add_4MB_entry(mp3fs_load_addr,mp3fs_load_addr,PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
 	/* Init the PIC */
 	i8259_init();
@@ -174,25 +174,34 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * without showing you any output */
 	printf("Enabling Interrupts\n");
 	sti();
-	//create a basic process
+	// create a basic process
 	task_create_kernel_pid();
-	//install device driver fs
+	// install device driver fs
 	devfs_installfs();
 	mp3fs_installfs(mp3fs_load_addr);
-	//mount device driver fs
+	// mount filesystems
+	mount("","/","mp3fs",0,"");
 	mount("","/dev","devfs",0,"");
 
 	// register drivers
 	terminal_out_driver_register();
 	keyboard_driver_register();
 	rtc_out_driver_register();
-	
+
 
 #ifdef RUN_TESTS
 	/* Run tests */
 	launch_tests();
 #endif
 	/* Execute the first program ("shell") ... */
+	int32_t fd_in, fd_out;
+	fd_in = open("/dev/stdin", O_RDONLY, 0);
+	fd_out = open("/dev/stdout", O_WRONLY, 0);
+	printf("Testing syscall assembly linkage wrapper\n");
+	printf("Executing shell\n");
+	syscall_ece391_execute((int)"shell",0,0);
+	close(fd_in);
+	close(fd_out);
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	printf("\nEnd of startup\n");
