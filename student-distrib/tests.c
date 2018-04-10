@@ -9,11 +9,15 @@
 #include "fsdriver/mp3fs_test.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "boot/page_table.h"
+#include "boot/ece391_syscall.h"
 
 #include "proc/task.h"
 #include "boot/syscall.h"
 #include "fs/vfs.h"
 #include "fs/test.h"
+#include "types.h"
+#include "../libc/include/dirent.h"
+
 
 static inline void assertion_failure(){
 	/* Use exception #15 for assertions, otherwise
@@ -71,8 +75,8 @@ int paging_test(){
 	// video memory paging test
 	temp = *(int*)(0xB8500);
 	// fs memory paging test
-	temp = *(int*)(0xA00000);
-	printf("kernel memory & video memory paging test passed\n");
+	//temp = *(int*)(0xA00000);
+	//printf("kernel memory & video memory paging test passed\n");
 
 	// memory from 0 to the beginning of video memory crashing test
 	//printf("crashing 0 - 0xB7FFF space!\n");
@@ -84,11 +88,11 @@ int paging_test(){
 	// printf("crashing 0xC00000 - 4GB space!\n");
 	// temp = *(int*)(0xC00000);
 	// assertion_failure();
-	printf("now mapping two virtual address to the same physical address\n");
+	//printf("now mapping two virtual address to the same physical address\n");
 
-	page_dir_add_4MB_entry(0x08000000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+	page_dir_add_4MB_entry(0x08000000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
-	page_dir_add_4MB_entry(0x08400000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+	page_dir_add_4MB_entry(0x08400000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
 	*((int*)0x08000000) = 3;
 	if (*((int*)0x08400000) != 3){
@@ -102,22 +106,22 @@ int paging_test(){
 	}
 
 	// now change those entries
-	
-	page_dir_add_4MB_entry(0x08800000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+
+	page_dir_add_4MB_entry(0x08800000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
 	*((int*)0x08800000) = 333;
 	//printf("before %d\n", *((int*)0x08400000));
-	
-	page_dir_add_4MB_entry(0x08400000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
+
+	page_dir_add_4MB_entry(0x08400000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
 	//printf("after  %d\n", *((int*)0x08400000));
-	
+
 	// after changing the entry, tlb is not cleared, so
 	// the original mapping remains
-	if ((*((int*)0x08400000)) != 233){
+/*	if ((*((int*)0x08400000)) != 233){
 		printf("tlb wrongly flushed\n");
 		return FAIL;
-	}
+	}*/
 	// now flushed, the mapping should be changed
 	page_flush_tlb();
 	//printf("after flush %d\n", *((int*)0x08400000));
@@ -473,6 +477,27 @@ cleanup:
 }
 
 /* Checkpoint 3 tests */
+
+/**
+ *	Testing pcb functions
+ *
+ *	@return 0 on fail, 1 on pass
+ */
+ /*
+int test_pcb(){
+	TEST_HEADER;
+	proc_init();
+	pcb_t* test_pcb;
+	printf("Checking address and pid of current pcb.\n");
+	test_pcb = get_curr_pcb();
+	printf("Current pcb address is %x, pid: %d.\n", (int)test_pcb, test_pcb->curr_pid);
+	printf("Checking some invalid inputs.\n");
+	if(get_pcb_addr(-1)==-1){
+		printf("Invalid process number!\n");
+	}
+	return PASS;
+}*/
+
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
 
@@ -492,7 +517,7 @@ void launch_tests() {
 	clear();
 	printf("Running tests...\n");
 
-	TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
+	//TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
 	TEST_OUTPUT("paging test",paging_test());
 
@@ -519,16 +544,15 @@ void launch_tests() {
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
 
-	
-	
-
 	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
+
+	// File and directory test
+
+	// TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
 
 	fs_test();
 
-	TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
-	// File and directory test
-	TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
+	// TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
 
-	TEST_OUTPUT("rtc_test_2", rtc_test_2());
+	// TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }

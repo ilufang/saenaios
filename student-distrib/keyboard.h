@@ -24,26 +24,26 @@
 
 #define RELEASE_OFFSET 0x80		///< higher byte offset for key release
 
-#define NULL_CHAR   '\0'		///< null character
-#define ENTER_CHAR   '\n'		///< enter character
-#define BSB_CHAR   '\b'		///< backspace character
+#define NULL_CHAR	'\0'		///< null character
+#define ENTER_CHAR	'\n'		///< enter character
+#define BSB_CHAR	'\b'		///< backspace character
 
-#define ENTER_P    0x1C			///< keycode enter pressed
-#define LCTRL_P    0x1D			///< keycode left control pressed
-#define LALT_P     0x38			///< keycode left alt pressed
-#define BSB_P      0X0E			///< keycode backspace pressed
-#define LSHIFT_P    0x2A		///< keycode left shift pressed
-#define RSHIFT_P    0x36		///< keycode right shift pressed
-#define CAPS_P      0x3A		///< keycode capslock pressed
-#define L_P         0x26		///< keycode l pressed
-#define ENTER_P     0x1C		///< keycode enter pressed
+#define ENTER_P		0x1C			///< keycode enter pressed
+#define LCTRL_P		0x1D			///< keycode left control pressed
+#define LALT_P		0x38			///< keycode left alt pressed
+#define BSB_P		0X0E			///< keycode backspace pressed
+#define LSHIFT_P	0x2A			///< keycode left shift pressed
+#define RSHIFT_P	0x36			///< keycode right shift pressed
+#define CAPS_P		0x3A			///< keycode capslock pressed
+#define L_P			0x26			///< keycode l pressed
+#define ENTER_P		0x1C			///< keycode enter pressed
 
-#define LCTRL_R      0x9D		///< keycode left control released
-#define LALT_R       0xB8		///< keycode left alt released
-#define LSHIFT_R     0xAA		///< keycode left shift released
-#define RSHIFT_R     0xB6		///< keycode right shift released
+#define LCTRL_R		0x9D		///< keycode left control released
+#define LALT_R		0xB8		///< keycode left alt released
+#define LSHIFT_R	0xAA		///< keycode left shift released
+#define RSHIFT_R	0xB6		///< keycode right shift released
 
-#define KEY_BUF_SIZE    128		///< max keyboard buffer size
+#define KEY_BUF_SIZE	128		///< max keyboard buffer size
 
 /**
  *	Scan code to character mapping

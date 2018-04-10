@@ -174,25 +174,34 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * without showing you any output */
 	printf("Enabling Interrupts\n");
 	sti();
-	//create a basic process
+	// create a basic process
 	task_create_kernel_pid();
-	//install device driver fs
+	// install device driver fs
 	devfs_installfs();
 	mp3fs_installfs(mp3fs_load_addr);
-	//mount filesystems
-	mount("", "/", "mp3fs", 0, "");
-	mount("", "/dev/", "devfs", 0, "");
+	// mount filesystems
+	mount("","/","mp3fs",0,"");
+	mount("","/dev","devfs",0,"");
 
 	// register drivers
 	terminal_out_driver_register();
 	keyboard_driver_register();
 	rtc_out_driver_register();
 
+
 #ifdef RUN_TESTS
 	/* Run tests */
 	launch_tests();
 #endif
 	/* Execute the first program ("shell") ... */
+	int32_t fd_in, fd_out;
+	fd_in = open("/dev/stdin", O_RDONLY, 0);
+	fd_out = open("/dev/stdout", O_WRONLY, 0);
+	printf("Testing syscall assembly linkage wrapper\n");
+	printf("Executing shell\n");
+	syscall_ece391_execute((int)"shell",0,0);
+	close(fd_in);
+	close(fd_out);
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	printf("\nEnd of startup\n");

@@ -1,4 +1,4 @@
-CFLAGS += -Wall -nostdlib -ffreestanding
+CFLAGS += -Wall -nostdlib -ffreestanding -g
 LDFLAGS += -nostdlib -ffreestanding
 CC = gcc
 

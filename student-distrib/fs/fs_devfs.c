@@ -22,6 +22,11 @@ static dev_driver_t devfs_table[DEVFS_DRIVER_LIMIT+1];
 int devfs_installfs() {
 	// fstable stores value, so no worry here
 	file_system_t devfs;
+	int i;
+
+	if (devfs_s_op.alloc_inode) {
+		return -EEXIST;
+	}
 
 	//inflate s_op i_op struct specific to this fs
 	devfs_s_op.alloc_inode = &devfs_s_op_alloc_inode;
@@ -55,17 +60,6 @@ int devfs_installfs() {
 	//inflate devfs and register
 	strcpy(devfs.name,"devfs");
 
-	devfs.get_sb = &devfs_get_sb;
-
-	devfs.kill_sb = &devfs_kill_sb;
-
-	return fstab_register_fs(&devfs);
-}
-
-struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags,
-									const char *dev,const char *opts) {
-	int i; //iterator
-
 	//inflate superblock
 	devfs_sb.fstype = fstab_get_fs("devfs");
 
@@ -84,6 +78,17 @@ struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags,
 		devfs_table[i].inode.i_op = &devfs_inode_op;
 		//private data don't care
 	}
+
+
+	devfs.get_sb = &devfs_get_sb;
+
+	devfs.kill_sb = &devfs_kill_sb;
+
+	return fstab_register_fs(&devfs);
+}
+
+struct s_super_block * devfs_get_sb(struct s_file_system *fs, int flags,
+									const char *dev,const char *opts) {
 	return &devfs_sb;
 }
 
