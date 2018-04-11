@@ -21,6 +21,8 @@
 #define PROG_IMG_OFFSET 0x8048000   ///< starting point to load an program image
 #define	RPL_USR			0x03		///< bitmask offset for privilege level 3
 #define PHYS_MEM_OFFSET	0xC00000	///< starting offset of physical memory.
+#define VID_MEM_OFFSET	0xB8000
+#define VID_VIRT_OFFSET 0x8400000
 
 /**
  *	Execute syscall handler
@@ -45,5 +47,8 @@ int32_t syscall_ece391_halt(int status, int, int);
  *	@return -1 on error, 0 on success
  */
 int32_t syscall_ece391_getargs(int buf, int nbytes, int);
+
+
+int32_t syscall_ece391_vidmap(int screen_start_in, int b, int c);
 
 #endif

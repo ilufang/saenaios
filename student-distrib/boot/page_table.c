@@ -33,7 +33,7 @@ int page_dir_add_4KB_entry(int start_addr, void* new_page_table, int flags){
 	// NEED ERROR CHECKING!!!!!!!!!!!!!!!!!
 	flags -= (flags & PAGE_DIR_ENT_4MB); // sanity force
 
-	page_directory.page_directory_entry[start_addr >> 20] = ((int)(new_page_table)& 0xFFFFF000) | flags;
+	page_directory.page_directory_entry[start_addr >> 22] = ((int)(new_page_table)& 0xFFFFF000) | flags;
 	return 0;
 }
 
@@ -51,7 +51,7 @@ int page_dir_add_4MB_entry(int virtual_addr, int real_addr, int flags){
 
 int page_tab_add_entry(int virtual_addr, int real_addr, int flags){
 	// auto fit to nearest 4KB
-	int page_tab_index = (virtual_addr / 0x1000);
+	int page_tab_index = (virtual_addr / 0x1000) & 0x000003FF;
 	
 	// find the page table the virtual address belongs to
 	int page_dir_entry_index = virtual_addr / 0x400000;
@@ -66,6 +66,7 @@ int page_tab_add_entry(int virtual_addr, int real_addr, int flags){
 
 	return 0;
 }
+
 
 void page_flush_tlb(){
 	__asm__("movl	%cr3, %eax\n\t"

@@ -14,6 +14,9 @@ file_t vfs_files[VFS_MAX_OPEN_FILES];
 #define DIRENT_INDEX_AUTO	-2
 
 int syscall_ece391_open(int pathaddr, int b, int c) {
+	if(strncmp((int8_t*)pathaddr, "rtc", 3)==0){
+		return open("/dev/rtc", O_RDWR, 0);
+	}
 	return syscall_open(pathaddr, O_RDONLY, 0);
 }
 

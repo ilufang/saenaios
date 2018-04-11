@@ -4,6 +4,8 @@
 
 static uint8_t elf_signature[4] = {0x7f, 0x45, 0x4c, 0x46};		///< executable file signature
 
+static page_table_t ece391_usr_page_table;
+
 int32_t syscall_ece391_execute(int command_addr, int b, int c){
 	char* command = (char*)command_addr;
 	cli();
@@ -260,5 +262,20 @@ int32_t syscall_ece391_getargs(int buf_in, int nbytes, int c){
 	}
 	return 0;
 	
+}
+
+int32_t syscall_ece391_vidmap(int screen_start_in, int b, int c){
+	uint8_t** screen_start = (uint8_t **)screen_start_in;
+	if(!screen_start ||(int32_t)screen_start < 128 * M_BYTE || (int32_t)screen_start >= 132 * M_BYTE){
+		return -1;
+	}
+	page_dir_add_4KB_entry(VID_VIRT_OFFSET, (void*)(&ece391_usr_page_table), PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
+	page_tab_add_entry(VID_VIRT_OFFSET, VID_MEM_OFFSET, PAGE_TAB_ENT_PRESENT | PAGE_TAB_ENT_RDWR | PAGE_TAB_ENT_USER);
+
+	page_flush_tlb();
+	
+	*screen_start = (uint8_t*)VID_VIRT_OFFSET;
+	return VID_VIRT_OFFSET;
+
 }
 
