@@ -33,7 +33,7 @@ int page_dir_add_4KB_entry(int start_addr, void* new_page_table, int flags){
 	// NEED ERROR CHECKING!!!!!!!!!!!!!!!!!
 	flags -= (flags & PAGE_DIR_ENT_4MB); // sanity force
 
-	page_directory.page_directory_entry[start_addr >> 20] = ((int)(new_page_table)& 0xFFFFF000) | flags;
+	page_directory.page_directory_entry[start_addr >> 22] = ((int)(new_page_table)& 0xFFFFF000) | flags;
 	return 0;
 }
 
@@ -62,7 +62,7 @@ int page_tab_add_entry(int virtual_addr, int real_addr, int flags){
 	page_table_t* dest_page_table = (page_table_t*)(page_directory.page_directory_entry[page_dir_entry_index] & 0xFFFFF000);
 
 	// NEED ERROR CHECKING!!!!!!!!!!!
-	dest_page_table->page_table_entry[page_tab_index] = (real_addr) | flags;
+	dest_page_table->page_table_entry[page_tab_index & (0x3FF)] = (real_addr) | flags;
 
 	return 0;
 }
