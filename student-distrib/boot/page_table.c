@@ -12,12 +12,15 @@ void page_ece391_init(){
 	memset(&ece391_init_page_table, 0, 4096);
 
 	// create 4KB page for 0-4MB
-	page_dir_add_4KB_entry(0x0, (void*)(&ece391_init_page_table), PAGE_DIR_ENT_PRESENT | 
-							PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_SUPERVISOR | 
+	page_dir_add_4KB_entry(0x0, (void*)(&ece391_init_page_table), PAGE_DIR_ENT_PRESENT |
+							PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_SUPERVISOR |
 							PAGE_DIR_ENT_GLOBAL);
 	// create 4MB page for 4-8MB
-	page_dir_add_4MB_entry(0x400000, 0x400000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | 
-							PAGE_DIR_ENT_SUPERVISOR | 
+	page_dir_add_4MB_entry(0x400000, 0x400000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
+							PAGE_DIR_ENT_SUPERVISOR |
+							PAGE_DIR_ENT_GLOBAL);
+	page_dir_add_4MB_entry(0x800000, 0x400000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
+							PAGE_DIR_ENT_SUPERVISOR |
 							PAGE_DIR_ENT_GLOBAL);
 
 	// create 4KB page for video memory
@@ -52,7 +55,7 @@ int page_dir_add_4MB_entry(int virtual_addr, int real_addr, int flags){
 int page_tab_add_entry(int virtual_addr, int real_addr, int flags){
 	// auto fit to nearest 4KB
 	int page_tab_index = (virtual_addr / 0x1000);
-	
+
 	// find the page table the virtual address belongs to
 	int page_dir_entry_index = virtual_addr / 0x400000;
 
