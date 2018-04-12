@@ -349,6 +349,17 @@ int syscall_ece391_open(int pathaddr, int, int);
 int syscall_close(int fd, int, int);
 
 /**
+ *	System call handler for `ece391_close`: adapter for ECE391 specification of
+ *	`close`
+ *
+ *	@see syscall_close
+ *
+ *	@param fd: see `syscall_close`
+ *	@return 0 on success, -1 on error
+ */
+int syscall_ece391_close(int fd, int, int);
+
+/**
  *	System call handler for `read`: read bytes from an open fd into a provided
  *	user buffer.
  *
@@ -372,6 +383,17 @@ int syscall_read(int fd, int bufaddr, int size);
  *	@return see `syscall_read`
  */
 int syscall_ece391_read(int fd, int bufaddr, int size);
+
+/**
+ *	System call handler for `ece391_write`: adapter for ECE391 specification of
+ *	`write`
+ *
+ *	@see syscall_write
+ *
+ *	@param fd, bufaddr, size: see `syscall_write`
+ *	@return see `syscall_write`
+ */
+int syscall_ece391_write(int fd, int bufaddr, int size);
 
 /**
  *	System call handler for `write`: write bytes to an open fd from a provided

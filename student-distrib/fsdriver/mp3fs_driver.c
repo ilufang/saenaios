@@ -306,6 +306,8 @@ int mp3fs_f_op_close(struct s_inode *inode, struct s_file *file){
 
 ssize_t mp3fs_f_op_read(struct s_file *file, uint8_t *buf, size_t count,
                             off_t *offset){
+								
+	memset(buf, 0, count);
     int temp_read_count;
     if (file->inode->file_type == FTYPE_DIRECTORY){
         return -EISDIR;

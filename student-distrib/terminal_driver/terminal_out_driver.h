@@ -13,6 +13,7 @@
 #include "../lib.h"
 #include "../fs/vfs.h"
 #include "../fs/fs_devfs.h"
+#include "../boot/ece391_syscall.h"
 
 #define VIDEO       0xB8000			///< video memory address start
 #define VIDEO_MEM_SIZE	0x1000		///< video memory size

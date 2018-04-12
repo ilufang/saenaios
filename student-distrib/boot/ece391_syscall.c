@@ -85,7 +85,7 @@ int32_t syscall_ece391_execute(int command_addr, int b, int c){
 	
 	uint8_t exec_entry[4];
 	// read entry point failed
-	if(read_data(exec_dentry.inode_num, 24, (uint8_t*)exec_entry, ELF_MAGIC_SIZE)!=ELF_MAGIC_SIZE){
+	if(read_data(exec_dentry.inode_num, ENTRY_POINT_OFFSET, (uint8_t*)exec_entry, ELF_MAGIC_SIZE)!=ELF_MAGIC_SIZE){
 		//printf("Error reading entry point\n");
 		return -1;
 	}
@@ -122,6 +122,7 @@ int32_t syscall_ece391_execute(int command_addr, int b, int c){
 	new_task->curr_pid = new_pid;
 	new_task->parent_pid = curr_task->curr_pid;
 	new_task->status = TASK_ST_RUNNING;
+	new_task->vid_mapped = 0;
 	// hard code fd 0 and 1???
 	curr_task->status = TASK_ST_NA;
 	new_task->files[0] = curr_task->files[0];
@@ -182,6 +183,13 @@ int32_t syscall_ece391_halt(int status_in, int b, int c){
 	
 	// restore parent paging
 	page_dir_add_4MB_entry(128 * M_BYTE, parent_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
+	
+	// turn off video mapping if parent task is unmapped
+	
+	if(parent_task->vid_mapped == 0){
+		page_dir_add_4KB_entry(VID_VIRT_OFFSET, (void*)(&ece391_usr_page_table), PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
+		page_tab_add_entry(VID_VIRT_OFFSET, VID_MEM_OFFSET, PAGE_TAB_ENT_RDWR | PAGE_TAB_ENT_USER);
+	}
 	page_flush_tlb();
 	
 	// close fds of current task
@@ -199,6 +207,7 @@ int32_t syscall_ece391_halt(int status_in, int b, int c){
 	
 	task_list[curr_task->curr_pid] = NULL;
 	parent_task->status = TASK_ST_RUNNING;
+	
 	sti();
 	
 	// check if its the first shell
@@ -266,16 +275,19 @@ int32_t syscall_ece391_getargs(int buf_in, int nbytes, int c){
 
 int32_t syscall_ece391_vidmap(int screen_start_in, int b, int c){
 	uint8_t** screen_start = (uint8_t **)screen_start_in;
+	// check if passed in a valid pointer
 	if(!screen_start ||(int32_t)screen_start < 128 * M_BYTE || (int32_t)screen_start >= 132 * M_BYTE){
 		return -1;
 	}
+	task_t* curr_task = get_curr_task();
+	// set video map flag for current task
+	curr_task->vid_mapped = 1;
+	// map the arbitrary virtual address to video memory physical address
 	page_dir_add_4KB_entry(VID_VIRT_OFFSET, (void*)(&ece391_usr_page_table), PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	page_tab_add_entry(VID_VIRT_OFFSET, VID_MEM_OFFSET, PAGE_TAB_ENT_PRESENT | PAGE_TAB_ENT_RDWR | PAGE_TAB_ENT_USER);
-
 	page_flush_tlb();
-	
+	// store the address in pointer passed in
 	*screen_start = (uint8_t*)VID_VIRT_OFFSET;
 	return VID_VIRT_OFFSET;
-
 }
 
