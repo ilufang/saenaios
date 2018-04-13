@@ -6,23 +6,35 @@
 #include "lib.h"
 #include "errno.h"
 
-static int rtc_status = 0;
+
+static char rtc_status = 0;
 static volatile int rtc_freq = 0;
-static volatile int rtc_count = 1;
+
 static volatile int rtc_count_prev = 0;
+static volatile int rtc_count = 1;
+static int rtc_openfile = -1;
 
 #define RTC_MAX_FREQ 	1024	/* max user frequency is 1024 Hz */
 #define RTC_IS_OPEN 	0x01	/* means rtc is opened in a file */
+#define RTC_MAX_OPEN 	256		/* max open file of rtc */
 
+static rtc_file_t rtc_file_table[RTC_MAX_OPEN];
 static file_operations_t rtc_out_op;
 
 int rtc_out_driver_register() {
+
+	int i; //iterator
 
 	rtc_out_op.open = &rtc_open;
 	rtc_out_op.release = &rtc_close;
 	rtc_out_op.read = &rtc_read;
 	rtc_out_op.write = &rtc_write;
 	rtc_out_op.readdir = NULL;
+
+	for (i = 0; i < RTC_MAX_OPEN; i++) {
+		rtc_file_table[i].rtc_status = 0;
+		rtc_file_table[i].rtc_freq = 0;
+	}
 
 	return (devfs_register_driver("rtc", &rtc_out_op));
 }
@@ -37,6 +49,7 @@ void rtc_init(){
 	/* turns on bit 6 of register B */
 	outb(prev | BIT_SIX, CMOS_PORT);
 	/* enable the corresponding irq line on PIC */
+	rtc_setrate(0x06);
 	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
 }
 
@@ -77,33 +90,50 @@ void rtc_setrate(int rate) {
 //TODO
 
 int rtc_open(inode_t* inode, file_t* file) {
+
 	/* check if rtc is already opened */
-	if (rtc_status & RTC_IS_OPEN)
-		return 0;
+	// if (rtc_status & RTC_IS_OPEN)
+	// 	return 0;
 	/* initialize private data */
-	rtc_status |= RTC_IS_OPEN;
+	// rtc_status |= RTC_IS_OPEN;
+	// rtc_count = 1;
+	// rtc_freq = 512;
+	// rtc_setrate(0x06);
+
+	rtc_openfile++;
+	if (rtc_file_table[rtc_openfile].rtc_status & RTC_IS_OPEN)
+		return 0;
+	rtc_file_table[rtc_openfile].rtc_status |= RTC_IS_OPEN;
+	rtc_file_table[rtc_openfile].rtc_freq = 512;
 	rtc_count = 1;
-	rtc_freq = 512;
-	rtc_setrate(0x06);
 
 	return 0;
 }
 
 int rtc_close(inode_t* inode, file_t* file) {
 	/* currently do nothing */
-	rtc_status &= ~RTC_IS_OPEN;
-	rtc_status = 0;
-	rtc_freq = 0;
+	// rtc_status &= ~RTC_IS_OPEN;
+	// rtc_status = 0;
+	// rtc_freq = 0;
+	// rtc_count = 1;
+	rtc_file_table[rtc_openfile].rtc_status &= ~RTC_IS_OPEN;
+	rtc_file_table[rtc_openfile].rtc_freq = 0;
 	rtc_count = 1;
+	rtc_openfile--;
 	return 0;
 }
 
 ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
+	
+	int v_rtc_status;
+	int v_rtc_freq;
+	v_rtc_status = rtc_file_table[rtc_openfile].rtc_status;
+	v_rtc_freq = rtc_file_table[rtc_openfile].rtc_freq;
 
-	if (rtc_status == 0 || rtc_freq == 0)
+	if (v_rtc_status == 0 || v_rtc_freq == 0)
 		return 0;
 	while(1) {
-		if (rtc_count != rtc_count_prev && (rtc_count & (rtc_freq-1)) == 0) {
+		if (rtc_count != rtc_count_prev && (rtc_count & (v_rtc_freq-1)) == 0) {
 			rtc_count_prev = rtc_count;
 			return 0;
 		}
@@ -127,7 +157,7 @@ ssize_t rtc_write(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
 	if (is_power_of_two(freq) == -1)
 		return -EINVAL;
 	/* set rtc_freq */
-	rtc_freq = RTC_MAX_FREQ / freq;
+	rtc_file_table[rtc_openfile].rtc_freq = RTC_MAX_FREQ / freq;
 
 	return 0;
 

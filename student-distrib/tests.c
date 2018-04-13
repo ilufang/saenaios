@@ -363,7 +363,8 @@ int rtc_test_2() {
 	char tick[] = "0";
 	idt_removeEventListener(KBD_IRQ_NUM);
 	idt_removeEventListener(RTC_IRQ_NUM);
-	idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
+	// idt_addEventListener(RTC_IRQ_NUM, &rtc_handler);
+	rtc_init();
 	idt_addEventListener(KBD_IRQ_NUM, &kb_test_handler);
 	rtc_out_driver_register();
 
@@ -554,5 +555,5 @@ void launch_tests() {
 
 	// TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
 
-	// TEST_OUTPUT("rtc_test_2", rtc_test_2());
+	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }

@@ -15,6 +15,11 @@
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
 
+typedef struct rtc_file {	
+	char rtc_status;
+	int rtc_freq;
+} rtc_file_t;
+
 /**
  *	RTC_IRQ_NUM
  *
