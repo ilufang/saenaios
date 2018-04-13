@@ -50,12 +50,5 @@ int mp3_execute(unsigned char* command);
  */
 int mp3_halt(unsigned char status);
 
-int mp3_open(unsigned char* fname);
-
-int mp3_close(int fd);
-
-int mp3_read(int fd, unsigned char* buf, int numbyte);
-
-int mp3_write(int fd, unsigned char* buf, int numbyte);
 
 #endif

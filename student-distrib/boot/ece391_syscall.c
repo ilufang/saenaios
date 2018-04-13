@@ -221,7 +221,7 @@ int32_t syscall_ece391_halt(int status_in, int b, int c){
             : "r"(parent_task->esp), "r"(parent_task->ebp)
 			: "%eax"
 		);
-		syscall_ece391_execute((int)"shell",0,0);
+		mp3_execute((uint8_t*)"shell");
 	}
 	// retore parent process and return to execute return
 	asm volatile (
@@ -255,6 +255,10 @@ int32_t syscall_ece391_getargs(int buf_in, int nbytes, int c){
 	int i = 0;
 	// get current task
 	task_t* curr_task = get_curr_task();
+	// return -1 for empty argument
+	if(curr_task->args[0]=='\0'){
+		return -1;
+	}
 	// copy arguments into buffer
 	while(curr_task->args[i]!='\0' && i < nbytes){
 		// check whether it fits

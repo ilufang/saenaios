@@ -8,6 +8,14 @@
 
 int do_syscall(int num, int b, int c, int d);
 
+int mp3_halt(unsigned char status){
+	return do_syscall(MP_HALT, (int)status, 0, 0);
+}
+
+int mp3_execute(unsigned char* command){
+	return do_syscall(MP_EXECUTE, (int)command, 0, 0);
+}
+
 int mount(const char *source, const char *target, const char *filesystemtype,
 		  unsigned long mountflags, const char *opts) {
 	struct sys_mount_opts mount_opts;
