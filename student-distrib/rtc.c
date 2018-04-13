@@ -7,8 +7,8 @@
 #include "errno.h"
 
 
-static char rtc_status = 0;
-static volatile int rtc_freq = 0;
+// static char rtc_status = 0;
+// static volatile int rtc_freq = 0;
 
 static volatile int rtc_count_prev = 0;
 static volatile int rtc_count = 1;
