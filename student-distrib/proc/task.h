@@ -63,6 +63,7 @@ typedef struct s_task {
 	pid_t pid;			///< current process id
 	pid_t parent;		///< parent process id
 	regs_t regs;		///< Registers stored for current process
+	uint32_t eip;		///< Instruction pointer for current process
 	int32_t flags;		///< flags stored for current process
 	file_t *files[TASK_MAX_OPEN_FILES]; ///< File descriptor pool
 	char args[128];		///< @deprecated Should be placed on user stack
@@ -143,5 +144,31 @@ int syscall_ece391_execute(int cmdlinep, int b, int c);
  *	@return This call will not return
  */
 int syscall_ece391_halt(int, int, int);
+
+/**
+ *	Push buffer onto the user stack. Update user esp.
+ *
+ *	@param esp: pointer to user esp
+ *	@param buf: data buffer to be pushed
+ *	@param size: size in bytes of the data buffer
+ *	@return 0 on success. -EFAULT if user stack overflow
+ *	@note If an overflow would happen, the user stack will enter an undefined
+ *		  making executing any further user code impossible, including the
+ *		  SIGSEGV handler (a SIGSEGV endless recursion would occur). The caller
+ *		  should directly kill the process by resetting its SIGSEGV handler to
+ *		  SIG_DFL kernel default handler and send it a SIGSEGV to gracefully
+ *		  report such error to its possibly waiting parent.
+ */
+int task_user_pushs(uint32_t *esp, uint8_t *buf, size_t size);
+
+/**
+ *	Push dword onto the user stack. Update user esp.
+ *
+ *	@param esp: pointer to user esp
+ *	@param val: 32-bit value to be pushed
+ *	@return 0 on success. -EFAULT if user stack overflow
+ *	@see task_user_pushs
+ */
+int task_user_pushl(uint32_t *esp, uint32_t val);
 
 #endif

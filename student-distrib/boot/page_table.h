@@ -1,5 +1,5 @@
 /**
- *	@file page_table.h
+ *	@file boot/page_table.h
  *
  *	page_table initialization and dynamic page allocation(fake)
  */

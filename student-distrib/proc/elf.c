@@ -29,6 +29,8 @@ int elf_load(int fd)  {
 	elf_pheader_t ph;
 	task_t *proc;
 	int i, ret, idx;
+	uint32_t addr, align_off;
+	task_ptentry_t *ptent;
 
 	proc = task_list + task_current_pid();
 
@@ -71,6 +73,8 @@ int elf_load(int fd)  {
 		ph.align = 0x1000; // 4kb aligned
 	}
 
+	// Set entry point
+	proc->eip = eh.entry;
 
 	// Prepare to create new memory pages
 	for (idx = 0; idx < TASK_MAX_PAGE_MAPS; idx++) {
@@ -92,7 +96,49 @@ int elf_load(int fd)  {
 			// Ignore non PT_LOAD segments
 			continue;
 		}
+		if (ph.align != (4<<10) && ph.align != (4<<20)) {
+			// Invalid align field
+			return -ENOEXEC;
+		}
 		// TODO: setup all pages on page table
+		align_off = ph.vaddr & (ph.align-1);
+		if (ph.offset & (ph.align-1) != align_off) {
+			// Bad alignment
+			return -ENOEXEC;
+		}
+		for (addr = ph.vaddr - align_off;
+			 addr < ph.vaddr+ph.filesz;
+			 addr += ph.align) {
+			if (idx == TASK_MAX_PAGE_MAPS) {
+				// No more pages may be allocated for this process
+				return -ENOMEM;
+			}
+			ptent = proc->pages + idx;
+			// Flags are the same for page directories and page tables
+			ptent->pt_flags = PAGE_DIR_ENT_USER;
+			ptent->paddr = 0;
+			if (ph.align == (4<<10)) {
+				// Allocate 4KB pages
+				ret = page_alloc_4KB(&(ptent->paddr));
+			} else {
+				// Allocate 4MB pages
+				ret = page_alloc_4MB(&(ptent->paddr));
+				ptent->pt_flags |= PAGE_DIR_ENT_4MB;
+			}
+			if (ret != 0) {
+				// Page allocation failed. Probably ENOMEM
+				return ret;
+			}
+			if (ph.flags & 2) {
+				// Page is writable
+				ptent->pt_flags |= PAGE_DIR_ENT_RDWR;
+			}
+			ptent->vaddr = addr;
+			ptent->pt_flags |= PAGE_DIR_ENT_PRESENT;
+			ptent->priv_flags = 0;
+
+			idx++;
+		}
 		ret = syscall_lseek(fd, eh.offset);
 		if (ret < 0) {
 			return ret;
@@ -101,11 +147,26 @@ int elf_load(int fd)  {
 		if (ret != ph.filesz) {
 			return -EIO;
 		}
-		// TODO: set segment permission flags to all pages
 	}
 
 	// Setup stack segment
-	// TODO: allocate 4MB page from 0xbfc00000 - 0xc0000000 for stack
+	// allocate 4MB page from 0xbfc00000 - 0xc0000000 for stack
+	if (idx == TASK_MAX_PAGE_MAPS) {
+		// No more pages may be allocated for this process
+		return -ENOMEM;
+	}
+	ptent = proc->pages + idx;
+	ptent->vaddr = 0xbfc00000;
+	ret = page_alloc_4MB(&(ptent->paddr));
+	if (ret != 0) {
+		// Page allocation failed. Probably ENOMEM
+		return ret;
+	}
+	ptent->priv_flags = 0;
+	ptent->flags = PAGE_DIR_ENT_PRESENT;
+	ptent->flags |= PAGE_DIR_ENT_RDWR;
+	ptent->flags |= PAGE_DIR_ENT_USER;
+	ptent->flags |= PAGE_DIR_ENT_4MB;
 
 	return 0;
 }
