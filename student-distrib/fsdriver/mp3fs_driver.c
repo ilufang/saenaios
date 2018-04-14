@@ -4,7 +4,7 @@
 
 #include "mp3fs_driver.h"
 
-
+#include "../boot/page_table.h"
 
 static mp3fs_bootblock_t* boot_ptr;
 static mp3fs_dentry_t* mp3fs_inode_start_ptr;
@@ -132,7 +132,14 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 int mp3fs_installfs(int32_t bootblock_start_addr){
     // get address of boot block from parameter
     boot_ptr = (mp3fs_bootblock_t*)bootblock_start_addr;
-
+    if ((bootblock_start_addr > 0x800000) && (bootblock_start_addr < 0xC00000)){
+        page_dir_add_4MB_entry(bootblock_start_addr,bootblock_start_addr,
+                            PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
+                            PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
+    }
+    if (!((bootblock_start_addr > 0x400000) && (bootblock_start_addr < 0x800000))){
+        return -EINVAL;
+    }
     mp3fs_inode_start_ptr = (mp3fs_dentry_t*)((uint8_t*)boot_ptr + DENTRY_SIZE);
 
     //mp3fs_inode_index = 0;

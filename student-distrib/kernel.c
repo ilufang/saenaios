@@ -158,8 +158,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	/* Initialize Paging */
 	page_ece391_init();
-	page_dir_add_4MB_entry(mp3fs_load_addr,mp3fs_load_addr,PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
-							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
+	
 	/* Init the PIC */
 	i8259_init();
 
@@ -178,7 +177,10 @@ void entry(unsigned long magic, unsigned long addr) {
 	task_create_kernel_pid();
 	// install device driver fs
 	devfs_installfs();
-	mp3fs_installfs(mp3fs_load_addr);
+	if (mp3fs_installfs(mp3fs_load_addr)){
+		printf("error installing mp3fs\n");
+		while(1);
+	}
 	// mount filesystems
 	mount("","/","mp3fs",0,"");
 	mount("","/dev","devfs",0,"");
