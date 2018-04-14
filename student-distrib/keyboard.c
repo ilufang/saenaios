@@ -368,8 +368,8 @@ void regular_key(uint8_t scancode){
 	if(ctrl_status == PRESSED){
 		scanchar = kbdctl[scancode];
 		if(scanchar == CTRL_C){
-			sti();
-			mp3_halt(-1);
+			//sti();
+			syscall_ece391_halt(-1, 0, 0);
 			return;
 		}
 		terminal_out_write_(&scanchar,1);

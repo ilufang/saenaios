@@ -19,7 +19,7 @@ void idt_int_panic(char *msg, int a, int b, int c, int d) {
 	printf("PLEASE REBOOT.\n");
 	task_t* curr_task = get_curr_task();
 	if(curr_task->parent_pid>=0){
-		mp3_halt(-1);
+		syscall_ece391_halt(-1, 0, 0);
 	}	// temporary solution for squashing user level program
 	while(1) {
 		asm volatile("hlt");

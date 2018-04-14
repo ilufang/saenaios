@@ -215,13 +215,12 @@ int32_t syscall_ece391_halt(int status_in, int b, int c){
 		asm volatile (
 			"								\n\
 			movl	%0, %%esp				\n\
-			movl	%1, %%ebp				\n\
+			movl	%0, %%ebp				\n\
 			"
             : 
-            : "r"(parent_task->esp), "r"(parent_task->ebp)
-			: "%eax"
+            : "r"(parent_task->ebp + 8)
 		);
-		mp3_execute((uint8_t*)"shell");
+		syscall_ece391_execute((int)"shell",0,0);
 	}
 	// retore parent process and return to execute return
 	asm volatile (
