@@ -100,7 +100,22 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 }
 
 int syscall__exit(int status, int b, int c) {
+	task_t *proc, *parent;
 
+	proc = task_list + task_current_pid();
+	parent = task_list + proc->parent;
+
+	if (parent->status == TASK_ST_RUNNING) {
+		// Parent is alive, notify parent
+		proc->regs.eax = status;
+		proc->status = TASK_ST_ZOMBIE;
+		syscall_kill(proc->parent, SIGCHLD);
+	} else {
+		// Otherwise, just release the process
+		task_release(proc);
+	}
+
+	// TODO: jump to scheduler
 }
 
 int syscall_ece391_execute(int cmdlinep, int b, int c) {
@@ -109,4 +124,13 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 
 int syscall_ece391_halt(int a, int b, int c) {
 	return syscall__exit(0, 0, 0);
+}
+
+void task_release(task_t *proc) {
+	// Mark program as dead
+	proc->status = TASK_ST_DEAD;
+	// Close all fd
+	// Release all pages
+	// Mark program as void
+	proc->status = TASK_ST_NA;
 }

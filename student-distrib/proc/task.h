@@ -68,6 +68,7 @@ typedef struct s_task {
 	char args[128];		///< @deprecated Should be placed on user stack
 	task_ptentry_t pages[TASK_MAX_PAGE_MAPS]; ///< Mapped pages
 	task_sigact_t sigacts[SIG_MAX]; ///< Signal handlers
+	uint32_t signals; ///< Pending signals
 } task_t;
 
 /**

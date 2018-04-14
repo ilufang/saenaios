@@ -39,6 +39,22 @@
 #define SIGUSR2		31	///< User defined signal 2
 #define SIG_MAX		32	///< Total number of signals
 
+#define SIG_DFL		0	///< Preset 'Default' handler
+#define SIG_IGN		1	///< Preset 'Ignore' handler
+
+/// Do not send SIGCHLD to the parent when the process is stopped
+#define SA_NOCLDSTOP	0x1
+/// Do not create a zombie when the process terminates
+#define SA_NOCLDWAIT	0x2
+/// Ignored. (Use an alternative stack for the signal handler)
+#define SA_ONSTACK		0x4
+/// Ignored. (Interrupted system calls are automatically restarted)
+#define SA_RESTART		0x8
+/// Ignored. (Do not mask the signal while executing the signal handler)
+#define SA_NODEFER		0x10
+/// Reset to default action after executing the signal handler
+#define SA_RESETHAND	0x20
+
 /**
  *	Signal Handling behavior descriptor
  */
@@ -49,6 +65,10 @@ struct sigaction {
 	 *	@param sig: the signal number
 	 */
 	void (*sa_handler)(int sig);
+	/// Flags. See `SA_*` macro definitions
+	uint32_t flags;
+	/// Bitmap of signals to be masked during execution of the handler
+	uint32_t mask;
 };
 
 /**
