@@ -555,5 +555,5 @@ void launch_tests() {
 
 	// TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
 
-	TEST_OUTPUT("rtc_test_2", rtc_test_2());
+	// TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }
