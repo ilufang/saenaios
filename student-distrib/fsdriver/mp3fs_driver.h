@@ -23,7 +23,7 @@
 #define DENTRY_SIZE             64			///< size of a dentry
 #define FSYS_MAX_FILE           16			///< maximum number of test file
 #define ITOA_BUF_SIZE           10			///< buffer size for itoa function
-#define MP3FS_MAX_FILE_NUM      64          ///< maximum number of files in mp3fs, root dir included
+#define MP3FS_MAX_FILE_NUM      65          ///< maximum number of files in mp3fs, root dir included
 
 /**
  *	Dentry type used for file system parsing
@@ -116,6 +116,8 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 int mp3fs_installfs(int32_t bootblock_start_addr);
 
 super_block_t* mp3fs_get_sb(file_system_t* fs,int flags, const char *dev,const char *opts);
+
+void mp3fs_brutal_magic();
 
 void mp3fs_kill_sb();
 
