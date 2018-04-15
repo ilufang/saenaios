@@ -51,7 +51,7 @@ int32_t syscall_ece391_execute(int command_addr, int b, int c){
 	}
 	memset(&(new_task->args), 0, MAX_ARGS);
 	
-	while(command[command_idx]!='\0'&&command[command_idx]!=' '&&command[command_idx]!='\n'){
+	while(command[command_idx]!='\0'&&command[command_idx]!='\n'){
 		new_task->args[i] = command[command_idx];
 		i++;
 		command_idx++;
