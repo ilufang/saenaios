@@ -21,6 +21,48 @@ typedef struct sigaction task_sigact_t;
  */
 int syscall_sigaction(int sig, int actp, int oldactp);
 
+/**
+ *	Invoke signal handler on current process.
+ *
+ *	@param sig: the signal number
+ */
+void signal_exec(int sig);
 
+/**
+ *	Execute initializations needed by the signal invocation systems.
+ */
+void signal_init();
+
+/**
+ *	Invoke the default signal handler.
+ *
+ *	@param proc: the process
+ *	@param sig: the signal number
+ */
+void signal_exec_default(task_t *proc, int sig);
+
+/**
+ *	Handle signal by simply discarding the signal.
+ *
+ *	@param proc: the process
+ *	@param sig: the signal number
+ */
+void signal_handler_ignore(task_t *proc, int sig);
+
+/**
+ *	Handle signal by terminating process. Will also print an error message
+ *
+ *	@param proc: the process
+ *	@param sig: the signal number
+ */
+void signal_handler_terminate(task_t *proc, int sig);
+
+/**
+ *	Handle signal by putting the process to sleep.
+ *
+ *	@param proc: the process
+ *	@param sig: the signal number
+ */
+void signal_handler_stop(task_t *proc, int sig);
 
 #endif

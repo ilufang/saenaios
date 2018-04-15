@@ -64,7 +64,7 @@ struct sigaction {
 	 *
 	 *	@param sig: the signal number
 	 */
-	void (*sa_handler)(int sig);
+	void (*handler)(int sig);
 	/// Flags. See `SA_*` macro definitions
 	uint32_t flags;
 	/// Bitmap of signals to be masked during execution of the handler
