@@ -1,4 +1,6 @@
-RETVAL:
+#define STACK_REG_MAGIC $1145141919
+
+TMPVAL:
 	.long	0
 
 .globl idt_int_de
@@ -181,148 +183,104 @@ idt_int_irq_listeners:
 	.long	idt_int_irq_default
 	.endr
 
+.align 4
 idt_int_irq:
 idt_int_irq20:
-	pushal
-	pushl	$0
-	call	*(idt_int_irq_listeners+0)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$0, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq21:
-	pushal
-	pushl	$1
-	call	*(idt_int_irq_listeners+4)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$1, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq22:
-	pushal
-	pushl	$2
-	call	*(idt_int_irq_listeners+8)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$2, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq23:
-	pushal
-	pushl	$3
-	call	*(idt_int_irq_listeners+12)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$3, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq24:
-	pushal
-	pushl	$4
-	call	*(idt_int_irq_listeners+16)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$4, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq25:
-	pushal
-	pushl	$5
-	call	*(idt_int_irq_listeners+20)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$5, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq26:
-	pushal
-	pushl	$6
-	call	*(idt_int_irq_listeners+24)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$6, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq27:
-	pushal
-	pushl	$7
-	call	*(idt_int_irq_listeners+28)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$7, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq28:
-	pushal
-	pushl	$8
-	call	*(idt_int_irq_listeners+32)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$8, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq29:
-	pushal
-	pushl	$9
-	call	*(idt_int_irq_listeners+36)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$9, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq2a:
-	pushal
-	pushl	$10
-	call	*(idt_int_irq_listeners+40)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$10, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq2b:
-	pushal
-	pushl	$11
-	call	*(idt_int_irq_listeners+44)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$11, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq2c:
-	pushal
-	pushl	$12
-	call	*(idt_int_irq_listeners+48)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$12, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq2d:
-	pushal
-	pushl	$13
-	call	*(idt_int_irq_listeners+52)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$13, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq2e:
-	pushal
-	pushl	$14
-	call	*(idt_int_irq_listeners+56)
-	addl	$4, %esp
-	popal
-	iret
+	movl	$14, TMPVAL
+	jmp	idt_int_irqexec
+.align 4
 idt_int_irq2f:
+	movl	$15, TMPVAL
+	jmp	idt_int_irqexec
+
+idt_int_irqexec:
 	pushal
-	pushl	$15
-	call	*(idt_int_irq_listeners+60)
-	addl	$4, %esp
+	pushfl
+	pushl	STACK_REG_MAGIC
+	movl	TMPVAL, %eax
+	pushl	%eax
+	call	*idt_int_irq_listeners(,%eax,4)
+
+	addl	$8, %esp
+	popfl
 	popal
 	iret
+
 idt_int_irq_size:
 	.long	idt_int_irq21 - idt_int_irq20
 
 idt_int_usr:
-	
 	pushal
-	pushfl		// save registers
-	
-	cmpl	$22, %eax
-	jg		syscall_invalid
-	cmpl	$1, %eax
-	jl		syscall_invalid		// check for invalid syscall number
-	
+	pushfl
+	pushl	STACK_REG_MAGIC
+
 	pushl	%edx
 	pushl	%ecx
 	pushl	%ebx
 	pushl	%eax
 	call	syscall_invoke
-	addl	$16, %esp			// push arguments and call jump table
-	
-	jmp		syscall_ret
+	addl	$16, %esp
 
-syscall_invalid:
-	movl	$-1, %eax
-	jmp		syscall_ret			// return -1 for invalid argument
-	
-syscall_ret:
-	movl	%eax, RETVAL
+	movl	%eax, TMPVAL
+	addl	$4, %esp
 	popfl
 	popal
-	movl	RETVAL, %eax		// return value in eax, restore registers
+	movl	TMPVAL, %eax
+
 	iret

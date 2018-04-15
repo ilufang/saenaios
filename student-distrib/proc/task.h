@@ -20,6 +20,21 @@
 
 #define M_BYTE			0x100000	///< offset for 1MB
 #define K_BYTE			0x400		///< offset for 1kb
+/**
+ *	Structure of saved registers produced by `pusha`
+ */
+typedef struct s_regs {
+	uint32_t magic； ///< Should be 1145141919
+	uint32_t flags; ///< Saved eflags
+	uint32_t edi; ///< Saved edi
+	uint32_t esi; ///< Saved esi
+	uint32_t ebp; ///< Saved ebp
+	uint32_t esp; ///< Saved esp
+	uint32_t ebx; ///< Saved ebx
+	uint32_t edx; ///< Saved edx
+	uint32_t ecx; ///< Saved ecx
+	uint32_t eax; ///< Saved eax
+} regs_t;
 
 /* 8kb-10 0000 0000 0000 */
 #define PCB_BITMASK		0xFFFFE000		///< bitmask to reach the top of process's 8kb stack
