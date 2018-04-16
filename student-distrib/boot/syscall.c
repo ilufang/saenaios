@@ -39,15 +39,15 @@ void syscall_register_all() {
 	// ece391_read
 	syscall_register(3, syscall_ece391_read);
 	// ece391_write
-	syscall_register(4, syscall_write);
+	syscall_register(4, syscall_ece391_write);
 	// ece391_open
 	syscall_register(5, syscall_ece391_open);
 	// ece391_close
-	syscall_register(6, syscall_close);
+	syscall_register(6, syscall_ece391_close);
 	// ece391_getargs
 	syscall_register(7, syscall_ece391_getargs);
 	// ece391_vidmap
-	syscall_register(8, NULL);
+	syscall_register(8, syscall_ece391_vidmap);
 	// ece391_set_handler
 	syscall_register(9, NULL);
 	// ece391_sigreturn
