@@ -95,20 +95,90 @@ int page_tab_delete_entry(int virtual_addr);
  */
 void page_flush_tlb();
 
+/**
+ *
+ *	private function to find a usable 4MB page
+ *
+ *	@return positive value for a address, negative value for error
+ *
+ *	@note the sign of return value
+ */
 int _page_alloc_get_4MB();
 
+/**
+ *
+ *	private function to find a usable 4KB page
+ *
+ *	@return positive value for a address, negative value for error
+ *
+ *	@note the sign of return value may restrict the memory space
+ */
 int _page_alloc_get_4KB();
 
+/**
+ *	
+ *	private function to add reference count to a 4MB page
+ *
+ *	@oaram addr: the physical address to add reference
+ *	@return 0 for success, negative value for error
+ */
 int _page_alloc_add_refer_4MB(int addr);
 
+/**
+ *	
+ *	private function to add reference count to a 4KB page
+ *
+ *	@oaram addr: the physical address to add reference
+ *	@return 0 for success, negative value for error
+ */
 int _page_alloc_add_refer_4KB(int addr);
 
+/**
+ *
+ *	exposed function to allocate or reference a 4MB page 
+ *
+ *	@param physical_addr: if the pointer points to value 0, then allocate a space,
+ *	and change the pointed value; if the pointer points to a non-zero value, then add
+ *	count to the physical memory referenced
+ *
+ *	@return 0 for success, negative value for error
+ */
 int page_alloc_4MB(int* physical_addr);
 
+/**
+ *
+ *	exposed function to allocate or reference a 4KB page 
+ *
+ *	@param physical_addr: if the pointer points to value 0, then allocate a space,
+ *	and change the pointed value; if the pointer points to a non-zero value, then add
+ *	count to the physical memory referenced
+ *
+ *	@return 0 for success, negative value for error
+ */
 int page_alloc_4KB(int* physical_addr);
 
+/**
+ *
+ *	exposed function to free a 4MB page 
+ *
+ *	@param physical_addr: value of the physical address to free
+ *
+ *	@return 0 for success, negative value for error
+ *
+ *	@note actually decrease the use count of that memory
+ */
 int page_alloc_free_4MB(int physical_addr);
 
+/**
+ *
+ *	exposed function to free a 4KB page 
+ *
+ *	@param physical_addr: value of the physical address to free
+ *
+ *	@return 0 for success, negative value for error
+ *
+ *	@note actually decrease the use count of that memory
+ */
 int page_alloc_free_4KB(int physical_addr);
 
 typedef int page_directory_entry_t;		///< page directory entry
@@ -130,21 +200,21 @@ typedef struct s_page_table{
 } __attribute__((packed, aligned(4096))) page_table_t;
 
 typedef struct s_page_4MB_descriptor{
-	uint32_t				flags;
-	int 					count;
+	uint32_t				flags;	///< private flags for physical memory administration
+	int 					count;	///< use count or reference count
 	struct s_page_4KB_descriptor* 	pages;
 } page_4MB_descriptor_t;
 
 typedef struct s_page_4KB_descriptor{
-	uint32_t 	flags;
-	int 		count;
+	uint32_t 	flags;		///< private flags for physical memory administration
+	int 		count;		///< use count or reference count
 } page_4KB_descriptor_t;
 
 /*
  *	flags for physical memory map
  */
-#define PAGE_DES_KERNEL		0x02
-#define	PAGE_DES_RESERVE	0x04
+#define PAGE_DES_KERNEL		0x02	///< dadada
+#define	PAGE_DES_RESERVE	0x04	///< dadada
 /*
  *	4KB page directory entry
  *	

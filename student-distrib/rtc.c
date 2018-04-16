@@ -6,6 +6,8 @@
 #include "lib.h"
 #include "errno.h"
 
+#include "proc/scheduler.h"
+
 static int rtc_status = 0;
 static volatile int rtc_freq = 0;
 static volatile int rtc_count = 1;
@@ -49,6 +51,10 @@ void rtc_handler(){
 	/* reads from register C so that the interrupt will happen again */
 	outb(REG_C, RTC_PORT);
 	inb(CMOS_PORT);
+
+	if (scheduler_on_flag){
+		scheduler_event();
+	}
 }
 
 void test_rtc_handler() {
