@@ -41,10 +41,19 @@ void scheduler_page_clear(task_ptentry_t* pages);
  */
 void scheduler_page_setup(task_ptentry_t* pages);
 
+/**
+ *	get magic number and the regs structure behind it
+ *	
+ *	@return pointer to the regs_t structure that current process set up
+ */
 regs_t*	scheduler_get_magic();
 
-void scheduler_iret(
-	int ebx, int ecx, int edx, int esi, int edi, int ebp, int eax,
-	int return_addr, int cs, int eflags, int esp, int ss);
+/**
+ *		
+ *	assembly function to do actual iret to switch task
+ *
+ *	@param reg: the whole structure to iret
+ */
+void scheduler_iret(regs_t reg);
 
 #endif SCHEDULER_H_

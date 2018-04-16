@@ -49,16 +49,8 @@ void scheduler_switch(task_t* from, task_t* to){
 	// save the registers of from process
 	memcpy(&from->regs, original, sizeof(regs_t));
 
-	from -> flags = 
-
-	from -> eip = // TODO
-
-	// set up registers of to process and task switch!
-
-	scheduler_iret(to->regs.ebx, to->regs.ecx, to->regs.edx, to->regs.esi,
-		to->regs.edi, to->regs.ebp, to->regs.eax, 
-		to->eip, (0x0FFFF) & USER_CS, to->flags, to->regs.esp
-		(0x0FFFF) & USER_DS);
+	// brutal force iret
+	scheduler_iret(*original);
 }
 
 void scheduler_page_clear(task_ptentry_t* pages){

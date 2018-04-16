@@ -29,6 +29,8 @@
  *	Structure of saved registers produced by `pusha`
  */
 typedef struct s_regs {
+	uint32_t magic； ///< Should be 1145141919
+	uint32_t flags; ///< Saved eflags
 	uint32_t edi; ///< Saved edi
 	uint32_t esi; ///< Saved esi
 	uint32_t ebp; ///< Saved ebp

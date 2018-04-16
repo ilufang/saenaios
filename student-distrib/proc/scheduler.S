@@ -21,23 +21,23 @@ scheduler_get_magic_found:
 	leave
 	ret
 
+scheduler_static_space:
+	.long	0
+
 scheduler_iret:
 	// need return addr, cs, eflags, esp, ss
 	// parameter is the address of the structure of regs
 	// in order of edi esi ebp esp ebx edx ecx eax
 
-	addl	$4, %esp	// ignore the return address of normal cdecl	
+	movl	4(%esp), %eax
+	movl 	%eax+36, ($scheduler_static_space)
 
-	// modify the DS register for process changing
-	movl	$USER_DS, %eax
-	movw	%ax, %ds
+	addl	$4, %esp
 
-	popl 	%ebx
-	popl	%ecx
-	popl	%edx
-	popl	%esi
-	popl	%edi
-	popl	%ebp
-	popl	%eax
+	popal
+	// normalize esp from previously saved space
+	movl	($scheduler_static_space), %esp
+
+	iret
 
 	iret
