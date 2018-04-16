@@ -10,7 +10,7 @@
 #include "../fs/vfs.h"
 #include "../libc.h"
 #include "../boot/syscall.h"
-
+#include "../boot/ece391_syscall.h"
 
 #define TASK_ST_NA			0	///< Process PID is not in use
 #define TASK_ST_RUNNING		1	///< Process is actively running on processor

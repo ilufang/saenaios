@@ -19,12 +19,7 @@ int syscall_ece391_open(int pathaddr, int b, int c) {
 	if(*(uint8_t*)pathaddr==' '||*(uint8_t*)pathaddr=='\n'||*(uint8_t*)pathaddr=='\0'){
 		return -1;
 	}
-	if(strncmp((int8_t*)pathaddr, "rtc", 3)==0){
-		ret = open("/dev/rtc", O_RDWR, 0);
-	}
-	else {
-		ret = syscall_open(pathaddr, O_RDONLY, 0);
-	}
+	ret = syscall_open(pathaddr, O_RDONLY, 0);
 	if(ret < 0) ret = -1;
 	return ret;
 }
@@ -228,7 +223,7 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	dent = (struct dirent *)bufaddr;
 	if (dent->index == DIRENT_INDEX_AUTO) {
 		// Workaround ece391_read auto dir listing
-		dent->index = file->pos;
+		dent->index = file->pos - 1;
 		ret = (*file->f_op->readdir)(file, dent);
 		if (ret >= 0) {
 			file->pos++;

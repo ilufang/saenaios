@@ -130,11 +130,14 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 
 // functions below connect with vfs
 int mp3fs_installfs(int32_t bootblock_start_addr){
+    // need to magicalize the file data
+    
     // get address of boot block from parameter
     boot_ptr = (mp3fs_bootblock_t*)bootblock_start_addr;
 
     mp3fs_inode_start_ptr = (mp3fs_dentry_t*)((uint8_t*)boot_ptr + DENTRY_SIZE);
 
+    mp3fs_brutal_magic();
     //mp3fs_inode_index = 0;
 
     file_system_t mp3fs;
@@ -162,6 +165,16 @@ int mp3fs_installfs(int32_t bootblock_start_addr){
     mp3fs.kill_sb = &mp3fs_kill_sb;
 
     return fstab_register_fs(&mp3fs);
+}
+
+void mp3fs_brutal_magic(){
+    int i;
+    for (i=0; i<boot_ptr->dir_count; ++i){
+        if (strncmp(mp3fs_inode_start_ptr[i].filename, "rtc", 3)==0){
+            mp3fs_inode_start_ptr[i].inode_num = 64;
+            break;
+        }
+    }
 }
 
 super_block_t* mp3fs_get_sb(struct s_file_system *fs, int flags,
@@ -269,6 +282,7 @@ ino_t mp3fs_i_op_lookup(inode_t* inode, const char* path){
     if ((!inode) || (!path)){
         return -EINVAL;
     }
+
     if ((temp_return = read_dentry_by_name((uint8_t*)path, &temp_mp3fs_dentry))){
         // must be error
         return -ENOENT;
@@ -328,14 +342,11 @@ int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent){
     if ((!file) || (!dirent)){
         return -EINVAL;
     }
-/*    if (dirent->index==-1){
-        // no no we don't start with -1, we start with 0
-        dirent->index = 0;
-    }*/
+
     int i;  //iterator
     mp3fs_dentry_t temp_mp3fs_dentry;
-	
-    for (i = dirent->index; i < MP3FS_MAX_FILE_NUM; ++i){
+
+    for (i = dirent->index + 1; i < MP3FS_MAX_FILE_NUM; ++i){
         if (!read_dentry_by_index(i, &temp_mp3fs_dentry))
             //found
             break;

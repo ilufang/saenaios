@@ -52,7 +52,13 @@ int path_cd(pathname_t path, const char *relpath) {
 						ptr++; // Move 1 right, after the '/'
 					}
 					break;
+				}else{
+					relpath++;
+					continue;
 				}
+			}else{
+				relpath++;
+				continue;
 			}
 		} else if (*relpath == '/') {
 			// Skip consecutive '/'s
