@@ -186,8 +186,12 @@ void page_ece391_init(){
 	page_dir_add_4KB_entry(0x0, (void*)(&ece391_init_page_table), PAGE_DIR_ENT_PRESENT |
 							PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_SUPERVISOR |
 							PAGE_DIR_ENT_GLOBAL);
-	// create 4MB page for 4-8MB
+	// create 4MB page for 4-8MB (kernel code)
 	page_dir_add_4MB_entry(0x400000, 0x400000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
+							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_4MB |
+							PAGE_DIR_ENT_GLOBAL);
+	// create 4MB page for 8-12MB (program kernel stacks)
+	page_dir_add_4MB_entry(0x800000, 0x800000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_4MB |
 							PAGE_DIR_ENT_GLOBAL);
 
@@ -204,7 +208,8 @@ void page_ece391_init(){
 
 	// paging is turned on, but we still have other things to do
 	page_kernel_mem_map_init();
-
+	// Initialize global memory blocks
+	memset((char *)0x800000, -1, 4<<20);
 }
 
 void page_phys_mem_map_init(){

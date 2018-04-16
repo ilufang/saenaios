@@ -100,7 +100,7 @@ int elf_load(int fd)  {
 			// Invalid align field
 			return -ENOEXEC;
 		}
-		// TODO: setup all pages on page table
+		// Setup all pages on page table
 		align_off = ph.vaddr & (ph.align-1);
 		if ((ph.offset & (ph.align-1)) != align_off) {
 			// Bad alignment

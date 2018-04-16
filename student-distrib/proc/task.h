@@ -203,4 +203,24 @@ int task_user_pushs(uint32_t *esp, uint8_t *buf, size_t size);
  */
 int task_user_pushl(uint32_t *esp, uint32_t val);
 
+/**
+ *	Test process memory access permission for address
+ *
+ *	@param addr: the address to be tested
+ *	@return 0 if access granted, or the negative of an errno if denied
+ */
+int task_access_memory(uint32_t addr);
+
+/**
+ *	Perform copy-on-write if applicable on page fault
+ *
+ *	@param addr: the faulting address
+ *	@return 0 if the page fault is resolved and the caller should resume the
+ *			  process, or non-zero if the page fault is not on a copy-on-write
+ *			  page and the process should indeed be sent a SIGSEGV
+ */
+int task_pf_copy_on_write(uint32_t addr);
+
+}
+
 #endif

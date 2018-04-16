@@ -41,8 +41,8 @@
 #define SIGUSR2		31	///< User defined signal 2
 #define SIG_MAX		32	///< Total number of signals
 
-#define SIG_DFL		0	///< Preset 'Default' handler
-#define SIG_IGN		1	///< Preset 'Ignore' handler
+#define SIG_DFL		((void (*)(int)) 0) ///< Preset 'Default' handler
+#define SIG_IGN		((void (*)(int)) 1)	///< Preset 'Ignore' handler
 
 /// Do not send SIGCHLD to the parent when the process is stopped
 #define SA_NOCLDSTOP	0x1

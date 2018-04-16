@@ -1,6 +1,6 @@
 #include "scheduler.h"
 
-//#define
+#include "signal.h"
 
 static pid_t scheduler_iterator = 0;
 
@@ -12,6 +12,9 @@ void scheduling_start(){
 
 void scheduler_event(){
 	pid_t prev = task_current_pid();
+	task_t *proc;
+	int i;
+
 	scheduler_iterator ++;
 	while (task_list[scheduler_iterator].status != TASK_ST_RUNNING){
 		++scheduler_iterator;
@@ -25,7 +28,16 @@ void scheduler_event(){
 		return;
 	}
 
-	// TODO CHECK FOR PENDING SIGNALS
+	proc = task_list + scheduler_iterator;
+	if (proc->signals) {
+		for (i = 1; i < SIG_MAX; i++) {
+			if (proc->signals & (1<<i)) {
+				proc->signals &= ~(1<<i);
+				signal_exec(1<<i);
+				// Should not return
+			}
+		}
+	}
 
 	// A different running task! switch to it!
 	scheduler_switch(&task_list[prev], &task_list[scheduler_iterator]);
