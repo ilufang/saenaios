@@ -66,115 +66,216 @@ idt_int_msg_xf:
 idt_int_msg_reserved:
 	.string "Reserved Interrupt\n"
 
+/*
+ *	Regarding magical constants used in the calculation of relative stack
+ *	addresses
+ *
+ *	On each call to the interrupt gate, the processor would push a structure
+ *	used by `iret` and a dword error code in some exceptions. All gates are
+ *	designed to first pop off the error code into a temporary variable, then
+ *	execute a `pushal` to put all GPRs right on top of the iret structure,
+ *	and then push a magical constant for code to find the saved state. In
+ *	case the faulting address is needed, it would be offset 36 from the top
+ *	of the saved state structure (1 magic dword and 8 saved registers).
+ *	`TMPVAL` is used to save the error code.
+ *
+ *	When returning, all the arguments pushed for the function call, plus the
+ *	magic dword, will be popped off the stack before executing `popal` and
+ *	`iret`. In short, stack spaced allocated by all the visible `pushl`s are
+ *	popped.
+ */
+
+.align 4
 idt_int_de:
-	pushl	(%esp)
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	36(%esp)
 	pushl	$idt_int_msg_de
 	call	idt_int_panic
-	addl	$8, %esp
+	addl	$12, %esp
+	popal
 	iret
+.align 4
 idt_int_nmi:
+	pusha
+	pushl	STACK_REG_MAGIC
 	pushl	$idt_int_msg_nmi
 	call	idt_int_panic
-	addl	$4, %esp
+	addl	$8, %esp
+	popal
 	iret
+.align 4
 idt_int_bp:
+	pusha
+	pushl	STACK_REG_MAGIC
 	call	idt_int_bp_handler
+	addl	$4, %esp
+	popal
 	iret
+.align 4
 idt_int_of:
+	pusha
+	pushl	STACK_REG_MAGIC
 	call	idt_int_of_handler
+	addl	$4, %esp
+	popal
 	iret
+.align 4
 idt_int_br:
-	pushl	(%esp)
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	36(%esp)
 	pushl	$idt_int_msg_br
 	call	idt_int_panic
-	addl	$8, %esp
+	addl	$12, %esp
+	popal
 	iret
+.align 4
 idt_int_ud:
-	pushl	(%esp)
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	36(%esp)
 	pushl	$idt_int_msg_ud
 	call	idt_int_panic
-	addl	$8, %esp
+	addl	$12, %esp
+	popal
 	iret
+.align 4
 idt_int_nm:
-	pushl	(%esp)
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	36(%esp)
 	pushl	$idt_int_msg_nm
 	call	idt_int_panic
-	addl	$8, %esp
+	addl	$12, %esp
+	popal
 	iret
+.align 4
 idt_int_df:
+	pusha
+	pushl	STACK_REG_MAGIC
 	pushl	$idt_int_msg_df
 	call	idt_int_panic
-	addl	$4, %esp
+	addl	$8, %esp
+	popal
 	iret
+.align 4
 idt_int_ts:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL		// Err code
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	TMPVAL		// Err code
+	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ts
 	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	addl	$16, %esp
+	popal
 	iret
+.align 4
 idt_int_np:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	TMPVAL		// Err code
+	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_np
 	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	addl	$16, %esp
+	popal
 	iret
+.align 4
 idt_int_ss:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	TMPVAL		// Err code
+	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ss
 	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	addl	$16, %esp
+	popal
 	iret
+.align 4
 idt_int_gp:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	TMPVAL		// Err code
+	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_gp
 	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	addl	$16, %esp
+	popal
 	iret
+.align 4
 idt_int_pf:
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
 	movl	%cr2, %eax
-	pushl	%eax	// Faulting address
-	movl	4(%esp), %eax
+	pushl	%eax		// Faulting address
+	movl	TMPVAL, %eax
 	andl	$0xf, %eax
-	pushl	%eax	// Err code (masked)
-	pushl	12(%esp)// EIP
+	pushl	%eax		// Err code (masked)
+	pushl	44(%esp)	// EIP
 	pushl	$idt_int_msg_pf
 	call	idt_int_panic
-	addl	$20, %esp // 4 args + 1 err code
+	addl	$20, %esp
+	popal
 	iret
+.align 4
 idt_int_mf:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	TMPVAL		// Err code
+	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_mf
 	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	addl	$16, %esp
+	popal
 	iret
+.align 4
 idt_int_ac:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	TMPVAL		// Err code
+	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ac
 	call	idt_int_panic
-	addl	$8, %esp // 1 arg + 1 err code
+	addl	$16, %esp
+	popal
 	iret
+.align 4
 idt_int_mc:
+	pusha
+	pushl	STACK_REG_MAGIC
 	pushl	$idt_int_msg_mc
 	call	idt_int_panic
-	addl	$4, %esp
+	addl	$8, %esp
+	popal
 	iret
+.align 4
 idt_int_xf:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	pushl	TMPVAL		// Err code
+	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_xf
 	call	idt_int_panic
-	addl	$8, %esp // 1 arg + 1 err code
+	addl	$16, %esp
+	popal
 	iret
+.align 4
 idt_int_reserved:
+	pusha
+	pushl	STACK_REG_MAGIC
 	pushl	$idt_int_msg_reserved
 	call	idt_int_panic
-	addl	$4, %esp
+	addl	$8, %esp
+	popal
 	iret
 
 .align 4
@@ -251,14 +352,12 @@ idt_int_irq2f:
 
 idt_int_irqexec:
 	pushal
-	pushfl
 	pushl	STACK_REG_MAGIC
 	movl	TMPVAL, %eax
 	pushl	%eax
 	call	*idt_int_irq_listeners(,%eax,4)
 
 	addl	$8, %esp
-	popfl
 	popal
 	iret
 
@@ -267,7 +366,6 @@ idt_int_irq_size:
 
 idt_int_usr:
 	pushal
-	pushfl
 	pushl	STACK_REG_MAGIC
 
 	pushl	%edx
@@ -279,7 +377,6 @@ idt_int_usr:
 
 	movl	%eax, TMPVAL
 	addl	$4, %esp
-	popfl
 	popal
 	movl	TMPVAL, %eax
 

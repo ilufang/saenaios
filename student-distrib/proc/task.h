@@ -24,17 +24,21 @@
  *	Structure of saved registers produced by `pusha`
  */
 typedef struct s_regs {
-	uint32_t magic； ///< Should be 1145141919
-	uint32_t flags; ///< Saved eflags
-	uint32_t edi; ///< Saved edi
-	uint32_t esi; ///< Saved esi
-	uint32_t ebp; ///< Saved ebp
-	uint32_t esp; ///< Saved esp
-	uint32_t ebx; ///< Saved ebx
-	uint32_t edx; ///< Saved edx
-	uint32_t ecx; ///< Saved ecx
-	uint32_t eax; ///< Saved eax
-} regs_t;
+	uint32_t magic;		///< Should be 1145141919
+	uint32_t edi;		///< edi saved by pusha
+	uint32_t esi;		///< esi saved by pusha
+	uint32_t ebp;		///< ebp saved by pusha
+	uint32_t esp_k;		///< esp saved by pusha (Not used. See `esp`)
+	uint32_t ebx;		///< ebx saved by pusha
+	uint32_t edx;		///< edx saved by pusha
+	uint32_t ecx;		///< ecx saved by pusha
+	uint32_t eax;		///< eax saved by pusha
+	uint32_t eip;		///< eip in iret structure
+	uint32_t cs;		///< cs in iret structure
+	uint32_t eflags;	///< eflags in iret structure
+	uint32_t esp;		///< esp in iret structure
+	uint32_t ss;		///< ss in iret structure
+} __attribute__((__packed__)) regs_t;
 
 /* 8kb-10 0000 0000 0000 */
 #define PCB_BITMASK		0xFFFFE000		///< bitmask to reach the top of process's 8kb stack
