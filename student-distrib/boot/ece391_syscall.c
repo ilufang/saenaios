@@ -1,6 +1,9 @@
 #include "ece391_syscall.h"
 
-#define ELF_MAGIC_SIZE	4
+#define BYTE_SIZE		8		///< byte size
+#define IF_MASK			0x200	///< mask for setting interrupt flag
+#define ELF_MAGIC_SIZE	4		///< size of elf signature
+#define USR_PAGE_START	128		///< offset to start of user page
 
 static uint8_t elf_signature[4] = {0x7f, 0x45, 0x4c, 0x46};		///< executable file signature
 
@@ -80,7 +83,7 @@ int32_t syscall_ece391_execute(int command_addr, int b, int c){
 	
 	
 	// TODO: setup program paging
-	page_dir_add_4MB_entry(128 * M_BYTE, PHYS_MEM_OFFSET + (new_pid) * 4 * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
+	page_dir_add_4MB_entry(USR_PAGE_START * M_BYTE, PHYS_MEM_OFFSET + (new_pid) * 4 * M_BYTE, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	page_flush_tlb();
 	
 	uint8_t exec_entry[4];
@@ -91,9 +94,9 @@ int32_t syscall_ece391_execute(int command_addr, int b, int c){
 	}
 	int32_t entry_addr = 0;
 	// convert the 4 bytes into an 32 bit address
-	entry_addr |= exec_entry[3]<<24;
-	entry_addr |= exec_entry[2]<<16;
-	entry_addr |= exec_entry[1]<<8;
+	entry_addr |= exec_entry[3]<<(BYTE_SIZE * 3);
+	entry_addr |= exec_entry[2]<<(BYTE_SIZE * 2);
+	entry_addr |= exec_entry[1]<<BYTE_SIZE;
 	entry_addr |= exec_entry[0];
 	
 	// uint8_t content[M_BYTE];
@@ -117,7 +120,7 @@ int32_t syscall_ece391_execute(int command_addr, int b, int c){
             : /* no inputs */
     );
 	
-	(curr_task->flags)|=0x200;
+	(curr_task->flags)|=IF_MASK;
 	
 	new_task->curr_pid = new_pid;
 	new_task->parent_pid = curr_task->curr_pid;
@@ -133,13 +136,11 @@ int32_t syscall_ece391_execute(int command_addr, int b, int c){
  	task_list[new_pid] = new_task;
 	
 	
-	
-	
 	// modify tss
 	tss.ss0 = KERNEL_DS;
 	// set tss.esp0 to point to the new kernel stack
 	tss.esp0 = 8 * M_BYTE - (new_pid) * 8 * K_BYTE - 4;
-	int usr_stack = (128 + 4) * M_BYTE - 4; 
+	int usr_stack = (USR_PAGE_START + 4) * M_BYTE - 4; 
 	
 	sti();
 	
@@ -182,7 +183,7 @@ int32_t syscall_ece391_halt(int status_in, int b, int c){
 	int parent_addr = PHYS_MEM_OFFSET + (curr_task->parent_pid) * 4 * M_BYTE;
 	
 	// restore parent paging
-	page_dir_add_4MB_entry(128 * M_BYTE, parent_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
+	page_dir_add_4MB_entry(USR_PAGE_START * M_BYTE, parent_addr, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER);
 	
 	// turn off video mapping if parent task is unmapped
 	
@@ -195,7 +196,7 @@ int32_t syscall_ece391_halt(int status_in, int b, int c){
 	// close fds of current task
 	int i = 0;
 	
-	for(i = 2; i < TASK_MAX_OPEN_FILES; i++){
+	for(i = FD_START; i < TASK_MAX_OPEN_FILES; i++){
 		if((curr_task->files[i])!=NULL)
 			close(i);
 	}
@@ -212,13 +213,14 @@ int32_t syscall_ece391_halt(int status_in, int b, int c){
 	
 	// check if its the first shell
 	if(parent_task->curr_pid == 0){
+		int ebp_offset = parent_task->ebp + 8;
 		asm volatile (
 			"								\n\
 			movl	%0, %%esp				\n\
 			movl	%0, %%ebp				\n\
 			"
             : 
-            : "r"(parent_task->ebp + 8)
+            : "r"(ebp_offset)
 		);
 		syscall_ece391_execute((int)"shell",0,0);
 	}
@@ -279,7 +281,7 @@ int32_t syscall_ece391_getargs(int buf_in, int nbytes, int c){
 int32_t syscall_ece391_vidmap(int screen_start_in, int b, int c){
 	uint8_t** screen_start = (uint8_t **)screen_start_in;
 	// check if passed in a valid pointer
-	if(!screen_start ||(int32_t)screen_start < 128 * M_BYTE || (int32_t)screen_start >= 132 * M_BYTE){
+	if(!screen_start ||(int32_t)screen_start < USR_PAGE_START * M_BYTE || (int32_t)screen_start >= (USR_PAGE_START + 4) * M_BYTE){
 		return -1;
 	}
 	task_t* curr_task = get_curr_task();

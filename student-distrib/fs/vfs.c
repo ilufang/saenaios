@@ -83,7 +83,7 @@ int syscall_open(int pathaddr, int flags, int mode) {
 
 int syscall_ece391_close(int fd, int b, int c){
 	// syserr behaviour: closing stdin/stdout should fail
-	if(fd == 0 || fd == 1){
+	if(fd < FD_START){
 		return -1;
 	}
 	int ret = syscall_close(fd, b, c);

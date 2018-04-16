@@ -19,6 +19,9 @@
 #define FTYPE_SYMLINK	'l'	///< File type: symbolic link
 #define FTYPE_DEVICE	'p'	///< File type: special device file
 
+
+#define FD_START		2	///< fd offset after stdin and stdout
+
 // Forward declarations
 struct s_file;
 struct s_inode;
