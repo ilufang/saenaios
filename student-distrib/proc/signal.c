@@ -56,14 +56,14 @@ int syscall_sigaction(int sig, int actp, int oldactp) {
 		// Copy from task to user
 		act = (task_sigact_t *) oldactp;
 		// TODO: fully validate user pointer
-		memcpy(act, proc->sigacts[sig], sizeof(task_sigact_t));
+		memcpy(act, proc->sigacts+sig, sizeof(task_sigact_t));
 	}
 
 	if (actp) {
 		// Copy from user to task
 		act = (task_sigact_t *) actp;
 		// TODO: fully validate user pointer
-		memcpy(proc->sigacts[sig], act, sizeof(task_sigact_t));
+		memcpy(proc->sigacts+sig, act, sizeof(task_sigact_t));
 	}
 
 	return 0;
@@ -71,7 +71,7 @@ int syscall_sigaction(int sig, int actp, int oldactp) {
 
 void signal_init() {
 	uint32_t paddr;
-	page_alloc_4KB(&paddr);
+	page_alloc_4KB((int *)&paddr);
 	page_tab_add_entry(0x8000000, paddr, PAGE_TAB_ENT_PRESENT |
 					   PAGE_TAB_ENT_RDONLY | PAGE_TAB_ENT_USER |
 					   PAGE_TAB_ENT_GLOBAL);
@@ -96,12 +96,12 @@ void signal_exec(int sig) {
 
 	// Custom handler provided, execute that
 	// Push stack frame for signal_user_ret
-	task_user_pushl(&(proc->regs->esp), proc->eip);
-	task_user_pushs(&(proc->regs->esp), &(proc->regs), sizeof(proc->regs));
-	task_user_pushl(&(proc->regs->esp), proc->flags);
+	task_user_pushl(&(proc->regs.esp), proc->regs.eip);
+	task_user_pushs(&(proc->regs.esp), (uint8_t *)&(proc->regs), 32); // Only the 8 GPRs
+	task_user_pushl(&(proc->regs.esp), proc->regs.eflags);
 	// Push stack frame for handler
-	task_user_pushl(&(proc->regs->esp), (uint32_t) signal_user_ret_addr);
-	if (task_user_pushl(&(proc->regs->esp), sig) != 0) {
+	task_user_pushl(&(proc->regs.esp), (uint32_t)signal_user_ret_addr);
+	if (task_user_pushl(&(proc->regs.esp), sig) != 0) {
 		// Stack overflow... BAD!
 		signal_handler_terminate(proc, SIGSEGV);
 		return; // This line should not hit
@@ -139,9 +139,9 @@ void signal_handler_ignore(task_t *proc, int sig) {
 
 void signal_handler_terminate(task_t *proc, int sig) {
 	// Print to stdout
-	syscall_write(1, signal_names[sig], signal_names[sig+1]-signal_names[sig]);
+	syscall_write(1, (int)signal_names[sig], strlen(signal_names[sig]));
 	// Halt process
-	syscall__exit(1);
+	syscall__exit(1, 0, 0);
 }
 
 void signal_handler_stop(task_t *proc, int sig) {

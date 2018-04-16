@@ -1,6 +1,5 @@
 #include "vfs.h"
 
-
 #include "../lib.h"
 #include "../errno.h"
 
@@ -8,6 +7,7 @@
 #include "../proc/task.h"
 
 #include "../../libc/src/syscalls.h" // Definitions from libc
+#include "../../libc/include/unistd.h"
 
 file_t vfs_files[VFS_MAX_OPEN_FILES];
 
@@ -150,6 +150,41 @@ int syscall_write(int fd, int bufaddr, int count) {
 	// TODO: no permission check
 	return (*file->f_op->write)(file, (uint8_t *) bufaddr, count, &(file->pos));
 }
+
+int syscall_lseek(int fd, int offset, int whence) {
+	task_t *proc;
+	file_t *file;
+
+	proc = task_list + task_current_pid();
+	if (proc->status != TASK_ST_RUNNING) {
+		return -ESRCH;
+	}
+	file = proc->files[fd];
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
+		return -EBADF;
+	}
+	if (!file->f_op->llseek) {
+		switch(whence) {
+			case SEEK_SET:
+				file->pos = offset;
+				break;
+			case SEEK_CUR:
+				file->pos += offset;
+				break;
+			case SEEK_END:
+				return -ENOSYS;
+			default:
+				return -ENOSYS;
+		}
+		if (file->pos < 0) {
+			file->pos = 0;
+		}
+		return file->pos;
+	} else {
+		return (*file->f_op->llseek)(file, offset, whence);
+	}
+}
+
 
 int syscall_getdents(int fd, int bufaddr, int c) {
 	task_t *proc;

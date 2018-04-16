@@ -6,6 +6,8 @@
 #ifndef SIGNAL_H
 #define SIGNAL_H
 
+#include "stdint.h"
+
 #define SIGHUP		1	///< terminal line hangup
 #define SIGINT		2	///< interrupt program
 #define SIGQUIT		3	///< quit program

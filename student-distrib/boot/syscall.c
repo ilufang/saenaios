@@ -4,8 +4,9 @@
 
 #include "../lib.h"
 #include "../fs/vfs.h"
+#include "../proc/task.h"
+#include "../proc/signal.h"
 
-#include "ece391_syscall.h"
 #include "../../libc/src/syscalls.h" // Definitions from libc
 
 syscall_handler syscall_handler_table[SYSCALL_NUMBER_MAX];
@@ -63,4 +64,10 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_MOUNT, syscall_mount);
 	syscall_register(SYSCALL_UMOUNT, syscall_umount);
 	syscall_register(SYSCALL_GETDENTS, syscall_getdents);
+
+	// Process
+	syscall_register(SYSCALL_FORK, syscall_fork);
+	syscall_register(SYSCALL__EXIT, syscall__exit);
+	syscall_register(SYSCALL_EXECVE, syscall_execve);
+	syscall_register(SYSCALL_SIGACTION, syscall_sigaction);
 }

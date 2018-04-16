@@ -13,7 +13,7 @@ int elf_load_pheader(int fd, int offset, elf_pheader_t *ph) {
 		return 0;
 	}
 
-	ret = syscall_lseek(fd, offset);
+	ret = syscall_lseek(fd, offset, SEEK_SET);
 	if (ret < 0) {
 		return ret;
 	}
@@ -21,7 +21,7 @@ int elf_load_pheader(int fd, int offset, elf_pheader_t *ph) {
 	if (ret != sizeof(elf_pheader_t)) {
 		return -EIO;
 	}
-
+	return 0;
 }
 
 int elf_load(int fd)  {
@@ -51,7 +51,7 @@ int elf_load(int fd)  {
 	}
 	if (eh.endianness != 1) {
 		// Not LE
-		return -ENOEXEC
+		return -ENOEXEC;
 	}
 	if (eh.machine != 3) {
 		// Not x86
@@ -102,7 +102,7 @@ int elf_load(int fd)  {
 		}
 		// TODO: setup all pages on page table
 		align_off = ph.vaddr & (ph.align-1);
-		if (ph.offset & (ph.align-1) != align_off) {
+		if ((ph.offset & (ph.align-1)) != align_off) {
 			// Bad alignment
 			return -ENOEXEC;
 		}
@@ -119,10 +119,10 @@ int elf_load(int fd)  {
 			ptent->paddr = 0;
 			if (ph.align == (4<<10)) {
 				// Allocate 4KB pages
-				ret = page_alloc_4KB(&(ptent->paddr));
+				ret = page_alloc_4KB((int *)&(ptent->paddr));
 			} else {
 				// Allocate 4MB pages
-				ret = page_alloc_4MB(&(ptent->paddr));
+				ret = page_alloc_4MB((int *)&(ptent->paddr));
 				ptent->pt_flags |= PAGE_DIR_ENT_4MB;
 			}
 			if (ret != 0) {
@@ -139,7 +139,7 @@ int elf_load(int fd)  {
 
 			idx++;
 		}
-		ret = syscall_lseek(fd, eh.offset);
+		ret = syscall_lseek(fd, ph.offset, SEEK_SET);
 		if (ret < 0) {
 			return ret;
 		}
@@ -157,16 +157,16 @@ int elf_load(int fd)  {
 	}
 	ptent = proc->pages + idx;
 	ptent->vaddr = 0xbfc00000;
-	ret = page_alloc_4MB(&(ptent->paddr));
+	ret = page_alloc_4MB((int *)&(ptent->paddr));
 	if (ret != 0) {
 		// Page allocation failed. Probably ENOMEM
 		return ret;
 	}
 	ptent->priv_flags = 0;
-	ptent->flags = PAGE_DIR_ENT_PRESENT;
-	ptent->flags |= PAGE_DIR_ENT_RDWR;
-	ptent->flags |= PAGE_DIR_ENT_USER;
-	ptent->flags |= PAGE_DIR_ENT_4MB;
+	ptent->pt_flags = PAGE_DIR_ENT_PRESENT;
+	ptent->pt_flags |= PAGE_DIR_ENT_RDWR;
+	ptent->pt_flags |= PAGE_DIR_ENT_USER;
+	ptent->pt_flags |= PAGE_DIR_ENT_4MB;
 
 	return 0;
 }

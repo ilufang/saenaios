@@ -14,7 +14,7 @@ signal_user_ret:
 	ret
 
 signal_user_length:
-	.long	signal_user_length - signal_user
+	.long	signal_user_length - signal_user_base
 
 signal_user_ret_offset:
 	.long	signal_user_ret - signal_user_base

@@ -28,6 +28,10 @@
 #define SYSCALL_MOUNT		20
 #define SYSCALL_UMOUNT		21
 #define SYSCALL_GETDENTS	22
+#define SYSCALL_FORK		23
+#define SYSCALL__EXIT		24
+#define SYSCALL_EXECVE		25
+#define SYSCALL_SIGACTION	26
 
 struct __attribute__((__packed__)) sys_mount_opts {
 	const char *source;

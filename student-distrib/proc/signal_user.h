@@ -30,6 +30,6 @@ extern void signal_user_ret();
 /// Offset of `signal_user_ret` from start of this code page
 extern size_t signal_user_ret_offset;
 /// Address of `signal_user_ret` when viewed from user-space
-#define signal_user_ret_addr ((void *) PROC_USR_BASE + signal_user_ret_offset);
+#define signal_user_ret_addr ((void *) PROC_USR_BASE + signal_user_ret_offset)
 
 #endif

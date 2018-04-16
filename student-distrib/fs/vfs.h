@@ -95,6 +95,17 @@ typedef struct s_file_operations {
 					off_t *offset);
 
 	/**
+	 *	Seek to a given position
+	 *
+	 *	@param file: the file to seek
+	 *	@param offset: the new file pointer, relative to `whence`
+	 *	@param whence: reference frame for `offset`. See `SEEK_*` macros.
+	 *	@return the absolute offset on success, or the negative of an errno on
+	 *	failure.
+	 */
+	off_t (*llseek)(int fd, off_t offset, int whence);
+
+	/**
 	 *	Read the directory file for dir entires.
 	 *
 	 *	`dirent` will be used to return data as well as track progress. For the
@@ -386,6 +397,17 @@ int syscall_ece391_read(int fd, int bufaddr, int size);
  *	@return the number of bytes written, or the negative of an errno on failure.
  */
 int syscall_write(int fd, int bufaddr, int size);
+
+/**
+ *	System call handler for `lseek`: seek file pointer to given position
+ *
+ *	@param fd: the file descriptor to write to
+ *	@param offset: the new file pointer, relative to `whence`
+ *	@param whence: reference frame for `offset`. See `SEEK_*` macros.
+ *	@return the absolute offset on success, or the negative of an errno on
+ *	failure.
+ */
+int syscall_lseek(int fd, int offset, int whence);
 
 /**
  *	System call handler for `getdents`: get next entry in directory

@@ -7,6 +7,7 @@
 #define PROC_SIGNAL_H
 
 #include "../../libc/include/signal.h"
+#include "task.h"
 
 typedef struct sigaction task_sigact_t;
 

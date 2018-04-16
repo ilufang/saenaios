@@ -38,7 +38,7 @@ int syscall_fork(int a, int b, int c) {
 	}
 	cur_pid = task_current_pid();
 	cur_task = task_list + cur_pid;
-	new_task = task_list + new_pid;
+	new_task = task_list + pid;
 
 	// Initialize task_t structure
 	memcpy(new_task, cur_task, sizeof(task_t));
@@ -56,10 +56,10 @@ int syscall_fork(int a, int b, int c) {
 		}
 		if (new_task->pages[i].pt_flags & PAGE_DIR_ENT_4MB) {
 			// 4MB page
-			page_alloc_4MB(&(new_task->pages[i].paddr));
+			page_alloc_4MB((int *)&(new_task->pages[i].paddr));
 		} else {
 			// 4KB page
-			page_alloc_4KB(&(new_task->pages[i].paddr));
+			page_alloc_4KB((int *)&(new_task->pages[i].paddr));
 		}
 	}
 
@@ -68,14 +68,13 @@ int syscall_fork(int a, int b, int c) {
 
 	// Done. New process will be executed by the scheduler later
 
-	return new_pid;
+	return pid;
 }
 
 int syscall_execve(int pathp, int argvp, int envpp) {
-	char *path = (char *) pathp;
 	char **argv = (char **) argvp;
 	char **envp = (char **) envpp;
-	int fd, ret, i;
+	int fd, ret;
 	task_t *proc;
 	uint32_t *u_argv, *u_envp, argc, envc;
 
@@ -86,7 +85,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	proc = task_list + task_current_pid();
 
-	memset(proc->regs, 0, sizeof(proc->regs));
+	// memset((char *)&(proc->regs), 0, sizeof(proc->regs));
 
 	// Permission checks
 	fd = syscall_open(pathp, O_RDONLY, 0);
@@ -94,7 +93,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		return fd;
 	}
 	ret = elf_load(fd);
-	syscall_close(fd);
+	syscall_close(fd, 0, 0);
 
 	if (ret != 0) {
 		// Something very bad happened. Squash this process
@@ -112,7 +111,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	u_argv = (uint32_t *) 0xbfc00000; // Temporarily use top of stack as heap
 	if (argv) {
 		for (argc = 0; argv[argc]; argc++) {
-			task_user_pushs(&(proc->regs.esp), argv[argc], strlen(argv[argc]));
+			task_user_pushs(&(proc->regs.esp), (uint8_t *) argv[argc], strlen(argv[argc]));
 			u_argv[argc] = proc->regs.esp;
 		}
 	} else {
@@ -122,7 +121,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	u_envp = u_argv + argc;
 	if (envp) {
 		for (envc = 0; envp[envc]; envc++) {
-			task_user_pushs(&(proc->regs.esp), envp[envc], strlen(envp[envc]));
+			task_user_pushs(&(proc->regs.esp), (uint8_t *) envp[envc], strlen(envp[envc]));
 			u_envp[envc] = proc->regs.esp;
 		}
 		task_user_pushl(&(proc->regs.esp), 0); // Ending zero
@@ -130,16 +129,16 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		envc = 0;
 	}
 	// Move temp values back
-	task_user_pushs(&(proc->regs.esp), u_argv, 4*argc);
+	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_argv, 4*argc);
 	u_argv = (uint32_t *) proc->regs.esp;
-	task_user_pushs(&(proc->regs.esp), u_envp, 4*(envc+1));
+	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_envp, 4*(envc+1));
 	u_envp = (uint32_t *) proc->regs.esp;
 	task_user_pushl(&(proc->regs.esp), (uint32_t) u_envp);
 	task_user_pushl(&(proc->regs.esp), (uint32_t) u_argv);
 	task_user_pushl(&(proc->regs.esp), argc);
 
 	// ece391_getargs workaround: bottom of stack points to argv
-	*(uint32_t)(0xc0000000 - 4) = (uint32_t) u_argv;
+	*(uint32_t *)(0xc0000000 - 4) = (uint32_t) u_argv;
 
 	// TODO: Initialize signal handlers
 
@@ -159,7 +158,7 @@ int syscall__exit(int status, int b, int c) {
 		// Parent is alive, notify parent
 		proc->regs.eax = status;
 		proc->status = TASK_ST_ZOMBIE;
-		syscall_kill(proc->parent, SIGCHLD);
+		// syscall_kill(proc->parent, SIGCHLD); // TODO
 	} else {
 		// Otherwise, just release the process
 		task_release(proc);
@@ -171,11 +170,16 @@ int syscall__exit(int status, int b, int c) {
 }
 
 int syscall_ece391_execute(int cmdlinep, int b, int c) {
-	char *cmdline = (char *)cmdlinep;
+	// char *cmdline = (char *)cmdlinep;
+	return -ENOSYS; // TODO
 }
 
 int syscall_ece391_halt(int a, int b, int c) {
 	return syscall__exit(0, 0, 0);
+}
+
+int syscall_ece391_getargs(int buf, int nbytes, int c) {
+	return -ENOSYS; // TODO
 }
 
 void task_release(task_t *proc) {
@@ -185,7 +189,7 @@ void task_release(task_t *proc) {
 	// Close all fd
 	for (i = 0; i < TASK_MAX_OPEN_FILES; i++) {
 		if (proc->files[i]) {
-			syscall_close(i);
+			syscall_close(i, 0, 0);
 		}
 	}
 	// Release all pages
@@ -215,7 +219,7 @@ int task_user_pushs(uint32_t *esp, uint8_t *buf, size_t size) {
 	*esp -= size;
 	*esp &= ~3; // Align to dword
 
-	if (esp < 0xbfc00000) {
+	if (*esp < 0xbfc00000) {
 		// Stack overflow!
 		return -EFAULT;
 	}
@@ -228,7 +232,7 @@ int task_user_pushs(uint32_t *esp, uint8_t *buf, size_t size) {
 int task_user_pushl(uint32_t *esp, uint32_t val) {
 	*esp -= 4;
 
-	if (esp < 0xbfc00000) {
+	if (*esp < 0xbfc00000) {
 		// Stack overflow!
 		return -EFAULT;
 	}

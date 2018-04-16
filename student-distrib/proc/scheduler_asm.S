@@ -1,4 +1,4 @@
-#include"scheduler.h"
+#define STACK_UNKO_MAGIC $1145141919
 
 .global scheduler_get_magic
 .global scheduler_iret
@@ -12,12 +12,11 @@ scheduler_get_magic:
 scheduler_get_magic_loop:
 	movl	(%ecx),	%eax
 	cmpl	STACK_UNKO_MAGIC, %eax
-	je		scheduler_get_magic_found
+	je	scheduler_get_magic_found
 	addl	$4, %ecx
 
 scheduler_get_magic_found:
-	movl	%ecx+4, %eax
-
+	leal	4(%ecx), %eax
 	leave
 	ret
 
@@ -30,13 +29,14 @@ scheduler_iret:
 	// in order of edi esi ebp esp ebx edx ecx eax
 
 	movl	4(%esp), %eax
-	movl 	%eax+36, ($scheduler_static_space)
+	addl	$36, %eax
+	movl	%eax, scheduler_static_space
 
 	addl	$4, %esp
 
 	popal
 	// normalize esp from previously saved space
-	movl	($scheduler_static_space), %esp
+	movl	scheduler_static_space, %esp
 
 	iret
 

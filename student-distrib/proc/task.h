@@ -11,9 +11,8 @@
 #include "../libc.h"
 #include "../boot/page_table.h"
 #include "../boot/syscall.h"
-#include "../boot/ece391_syscall.h"
 
-#include "signal.h"
+#include "../../libc/include/signal.h"
 
 #define TASK_ST_NA			0	///< Process PID is not in use
 #define TASK_ST_RUNNING		1	///< Process is actively running on processor
@@ -68,14 +67,17 @@ typedef struct s_task {
 	uint8_t status;		///< Current status of this task
 	pid_t pid;			///< current process id
 	pid_t parent;		///< parent process id
+
 	regs_t regs;		///< Registers stored for current process
-	uint32_t eip;		///< Instruction pointer for current process
-	int32_t flags;		///< flags stored for current process
+
 	file_t *files[TASK_MAX_OPEN_FILES]; ///< File descriptor pool
-	char args[128];		///< @deprecated Should be placed on user stack
+
 	task_ptentry_t pages[TASK_MAX_PAGE_MAPS]; ///< Mapped pages
-	task_sigact_t sigacts[SIG_MAX]; ///< Signal handlers
-	uint32_t signals; ///< Pending signals
+
+	uint32_t ks_esp;	///< Kernel Stack pointer
+
+	struct sigaction sigacts[SIG_MAX]; ///< Signal handlers
+	uint32_t signals;	///< Pending signals
 } task_t;
 
 /**
@@ -150,6 +152,30 @@ int syscall_ece391_execute(int cmdlinep, int b, int c);
  *	@return This call will not return
  */
 int syscall_ece391_halt(int, int, int);
+
+/**
+ *	Getargs syscall handler
+ *
+ *	@param buf: buffer to copy arguments
+ *	@param nbytes: number of bytes to copy
+ *	@return -1 on error, 0 on success
+ */
+int syscall_ece391_getargs(int buf, int nbytes, int);
+
+/**
+ *	Release a process from memory
+ *
+ *	This call will free up all system resources (memory pages, file descriptors)
+ *	previously allocated for the process, and release the memory of the `task_t`
+ *	itself.
+ *
+ *	This function should NOT be used unless an absolutely unrecoverable error
+ *	occurs to the process that a graceful kill is impossible. To gracefully kill
+ *	a process, use `syscall_kill` to terminate it using a `SIGKILL`.
+ *
+ *	@param proc: the `task_t` structure to be released
+ */
+void task_release(task_t *proc);
 
 /**
  *	Push buffer onto the user stack. Update user esp.

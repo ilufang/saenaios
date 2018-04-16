@@ -9,7 +9,6 @@
 #include "fsdriver/mp3fs_test.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "boot/page_table.h"
-#include "boot/ece391_syscall.h"
 
 #include "proc/task.h"
 #include "boot/syscall.h"
@@ -95,7 +94,7 @@ int paging_test(){
 	}
 	// if page fault, error
 	*((int*)0x08400000) = 3;
-	
+
 	temp = 0;
 	// crazy allocation test
 	while (page_alloc_4MB(&temp) != -ENOMEM){

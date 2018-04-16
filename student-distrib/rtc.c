@@ -52,7 +52,7 @@ void rtc_handler(){
 	outb(REG_C, RTC_PORT);
 	inb(CMOS_PORT);
 
-	if (scheduler_on_flag){
+	if (scheduler_on_flag) {
 		scheduler_event();
 	}
 }
