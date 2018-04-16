@@ -39,6 +39,8 @@ void kmalloc_init() {
 int kmalloc(size_t size) {
 	
 	int i;			//iterator
+	struct double_list* temp;
+	struct double_list* temp2;
 	int addr = 0; 	//addr for return value
 	// test if argument is right
 	if (size < 1 || size > KMALLOC_MAX) {
@@ -75,9 +77,45 @@ int kmalloc(size_t size) {
 					return addr;
 				} else {
 					// if there's free slab
+					slab_array[i].free_slab->free_size -= size;
+					slab_array[i].free_slab->ptr->curr_addr += size;
+					addr = slab_array[i].free_slab->ptr->start_addr;
+					temp = slab_array[i].partial_slab;
+					while (temp->next != 0) {
+						temp = temp->next;
+					}
+					temp->next = slab_array[i].free_slab;
+					slab_array[i].free_slab->prev = temp;
+					slab_array[i].free_slab = slab_array[i].free_slab->next;
+					slab_array[i].free_slab->prev = 0;
+					temp->next->next = 0;
+
+					return addr;
 				}
 			} else {
 				// if there's partial slab
+				temp = slab_array[i].partial_slab;
+				while(temp->next != 0) {
+					if (temp->free_size >= size)
+						break;
+					temp = temp->next;
+				}
+				temp->free_size -= size;
+				addr = temp->ptr->curr_addr;
+				temp->ptr->curr_addr += size;
+				if (temp->free_size == 0) {
+					// add to full page
+					temp2 = slab_array[i].full_slab;
+					while (temp2-> next != 0) {
+						temp2 = temp2->next;
+					}
+					temp2->next = temp;
+					temp->prev->next = temp->next;
+					temp->next->prev = temp->prev;
+					temp->prev = temp2;
+					temp->next = 0;
+				}
+				return addr;
 			}
 		}
 // if page_count >= 1024
