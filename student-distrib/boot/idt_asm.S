@@ -3,6 +3,12 @@
 TMPVAL:
 	.long	0
 
+.globl iret_struct
+
+iret_struct:
+	.long	0
+
+
 .globl idt_int_de
 .globl idt_int_nmi
 .globl idt_int_bp
@@ -89,6 +95,7 @@ idt_int_msg_reserved:
 idt_int_de:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	36(%esp)
 	pushl	$idt_int_msg_de
 	call	idt_int_panic
@@ -99,6 +106,7 @@ idt_int_de:
 idt_int_nmi:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	$idt_int_msg_nmi
 	call	idt_int_panic
 	addl	$8, %esp
@@ -108,6 +116,7 @@ idt_int_nmi:
 idt_int_bp:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	call	idt_int_bp_handler
 	addl	$4, %esp
 	popal
@@ -116,6 +125,7 @@ idt_int_bp:
 idt_int_of:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	call	idt_int_of_handler
 	addl	$4, %esp
 	popal
@@ -124,6 +134,7 @@ idt_int_of:
 idt_int_br:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	36(%esp)
 	pushl	$idt_int_msg_br
 	call	idt_int_panic
@@ -134,6 +145,7 @@ idt_int_br:
 idt_int_ud:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	36(%esp)
 	pushl	$idt_int_msg_ud
 	call	idt_int_panic
@@ -144,6 +156,7 @@ idt_int_ud:
 idt_int_nm:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	36(%esp)
 	pushl	$idt_int_msg_nm
 	call	idt_int_panic
@@ -154,6 +167,7 @@ idt_int_nm:
 idt_int_df:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	$idt_int_msg_df
 	call	idt_int_panic
 	addl	$8, %esp
@@ -164,6 +178,7 @@ idt_int_ts:
 	popl	TMPVAL		// Err code
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ts
@@ -176,6 +191,7 @@ idt_int_np:
 	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_np
@@ -188,6 +204,7 @@ idt_int_ss:
 	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ss
@@ -200,6 +217,7 @@ idt_int_gp:
 	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_gp
@@ -212,6 +230,7 @@ idt_int_pf:
 	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	movl	%cr2, %eax
 	pushl	%eax		// Faulting address
 	movl	TMPVAL, %eax
@@ -228,6 +247,7 @@ idt_int_mf:
 	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_mf
@@ -240,6 +260,7 @@ idt_int_ac:
 	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ac
@@ -251,6 +272,7 @@ idt_int_ac:
 idt_int_mc:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	$idt_int_msg_mc
 	call	idt_int_panic
 	addl	$8, %esp
@@ -261,6 +283,7 @@ idt_int_xf:
 	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_xf
@@ -272,6 +295,7 @@ idt_int_xf:
 idt_int_reserved:
 	pusha
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	$idt_int_msg_reserved
 	call	idt_int_panic
 	addl	$8, %esp
@@ -353,6 +377,7 @@ idt_int_irq2f:
 idt_int_irqexec:
 	pushal
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	movl	TMPVAL, %eax
 	pushl	%eax
 	call	*idt_int_irq_listeners(,%eax,4)
@@ -367,6 +392,7 @@ idt_int_irq_size:
 idt_int_usr:
 	pushal
 	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 
 	pushl	%edx
 	pushl	%ecx

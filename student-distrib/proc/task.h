@@ -11,6 +11,7 @@
 #include "../libc.h"
 #include "../boot/page_table.h"
 #include "../boot/syscall.h"
+#include "../boot/idt_int.h"
 
 #include "../../libc/include/signal.h"
 
@@ -23,26 +24,6 @@
 #define TASK_MAX_PROC		32767	///< Maximum of concurrently-scheduled tasks
 #define TASK_MAX_OPEN_FILES	16		///< Per-process limit of concurrent open files
 #define TASK_MAX_PAGE_MAPS	16		///< Maximum pages a process may request
-
-/**
- *	Structure of saved registers produced by `pusha`
- */
-typedef struct s_regs {
-	uint32_t magic;		///< Should be 1145141919
-	uint32_t edi;		///< edi saved by pusha
-	uint32_t esi;		///< esi saved by pusha
-	uint32_t ebp;		///< ebp saved by pusha
-	uint32_t esp_k;		///< esp saved by pusha (Not used. See `esp`)
-	uint32_t ebx;		///< ebx saved by pusha
-	uint32_t edx;		///< edx saved by pusha
-	uint32_t ecx;		///< ecx saved by pusha
-	uint32_t eax;		///< eax saved by pusha
-	uint32_t eip;		///< eip in iret structure
-	uint32_t cs;		///< cs in iret structure
-	uint32_t eflags;	///< eflags in iret structure
-	uint32_t esp;		///< esp in iret structure
-	uint32_t ss;		///< ss in iret structure
-} __attribute__((__packed__)) regs_t;
 
 #define TASK_PTENT_CPONWR	0x1		///< Current page is copy-on-write
 
