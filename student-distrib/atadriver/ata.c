@@ -21,8 +21,6 @@
 
 // assembly code reference: https://wiki.osdev.org/ATA_PIO_Mode#CHS_mode
 
-static char slave_bit;
-
 // only need to send eoi in singletasking mode
 void ata_prim_handler(){
 	send_eoi(ATA_PRIM_IRQ);
@@ -33,26 +31,29 @@ void ata_sec_handler(){
 	
 }
 
-void io_delay(){
+void io_delay(ata_data_t* dev){
+	int32_t reg_offset = dev->io_base_reg;
 	// 4 consecutive read to implement 400ns delay
-	inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-	inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-	inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-	inb(PRIM_DATA_REG + STATUS_CMD_OFF);
+	inb(reg_offset + STATUS_CMD_OFF);
+	inb(reg_offset + STATUS_CMD_OFF);
+	inb(reg_offset + STATUS_CMD_OFF);
+	inb(reg_offset + STATUS_CMD_OFF);
 }
 
-void soft_reset(){
-	outb(CMD_RESET, PRIM_DATA_REG + STATUS_CMD_OFF);
-	outb(0, PRIM_DATA_REG + STATUS_CMD_OFF);
+void soft_reset(ata_data_t* dev){
+	int32_t reg_offset = dev->io_base_reg;
+	outb(CMD_RESET, reg_offset + STATUS_CMD_OFF);
+	outb(0, reg_offset + STATUS_CMD_OFF);
 	io_delay;
-	char stat = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
+	char stat = inb(reg_offset + STATUS_CMD_OFF);
 	// check if BSY clear and RDY set
 	while(stat & STAT_RDY_BIT & STAT_BSY_BIT != STAT_RDY_BIT){
-		stat = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
+		stat = inb(reg_offset + STATUS_CMD_OFF);
 	}
 }
 // singletasking ata read
-int ata_read_st(uint8_t sectorcount, uint16_t* buf, int32_t lba){
+int ata_read_st(uint8_t sectorcount, uint16_t* buf, int32_t lba, ata_data_t* dev){
+	int32_t reg_offset = dev->io_base_reg;
 	if(sectorcount<0){
 		soft_reset();
 		if(sectorcount < 0){
@@ -66,9 +67,9 @@ int ata_read_st(uint8_t sectorcount, uint16_t* buf, int32_t lba){
 	}
 	
 	// TODO: verify partition size & sector len
-	uint8_t sec_len = inb(PRIM_DATA_REG + SEC_COUNT_OFF);
+	uint8_t sec_len = inb(reg_offset + SEC_COUNT_OFF);
 	
-	uint8_t	status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
+	uint8_t	status = inb(reg_offset + STATUS_CMD_OFF);
 	if(status | STAT_BSY_BIT || status & STAT_DRQ_BIT){
 		soft_reset();
 	}
@@ -80,229 +81,212 @@ int ata_read_st(uint8_t sectorcount, uint16_t* buf, int32_t lba){
 			: "=a"(ebp)
 			:
 	);
-	int abs_lba = ebp + sectorcount;
-	if(ebp > 0xFFFFFFF || sectorcount > 0xFFFFFFF ||ebp + sectorcount > 0xFFFFFFF){
-		while(0 != ata_read_48((int32_t)(abs_lba>>32), (int32_t)abs_lba, sectorcount, buf));
+	int abs_lba = ebp + lba;
+	int i = 0;
+	if(ebp > 0xFFFFFFF || lba > 0xFFFFFFF ||ebp + lba > 0xFFFFFFF){
+		for( ; i < sectorcount; i++){
+			if(0 != ata_read_48((int32_t)(abs_lba>>32), (int32_t)abs_lba, sectorcount, buf, dev))
+				return -1;
+			buf += 512;
+		}
 	}
 	else{
-		while(0 != ata_read_28((int32_t)abs_lba, sectorcount, buf));
+		for( ; i < sectorcount; i++){
+			if(0 != ata_read_28((int32_t)abs_lba, sectorcount, buf, dev))
+				return -1;
+			buf += 512;
+		}
 	}	
 	
 	return 0;
 }
 
-int ata_read_28(uint32_t lba, uint8_t sectorcount, uint16_t* buf){
-	outb(0xE0 | (slavebit << 4) | ((lba >> 24) & 0x0F), PRIM_DATA_REG + DRIVE_HEAD_OFF);
-	outb(0x00, PRIM_DATA_REG + ERROR_FEAT_OFF);
-	
-	outb(sectorcount, PRIM_DATA_REG + SEC_COUNT_OFF);
-	outb((uint8_t)lba, PRIM_DATA_REG + LBA_LO_OFF);
-	outb((uint8_t)(lba>>8), PRIM_DATA_REG + LBA_MID_OFF);
-	outb((uint8_t)(lba>>16), PRIM_DATA_REG + LBA_HI_OFF);
-	
-	outb(CMD_READ_SEC, PRIM_DATA_REG + STATUS_CMD_OFF);
-	
-	int read_count = 4;
-	uint8_t status;
-	while(1){
-		status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-		if(read_count > 0){
-			if(status & STAT_BSY_BIT){
-				read_count--;
-				continue;
-			}
-			else if(status & STAT_DRQ_BIT){
-				break;
-			}
-		}else{
-			// loop until bsy cleas
-			while(status & STAT_BSY_BIT)
-				status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-			if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
-				return -1;
-		}
-	}
-	
-	asm volatile (
-			"								\n\
-			movl	%1, %%edx				\n\
-			movl	$256, %%ecx				\n\
-			movl	%0, edi					\n\
-			rep insw						\n\
-			"
-			: 
-			: "r"(buf), "r"(PRIM_DATA_REG)
-			: "%edx", "%ecx", "%edi"
-	);
-	
-	io_delay();
-	
-	status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-	if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
-		return -1;
-	
-	sectorcount--;
-	return sectorcount;
-}
-
-int ata_read_48(uint32_t lba_hi, uint32_t lba_lo, uint16_t sectorcount, uint16_t* buf){
-	outb(0x40 | (slavebit << 4) | ((lba >> 24) & 0x0F), PRIM_DATA_REG + DRIVE_HEAD_OFF);
-	outb(0x00, PRIM_DATA_REG + ERROR_FEAT_OFF);
-	
-	outb((uint8_t)(sectorcount >> 8), PRIM_DATA_REG + SEC_COUNT_OFF);
-	outb((uint8_t)lba_hi, PRIM_DATA_REG + LBA_LO_OFF);
-	outb((uint8_t)(lba_hi>>8), PRIM_DATA_REG + LBA_MID_OFF);
-	outb((uint8_t)(lba_hi>>16), PRIM_DATA_REG + LBA_HI_OFF);
-	
-	
-	outb((uint8_t)(sectorcount), PRIM_DATA_REG + SEC_COUNT_OFF);
-	outb((uint8_t)lba_lo, PRIM_DATA_REG + LBA_LO_OFF);
-	outb((uint8_t)(lba_lo>>8), PRIM_DATA_REG + LBA_MID_OFF);
-	outb((uint8_t)(lba_lo>>16), PRIM_DATA_REG + LBA_HI_OFF);
-	
-	outb(CMD_READ_SEC_EXT, PRIM_DATA_REG + STATUS_CMD_OFF);
-	
-	int read_count = 4;
-	uint8_t status;
-	
-	while(1){
-		status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-		if(read_count > 0){
-			if(status & STAT_BSY_BIT){
-				read_count--;
-				continue;
-			}
-			else if(status & STAT_DRQ_BIT){
-				break;
-			}
-		}else{
-			// loop until bsy clears
-			while(status & STAT_BSY_BIT)
-				status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-			if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
-				return -1;
-		}
-	}
-	// TODO: checking sector count
-	asm volatile (
-			"								\n\
-			movl	%1, %%edx				\n\
-			movl	$256, %%ecx				\n\
-			movl	%0, edi					\n\
-			rep insw						\n\
-			"
-			: 
-			: "r"(buf), "r"(PRIM_DATA_REG)
-			: "%edx", "%ecx", "%edi"
-	);
-	
-	io_delay();
-	
-	status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-	if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
-		return -1;
-	sectorcount--;
-	return sectorcount;
-}
-
-
-int ata_write_28(uint32_t lba, uint8_t sectorcount, uint16_t* buf){
-	outb(0xE0 | (slavebit << 4) | ((lba >> 24) & 0x0F), PRIM_DATA_REG + DRIVE_HEAD_OFF);
-	outb(0x00, PRIM_DATA_REG + ERROR_FEAT_OFF);
-	
-	outb(sectorcount, PRIM_DATA_REG + SEC_COUNT_OFF);
-	outb((uint8_t)lba, PRIM_DATA_REG + LBA_LO_OFF);
-	outb((uint8_t)(lba>>8), PRIM_DATA_REG + LBA_MID_OFF);
-	outb((uint8_t)(lba>>16), PRIM_DATA_REG + LBA_HI_OFF);
-	
-	outb(CMD_WRITE_SEC, PRIM_DATA_REG + STATUS_CMD_OFF);
-	
-	int read_count = 4;
-	uint8_t status;
-	while(1){
-		status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-		if(read_count > 0){
-			if(status & STAT_BSY_BIT){
-				read_count--;
-				continue;
-			}
-			else if(status & STAT_DRQ_BIT){
-				break;
-			}
-		}else{
-			// loop until bsy clears
-			while(status & STAT_BSY_BIT)
-				status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-			if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
-				return -1;
-		}
-	}
-	// TODO: DO NOT use rep outsw, need delay and cache flush
+int ata_poll_stat(ata_data_t* dev){
 	int i = 0;
-	for( ;i < 256; i++){
-		
-		asm volatile (
-				"								\n\
-				movl	%1, %%edx				\n\
-				movl	%0, edi					\n\
-				insw							\n\
-				"
-				: 
-				: "r"(buf), "r"(PRIM_DATA_REG)
-				: "%edx", "%ecx", "%edi"
-		);
-		io_delay();
-		buf += 16;
+	uint8_t status;
+	
+	int32_t reg_offset = dev->io_base_reg;
+	
+	// ignore error in first 4 status reads
+	for( ; i < 4; i++){
+		status = inb(io_base + STATUS_CMD_OFF);
+		// check if bsy is cleared
+		if(!status & STAT_BSY_BIT){
+			// ready to read data if drq set
+			if(status & STAT_DRQ_BIT)
+				return 0;
+		}
 	}
+	// loop until bsy clears or error sets
+	while(status & STAT_BSY_BIT){
+		status = inb(io_base + STATUS_CMD_OFF);
+		if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
+		return -1;
+	}
+	return 0;
+}
+
+int ata_read_28(uint32_t lba, uint8_t* buf, ata_data_t* dev){
 	
-	// cache flush
-	outb(CMD_CACHE_FLUSH, PRIM_DATA_REG + STATUS_CMD_OFF);
+	int32_t reg_offset = dev->io_base_reg;
+	int32_t slavebit = dev->slave_bit;
 	
-	status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
+	outb(0xE0 | (slavebit << 4) | ((lba >> 24) & 0x0F), reg_offset + DRIVE_HEAD_OFF);
+	outb(0x00, reg_offset + ERROR_FEAT_OFF);
+	
+	outb(sectorcount, reg_offset + SEC_COUNT_OFF);
+	outb((uint8_t)lba, reg_offset + LBA_LO_OFF);
+	outb((uint8_t)(lba>>8), reg_offset + LBA_MID_OFF);
+	outb((uint8_t)(lba>>16), reg_offset + LBA_HI_OFF);
+	
+	outb(CMD_READ_SEC, reg_offset + STATUS_CMD_OFF);
+	
+	if(-1 == ata_poll_stat(dev))
+		return -1;
+	
+	int16_t* buffer = (int16_t*)buf;
+	
+	asm volatile (
+			"								\n\
+			movl	%1, %%edx				\n\
+			movl	$256, %%ecx				\n\
+			movl	%0, edi					\n\
+			rep insw						\n\
+			"
+			: 
+			: "r"(buffer), "r"(reg_offset)
+			: "%edx", "%ecx", "%edi"
+	);
+	
+	io_delay();
+	
+	status = inb(reg_offset + STATUS_CMD_OFF);
 	if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
 		return -1;
 	
 	return 0;
 }
 
-int ata_write_48(uint32_t lba_hi, uint32_t lba_lo, uint16_t sectorcount, uint16_t* buf){
-	outb(0x40 | (slavebit << 4) | ((lba >> 24) & 0x0F), PRIM_DATA_REG + DRIVE_HEAD_OFF);
-	outb(0x00, PRIM_DATA_REG + ERROR_FEAT_OFF);
-	
-	outb((uint8_t)(sectorcount >> 8), PRIM_DATA_REG + SEC_COUNT_OFF);
-	outb((uint8_t)lba_hi, PRIM_DATA_REG + LBA_LO_OFF);
-	outb((uint8_t)(lba_hi>>8), PRIM_DATA_REG + LBA_MID_OFF);
-	outb((uint8_t)(lba_hi>>16), PRIM_DATA_REG + LBA_HI_OFF);
+int ata_read_48(uint32_t lba_hi, uint32_t lba_lo, uint16_t* buf, ata_data_t* dev){
 	
 	
-	outb((uint8_t)(sectorcount), PRIM_DATA_REG + SEC_COUNT_OFF);
-	outb((uint8_t)lba_lo, PRIM_DATA_REG + LBA_LO_OFF);
-	outb((uint8_t)(lba_lo>>8), PRIM_DATA_REG + LBA_MID_OFF);
-	outb((uint8_t)(lba_lo>>16), PRIM_DATA_REG + LBA_HI_OFF);
+	int32_t reg_offset = dev->io_base_reg;
+	int32_t slavebit = dev->slave_bit;
 	
-	outb(CMD_WRITE_SEC_EXT, PRIM_DATA_REG + STATUS_CMD_OFF);
+	outb(0x40 | (slavebit << 4) | ((lba >> 24) & 0x0F), reg_offset + DRIVE_HEAD_OFF);
+	outb(0x00, reg_offset + ERROR_FEAT_OFF);
+	
+	outb((uint8_t)(sectorcount >> 8), reg_offset + SEC_COUNT_OFF);
+	outb((uint8_t)lba_hi, reg_offset + LBA_LO_OFF);
+	outb((uint8_t)(lba_hi>>8), reg_offset + LBA_MID_OFF);
+	outb((uint8_t)(lba_hi>>16), reg_offset + LBA_HI_OFF);
+	
+	
+	outb((uint8_t)(sectorcount), reg_offset + SEC_COUNT_OFF);
+	outb((uint8_t)lba_lo, reg_offset + LBA_LO_OFF);
+	outb((uint8_t)(lba_lo>>8), reg_offset + LBA_MID_OFF);
+	outb((uint8_t)(lba_lo>>16), reg_offset + LBA_HI_OFF);
+	
+	outb(CMD_READ_SEC_EXT, reg_offset + STATUS_CMD_OFF);
 	
 	int read_count = 4;
 	uint8_t status;
 	
-	while(1){
-		status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-		if(read_count > 0){
-			if(status & STAT_BSY_BIT){
-				read_count--;
-				continue;
-			}
-			else if(status & STAT_DRQ_BIT){
-				break;
-			}
-		}else{
-			// loop until bsy cleans
-			while(status & STAT_BSY_BIT)
-				status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
-			if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
-				return -1;
-		}
+	if(-1 == ata_poll_stat(dev))
+		return -1;
+	
+	int16_t* buffer = (int16_t*)buf;
+	
+	asm volatile (
+			"								\n\
+			movl	%1, %%edx				\n\
+			movl	$256, %%ecx				\n\
+			movl	%0, edi					\n\
+			rep insw						\n\
+			"
+			: 
+			: "r"(buffer), "r"(reg_offset)
+			: "%edx", "%ecx", "%edi"
+	);
+	
+	io_delay();
+	
+	status = inb(reg_offset + STATUS_CMD_OFF);
+	if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
+		return -1;
+	
+	return 0;
+}
+
+
+int ata_write_28(uint32_t lba, uint16_t* buf, ata_data_t* dev){
+	
+	int32_t reg_offset = dev->io_base_reg;
+	int32_t slavebit = dev->slave_bit;
+	
+	outb(0xE0 | (slavebit << 4) | ((lba >> 24) & 0x0F), reg_offset + DRIVE_HEAD_OFF);
+	outb(0x00, reg_offset + ERROR_FEAT_OFF);
+	
+	outb(sectorcount, reg_offset + SEC_COUNT_OFF);
+	outb((uint8_t)lba, reg_offset + LBA_LO_OFF);
+	outb((uint8_t)(lba>>8), reg_offset + LBA_MID_OFF);
+	outb((uint8_t)(lba>>16), reg_offset + LBA_HI_OFF);
+	
+	outb(CMD_WRITE_SEC, reg_offset + STATUS_CMD_OFF);
+	
+	if(-1 == ata_poll_stat(dev))
+		return -1;
+	// TODO: DO NOT use rep outsw, need delay and cache flush
+	int i = 0;
+	for( ;i < 256; i++){
+		
+		asm volatile (
+				"								\n\
+				movl	%1, %%edx				\n\
+				movl	%0, edi					\n\
+				outsw							\n\
+				"
+				: 
+				: "r"(buf), "r"(reg_offset)
+				: "%edx", "%ecx", "%edi"
+		);
+		io_delay();
+		buf += 2;
 	}
+	
+	// cache flush
+	outb(CMD_CACHE_FLUSH, reg_offset + STATUS_CMD_OFF);
+	
+	status = inb(reg_offset + STATUS_CMD_OFF);
+	if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
+		return -1;
+	
+	return 0;
+}
+
+int ata_write_48(uint32_t lba_hi, uint32_t lba_lo, uint16_t* buf, ata_data_t* dev){
+	
+	int32_t reg_offset = dev->io_base_reg;
+	int32_t slavebit = dev->slave_bit;
+	
+	outb(0x40 | (slavebit << 4) | ((lba >> 24) & 0x0F), reg_offset + DRIVE_HEAD_OFF);
+	outb(0x00, reg_offset + ERROR_FEAT_OFF);
+	
+	outb((uint8_t)(sectorcount >> 8), reg_offset + SEC_COUNT_OFF);
+	outb((uint8_t)lba_hi, reg_offset + LBA_LO_OFF);
+	outb((uint8_t)(lba_hi>>8), reg_offset + LBA_MID_OFF);
+	outb((uint8_t)(lba_hi>>16), reg_offset + LBA_HI_OFF);
+	
+	
+	outb((uint8_t)(sectorcount), reg_offset + SEC_COUNT_OFF);
+	outb((uint8_t)lba_lo, reg_offset + LBA_LO_OFF);
+	outb((uint8_t)(lba_lo>>8), reg_offset + LBA_MID_OFF);
+	outb((uint8_t)(lba_lo>>16), reg_offset + LBA_HI_OFF);
+	
+	outb(CMD_WRITE_SEC_EXT, reg_offset + STATUS_CMD_OFF);
+	
+	if(-1 == ata_poll_stat(dev))
+		return -1;
 	
 	// TODO: DO NOT use rep outsw, need delay and cache flush
 	int i = 0;
@@ -312,21 +296,21 @@ int ata_write_48(uint32_t lba_hi, uint32_t lba_lo, uint16_t sectorcount, uint16_
 				"								\n\
 				movl	%1, %%edx				\n\
 				movl	%0, edi					\n\
-				insw							\n\
+				outsw							\n\
 				"
 				: 
-				: "r"(buf), "r"(PRIM_DATA_REG)
+				: "r"(buf), "r"(reg_offset)
 				: "%edx", "%ecx", "%edi"
 		);
 		io_delay();
-		buf += 16;
+		buf += 2;
 	}
 	
 	// cache flush
-	outb(CMD_CACHE_FLUSH, PRIM_DATA_REG + STATUS_CMD_OFF);
+	outb(CMD_CACHE_FLUSH, reg_offset + STATUS_CMD_OFF);
 	
 	
-	status = inb(PRIM_DATA_REG + STATUS_CMD_OFF);
+	status = inb(reg_offset + STATUS_CMD_OFF);
 	if(status & STAT_DF_BIT || status & STAT_ERR_BIT)
 		return -1;
 	

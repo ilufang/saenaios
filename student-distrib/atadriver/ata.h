@@ -39,6 +39,13 @@
 #define SEC_CTL_REG		0x376
 #define ERROR_REG		0x1F1
 
+typedef struct s_ata {
+	int32_t slave_bit;		///< master/slave
+	int32_t io_base_reg;	///< primary/secondary
+} ata_data_t;
 
+void ata_init();
+
+int ata_read_st(uint8_t sectorcount, uint16_t* buf, int32_t lba, ata_data_t* dev);
 
 #endif
