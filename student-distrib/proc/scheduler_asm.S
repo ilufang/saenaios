@@ -2,6 +2,7 @@
 
 .global scheduler_get_magic
 .global scheduler_iret
+//.global scheduler_kernel_iret
 
 scheduler_get_magic:
 	pushl	%ebp
@@ -12,11 +13,12 @@ scheduler_get_magic:
 scheduler_get_magic_loop:
 	movl	(%ecx),	%eax
 	cmpl	STACK_UNKO_MAGIC, %eax
-	je	scheduler_get_magic_found
+	je		scheduler_get_magic_found
 	addl	$4, %ecx
+	jmp		scheduler_get_magic_loop
 
 scheduler_get_magic_found:
-	leal	4(%ecx), %eax
+	leal	(%ecx), %eax
 	leave
 	ret
 
@@ -28,7 +30,8 @@ scheduler_iret:
 	// parameter is the address of the structure of regs
 	// in order of edi esi ebp esp ebx edx ecx eax
 
-	movl	4(%esp), %eax
+	movl	4(%esp), %esp
+	movl	%esp, %eax
 	addl	$36, %eax
 	movl	%eax, scheduler_static_space
 
@@ -40,4 +43,16 @@ scheduler_iret:
 
 	iret
 
+/* scheduler_kernel_iret:
+	movl	8(%esp), %eax
+	movl	%eax, scheduler_static_space
+
+	movl	4(%esp), %esp
+	addl	$4, %esp
+
+	popal
+
+	movl	scheduler_static_space, %esp
+
 	iret
+ */

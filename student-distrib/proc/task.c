@@ -28,6 +28,7 @@ int16_t task_alloc_pid() {
 }
 
 void task_create_kernel_pid() {
+	int i;//iterator
 	// initialize the kernel task
 	task_t* init_task = task_list + 0;
 	// should open fd 0 and 1
@@ -35,9 +36,15 @@ void task_create_kernel_pid() {
 	init_task->status = TASK_ST_RUNNING;
 	init_task->ks_esp = 0x800000;
 	task_pid_allocator = 0;
+
+	// initialize kernel stack page
+	for (i=0; i<512; ++i){
+		kstack[i].pid = -1;
+	}
 }
 
 int syscall_fork(int a, int b, int c) {
+	cli();
 	int16_t pid, cur_pid;
 	task_t *cur_task, *new_task;
 	int i;
@@ -61,6 +68,7 @@ int syscall_fork(int a, int b, int c) {
 			// Slot is empty, use it
 			kstack[i].pid = pid;
 			new_task->ks_esp = (int)(kstack + i + 1);
+			break;
 		}
 	}
 	if (i == 512)

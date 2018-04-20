@@ -23,10 +23,10 @@ void scheduler_event(){
 		}
 	}
 	// don't tell there's only one process running!
-	if (prev == scheduler_iterator){
+/*	if (prev == scheduler_iterator){
 		// well no need to switch then
 		return;
-	}
+	}*/
 
 	proc = task_list + scheduler_iterator;
 	if (proc->signals) {
@@ -61,8 +61,14 @@ void scheduler_switch(task_t* from, task_t* to){
 	// save the registers of from process
 	memcpy(&from->regs, original, sizeof(regs_t));
 
-	// brutal force iret
-	scheduler_iret(*original);
+	// TODO SET DS
+
+	if (to->regs.cs == KERNEL_CS){
+		scheduler_kernel_iret(&(to->regs), to->regs.esp_k);
+	}else{
+		// brutal force iret
+		scheduler_user_iret(&(to->regs));
+	}
 }
 
 void scheduler_page_clear(task_ptentry_t* pages){

@@ -61,6 +61,10 @@ regs_t*	scheduler_get_magic();
  *
  *	@param reg: the whole structure to iret
  */
-void scheduler_iret(regs_t reg);
+void scheduler_iret(regs_t* reg);
 
+/*void scheduler_user_iret(regs_t* reg);
+
+void scheduler_kernel_iret(regs_t* reg, int esp);
+*/
 #endif

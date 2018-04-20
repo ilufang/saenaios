@@ -159,7 +159,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	/* Initialize Paging */
 	page_ece391_init();
-	
+
 	/* Init the PIC */
 	i8259_init();
 
@@ -197,8 +197,25 @@ void entry(unsigned long magic, unsigned long addr) {
 	launch_tests();
 #endif
 	scheduling_start();
+	// Have kernel task raise an interrupt to get its iret structure
+	__asm__("int $0x28");
+	int temp_ret;
+	if (!(temp_ret = syscall_fork(0,0,0))){
+		// child process
+		while(1){
+			printf("child!\n");
+		}
+	}else if(temp_ret>0){
+		while(1){
+			printf("parent!\n");
+		}
+	}else{
+		printf("scheduler / fork failed!\n");
+	}
 
-	
+
+
+
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	printf("\nEnd of startup\n");
