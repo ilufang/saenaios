@@ -16,12 +16,13 @@
 #include "boot/idt.h"
 #include "boot/page_table.h"
 
+#include "proc/scheduler.h"
 #include "proc/task.h"
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
 #include "libc.h"
 
-#define RUN_TESTS
+//#define RUN_TESTS
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -195,15 +196,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Run tests */
 	launch_tests();
 #endif
-	/* Execute the first program ("shell") ... */
-	int32_t fd_in, fd_out;
-	fd_in = open("/dev/stdin", O_RDONLY, 0);
-	fd_out = open("/dev/stdout", O_WRONLY, 0);
-	printf("Testing syscall assembly linkage wrapper\n");
-	printf("Executing shell\n");
-	syscall_ece391_execute((int)"shell",0,0);
-	close(fd_in);
-	close(fd_out);
+	scheduling_start();
+
+	
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	printf("\nEnd of startup\n");

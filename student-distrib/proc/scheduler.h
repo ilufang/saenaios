@@ -13,6 +13,8 @@
 /// Set to 1 when scheduler is enabled. (Used by RTC ISR)
 extern int scheduler_on_flag;
 
+void scheduling_start();
+
 /**
  *	this function is called by rtc interrupt handler
  *	to start task switch

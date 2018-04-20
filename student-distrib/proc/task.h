@@ -21,7 +21,7 @@
 #define TASK_ST_ZOMBIE		3	///< Process is awaiting parent `wait()`
 #define TASK_ST_DEAD		4	///< Process is dead
 
-#define TASK_MAX_PROC		32767	///< Maximum of concurrently-scheduled tasks
+#define TASK_MAX_PROC		64	///< Maximum of concurrently-scheduled tasks
 #define TASK_MAX_OPEN_FILES	16		///< Per-process limit of concurrent open files
 #define TASK_MAX_PAGE_MAPS	16		///< Maximum pages a process may request
 

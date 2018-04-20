@@ -86,10 +86,10 @@ void signal_exec(int sig) {
 	// Resume program execution
 	proc->status = TASK_ST_RUNNING;
 
-	switch((int) proc->sigacts[sig].handler) {
-		case ((int) SIG_DFL):
+	switch((int)(proc->sigacts[sig].handler)) {
+		case ((int)SIG_DFL):
 			return signal_exec_default(proc, sig);
-		case ((int) SIG_IGN):
+		case ((int)SIG_IGN):
 			// TODO perform context switch
 			return;
 	}
