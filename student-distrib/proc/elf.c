@@ -74,7 +74,7 @@ int elf_load(int fd)  {
 	}
 
 	// Set entry point
-	proc->eip = eh.entry;
+	proc->regs.eip = eh.entry;
 
 	// Prepare to create new memory pages
 	for (idx = 0; idx < TASK_MAX_PAGE_MAPS; idx++) {

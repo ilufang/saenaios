@@ -3,6 +3,7 @@
 #include "../fs/vfs.h"
 #include "elf.h"
 #include "signal.h"
+#include "scheduler.h"
 
 task_t task_list[TASK_MAX_PROC];
 pid_t task_pid_allocator;
@@ -58,7 +59,7 @@ int syscall_fork(int a, int b, int c) {
 		if (kstack[i].pid < 0) {
 			// Slot is empty, use it
 			kstack[i].pid = pid;
-			new_task.ks_esp = kstack + i + 1;
+			new_task->ks_esp = (uint32_t)(kstack + i + 1);
 		}
 	}
 	if (i == 512)
@@ -225,7 +226,7 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	}
 
 	// TODO modify user stack for BOTH
-
+	return 0;
 }
 
 int syscall_ece391_halt(int a, int b, int c) {
@@ -305,15 +306,15 @@ int task_access_memory(uint32_t addr) {
 
 	proc = task_list + task_current_pid();
 	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
-		if (addr < proc.pages[i].vaddr)
+		if (addr < proc->pages[i].vaddr)
 			continue;
-		if (proc.pages[i].pt_flags & PAGE_DIR_ENT_4MB) {
+		if (proc->pages[i].pt_flags & PAGE_DIR_ENT_4MB) {
 			// 4MB page
-			if (addr >= proc.pages[i].vaddr + (4<<20))
+			if (addr >= proc->pages[i].vaddr + (4<<20))
 				continue;
 		} else {
 			// 4KB page
-			if (addr >= proc.pages[i].vaddr + (4<<20))
+			if (addr >= proc->pages[i].vaddr + (4<<20))
 				continue;
 		}
 		// In bounds, OK
@@ -354,7 +355,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 			page->pt_flags |= PAGE_DIR_ENT_RDWR;
 			page->priv_flags &= ~(TASK_PTENT_CPONWR);
 			// Allocate and copy memory (using virtual 0xc0000000 as temp)
-			if (page_alloc_4MB(&(page->paddr)) != 0) {
+			if (page_alloc_4MB((int *) &(page->paddr)) != 0) {
 				// No memory... Delete this page
 				page->pt_flags = 0;
 				page_alloc_free_4MB(i);
@@ -362,7 +363,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 				return -ENOMEM;
 			}
 			page_dir_add_4MB_entry(0xc0000000, page->paddr, page->pt_flags);
-			memcpy((char *)0xc0000000, page->vaddr, 4<<20);
+			memcpy((char *) 0xc0000000, (char *)page->vaddr, 4<<20);
 			page_dir_delete_entry(0xc0000000);
 			page_alloc_free_4MB(i);
 			page_dir_delete_entry(page->vaddr);
@@ -374,7 +375,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 			page->pt_flags |= PAGE_DIR_ENT_RDWR;
 			page->priv_flags &= ~(TASK_PTENT_CPONWR);
 			// Allocate and copy memory (using virtual 0x08040000 as temp)
-			if (page_alloc_4KB(&(page->paddr)) != 0) {
+			if (page_alloc_4KB((int *) &(page->paddr)) != 0) {
 				// No memory... Delete this page
 				page->pt_flags = 0;
 				page_alloc_free_4KB(i);
@@ -382,7 +383,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 				return -ENOMEM;
 			}
 			page_tab_add_entry(0x08040000, page->paddr, page->pt_flags);
-			memcpy((char *)0x08040000, page->vaddr, 4<<10);
+			memcpy((char *) 0x08040000, (char *) page->vaddr, 4<<10);
 			page_tab_delete_entry(0x08040000);
 			page_alloc_free_4KB(i);
 			page_tab_delete_entry(page->vaddr);

@@ -103,7 +103,7 @@ typedef struct s_file_operations {
 	 *	@return the absolute offset on success, or the negative of an errno on
 	 *	failure.
 	 */
-	off_t (*llseek)(int fd, off_t offset, int whence);
+	off_t (*llseek)(struct s_file *file, off_t offset, int whence);
 
 	/**
 	 *	Read the directory file for dir entires.

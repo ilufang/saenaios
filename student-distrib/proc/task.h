@@ -202,6 +202,4 @@ int task_access_memory(uint32_t addr);
  */
 int task_pf_copy_on_write(uint32_t addr);
 
-}
-
 #endif
