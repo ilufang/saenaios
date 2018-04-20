@@ -240,14 +240,84 @@ void idt_int_rtc();
 void idt_int_keyboard();
 
 /**
- *	PIC interrupt entry point
- *
- *	@note This function only serves as a symbol to retrieve the address of IRQ
- *		  entry points in the linked binary. Starting at this address is 16
- *		  consecutive equally-sized entry point code for the 16 interrupts from
- *		  the PIC.
+ *	PIC IRQ 0 interrupt entry point
  */
-void idt_int_irq();
+void idt_int_irq0();
+
+/**
+ *	PIC IRQ 1 interrupt entry point
+ */
+void idt_int_irq1();
+
+/**
+ *	PIC IRQ 2 interrupt entry point
+ */
+void idt_int_irq2();
+
+/**
+ *	PIC IRQ 3 interrupt entry point
+ */
+void idt_int_irq3();
+
+/**
+ *	PIC IRQ 4 interrupt entry point
+ */
+void idt_int_irq4();
+
+/**
+ *	PIC IRQ 5 interrupt entry point
+ */
+void idt_int_irq5();
+
+/**
+ *	PIC IRQ 6 interrupt entry point
+ */
+void idt_int_irq6();
+
+/**
+ *	PIC IRQ 7 interrupt entry point
+ */
+void idt_int_irq7();
+
+/**
+ *	PIC IRQ 8 interrupt entry point
+ */
+void idt_int_irq8();
+
+/**
+ *	PIC IRQ 9 interrupt entry point
+ */
+void idt_int_irq9();
+
+/**
+ *	PIC IRQ 10 interrupt entry point
+ */
+void idt_int_irq10();
+
+/**
+ *	PIC IRQ 11 interrupt entry point
+ */
+void idt_int_irq11();
+
+/**
+ *	PIC IRQ 12 interrupt entry point
+ */
+void idt_int_irq12();
+
+/**
+ *	PIC IRQ 13 interrupt entry point
+ */
+void idt_int_irq13();
+
+/**
+ *	PIC IRQ 14 interrupt entry point
+ */
+void idt_int_irq14();
+
+/**
+ *	PIC IRQ 15 interrupt entry point
+ */
+void idt_int_irq15();
 
 /**
  *	Size of each IRQ entry point code. Used for address calculation
