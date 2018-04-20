@@ -37,7 +37,6 @@ void idt_make_trap(idt_desc_t *idte, void *handler, int dpl);
 
 void idt_construct(idt_desc_t *idt) {
 	int i;
-	char *int_irq_ptr = (char *)&(idt_int_irq);
 
 	printf("Initializing IDT...\n");
 	// Initialize interrupt 0x00 - 0x1f: processor exceptions
@@ -66,10 +65,22 @@ void idt_construct(idt_desc_t *idt) {
 	}
 
 	// Initialize interrupt 0x20 - 0x2f: PIC interrupts
-	for (i = 0x20; i < 0x30; i++) {
-		idt_make_interrupt(idt + i, int_irq_ptr, IDT_DPL_KERNEL);
-		int_irq_ptr += idt_int_irq_size;
-	}
+	idt_make_interrupt(idt + 0x20, &(idt_int_irq0), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x21, &(idt_int_irq1), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x22, &(idt_int_irq2), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x23, &(idt_int_irq3), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x24, &(idt_int_irq4), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x25, &(idt_int_irq5), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x26, &(idt_int_irq6), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x27, &(idt_int_irq7), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x28, &(idt_int_irq8), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x29, &(idt_int_irq9), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x2a, &(idt_int_irq10), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x2b, &(idt_int_irq11), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x2c, &(idt_int_irq12), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x2d, &(idt_int_irq13), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x2e, &(idt_int_irq14), IDT_DPL_KERNEL);
+	idt_make_interrupt(idt + 0x2f, &(idt_int_irq15), IDT_DPL_KERNEL);
 
 	// Initialize interrupt 0x80: System call
 	syscall_register_all();

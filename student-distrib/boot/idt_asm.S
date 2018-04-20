@@ -27,8 +27,22 @@ iret_struct:
 .globl idt_int_mc
 .globl idt_int_xf
 .globl idt_int_reserved
-.globl idt_int_irq
-.globl idt_int_irq_size
+.globl idt_int_irq0
+.globl idt_int_irq1
+.globl idt_int_irq2
+.globl idt_int_irq3
+.globl idt_int_irq4
+.globl idt_int_irq5
+.globl idt_int_irq6
+.globl idt_int_irq7
+.globl idt_int_irq8
+.globl idt_int_irq9
+.globl idt_int_irq10
+.globl idt_int_irq11
+.globl idt_int_irq12
+.globl idt_int_irq13
+.globl idt_int_irq14
+.globl idt_int_irq15
 .globl idt_int_irq_listeners
 .globl idt_int_usr
 
@@ -91,7 +105,6 @@ idt_int_msg_reserved:
  *	popped.
  */
 
-.align 4
 idt_int_de:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -102,7 +115,6 @@ idt_int_de:
 	addl	$12, %esp
 	popal
 	iret
-.align 4
 idt_int_nmi:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -112,7 +124,6 @@ idt_int_nmi:
 	addl	$8, %esp
 	popal
 	iret
-.align 4
 idt_int_bp:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -121,7 +132,6 @@ idt_int_bp:
 	addl	$4, %esp
 	popal
 	iret
-.align 4
 idt_int_of:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -130,7 +140,6 @@ idt_int_of:
 	addl	$4, %esp
 	popal
 	iret
-.align 4
 idt_int_br:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -141,7 +150,6 @@ idt_int_br:
 	addl	$12, %esp
 	popal
 	iret
-.align 4
 idt_int_ud:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -152,7 +160,6 @@ idt_int_ud:
 	addl	$12, %esp
 	popal
 	iret
-.align 4
 idt_int_nm:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -163,7 +170,6 @@ idt_int_nm:
 	addl	$12, %esp
 	popal
 	iret
-.align 4
 idt_int_df:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -173,7 +179,6 @@ idt_int_df:
 	addl	$8, %esp
 	popal
 	iret
-.align 4
 idt_int_ts:
 	popl	TMPVAL		// Err code
 	pusha
@@ -186,7 +191,6 @@ idt_int_ts:
 	addl	$16, %esp
 	popal
 	iret
-.align 4
 idt_int_np:
 	popl	TMPVAL
 	pusha
@@ -199,7 +203,6 @@ idt_int_np:
 	addl	$16, %esp
 	popal
 	iret
-.align 4
 idt_int_ss:
 	popl	TMPVAL
 	pusha
@@ -212,7 +215,6 @@ idt_int_ss:
 	addl	$16, %esp
 	popal
 	iret
-.align 4
 idt_int_gp:
 	popl	TMPVAL
 	pusha
@@ -225,7 +227,6 @@ idt_int_gp:
 	addl	$16, %esp
 	popal
 	iret
-.align 4
 idt_int_pf:
 	popl	TMPVAL
 	pusha
@@ -242,7 +243,6 @@ idt_int_pf:
 	addl	$20, %esp
 	popal
 	iret
-.align 4
 idt_int_mf:
 	popl	TMPVAL
 	pusha
@@ -255,7 +255,6 @@ idt_int_mf:
 	addl	$16, %esp
 	popal
 	iret
-.align 4
 idt_int_ac:
 	popl	TMPVAL
 	pusha
@@ -268,7 +267,6 @@ idt_int_ac:
 	addl	$16, %esp
 	popal
 	iret
-.align 4
 idt_int_mc:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -278,7 +276,6 @@ idt_int_mc:
 	addl	$8, %esp
 	popal
 	iret
-.align 4
 idt_int_xf:
 	popl	TMPVAL
 	pusha
@@ -291,7 +288,6 @@ idt_int_xf:
 	addl	$16, %esp
 	popal
 	iret
-.align 4
 idt_int_reserved:
 	pusha
 	pushl	STACK_REG_MAGIC
@@ -302,75 +298,57 @@ idt_int_reserved:
 	popal
 	iret
 
-.align 4
 idt_int_irq_listeners:
 	.rept	16
 	.long	idt_int_irq_default
 	.endr
 
-.align 4
-idt_int_irq:
-idt_int_irq20:
+idt_int_irq0:
 	movl	$0, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq21:
+idt_int_irq1:
 	movl	$1, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq22:
+idt_int_irq2:
 	movl	$2, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq23:
+idt_int_irq3:
 	movl	$3, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq24:
+idt_int_irq4:
 	movl	$4, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq25:
+idt_int_irq5:
 	movl	$5, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq26:
+idt_int_irq6:
 	movl	$6, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq27:
+idt_int_irq7:
 	movl	$7, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq28:
+idt_int_irq8:
 	movl	$8, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq29:
+idt_int_irq9:
 	movl	$9, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq2a:
+idt_int_irq10:
 	movl	$10, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq2b:
+idt_int_irq11:
 	movl	$11, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq2c:
+idt_int_irq12:
 	movl	$12, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq2d:
+idt_int_irq13:
 	movl	$13, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq2e:
+idt_int_irq14:
 	movl	$14, TMPVAL
 	jmp	idt_int_irqexec
-.align 4
-idt_int_irq2f:
+idt_int_irq15:
 	movl	$15, TMPVAL
 	jmp	idt_int_irqexec
 
@@ -385,9 +363,6 @@ idt_int_irqexec:
 	addl	$8, %esp
 	popal
 	iret
-
-idt_int_irq_size:
-	.long	idt_int_irq21 - idt_int_irq20
 
 idt_int_usr:
 	pushal
