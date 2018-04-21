@@ -12,7 +12,7 @@
 
 #include "../types.h"
 
-#define PROC_USR_BASE	0x80000000 ///< Base address of this page
+#define PROC_USR_BASE	0x8000000 ///< Base address of this page
 
 /// A dummy value whose address is the start of the code page
 extern uint32_t signal_user_base;

@@ -202,10 +202,4 @@ int task_access_memory(uint32_t addr);
  */
 int task_pf_copy_on_write(uint32_t addr);
 
-extern void* task_kernel_process;
-
-extern int task_kernel_process_length;
-
-void task_kernel_process_iret();
-
 #endif

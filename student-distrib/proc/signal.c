@@ -70,12 +70,14 @@ int syscall_sigaction(int sig, int actp, int oldactp) {
 }
 
 void signal_init() {
-	uint32_t paddr;
+	uint32_t paddr = 0;
 	page_alloc_4KB((int *)&paddr);
 	page_tab_add_entry(0x8000000, paddr, PAGE_TAB_ENT_PRESENT |
-					   PAGE_TAB_ENT_RDONLY | PAGE_TAB_ENT_USER |
+					   PAGE_TAB_ENT_RDWR | PAGE_TAB_ENT_USER |
 					   PAGE_TAB_ENT_GLOBAL);
+	page_flush_tlb();
 	memcpy((uint8_t *) PROC_USR_BASE, &(signal_user_base), signal_user_length);
+
 }
 
 void signal_exec(int sig) {

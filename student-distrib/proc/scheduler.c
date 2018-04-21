@@ -13,13 +13,17 @@ void scheduling_start(){
 void scheduler_event(){
 	pid_t prev = task_current_pid();
 	task_t *proc;
-	int i;
+	int i, sanity=0;
 
 	scheduler_iterator ++;
 	while (task_list[scheduler_iterator].status != TASK_ST_RUNNING){
+		++sanity;
 		++scheduler_iterator;
 		if (scheduler_iterator >= (TASK_MAX_PROC-1)){
 			scheduler_iterator = 0;
+		}
+		if (sanity > TASK_MAX_PROC){
+			return;
 		}
 	}
 	// don't tell there's only one process running!

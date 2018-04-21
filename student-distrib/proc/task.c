@@ -42,9 +42,6 @@ void task_create_kernel_pid() {
 		kstack[i].pid = -1;
 	}
 
-	// copy kernel code
-	memcpy(0x800000, task_kernel_process, task_kernel_process_length);
-
 	// kick start
 	init_task->status = TASK_ST_RUNNING;
 

@@ -73,6 +73,7 @@ int _page_alloc_get_4KB(){
 		}
 	}
 	// found a good one, mark as used
+	manyoushu_mem_table[page_4KB_allocation_index].count ++;
 
 	return MANYOUSHU_PAGE_START_ADDR + page_4KB_allocation_index * PAGE_4KB;
 }

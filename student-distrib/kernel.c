@@ -16,6 +16,7 @@
 #include "boot/idt.h"
 #include "boot/page_table.h"
 
+#include "proc/signal.h"
 #include "proc/scheduler.h"
 #include "proc/task.h"
 #include "fs/vfs.h"
@@ -167,6 +168,8 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * PIC, any other initialization stuff... */
 	keyboard_init();
 	rtc_init();
+
+	signal_init();
 
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your

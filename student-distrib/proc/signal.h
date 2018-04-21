@@ -66,4 +66,11 @@ void signal_handler_terminate(task_t *proc, int sig);
  */
 void signal_handler_stop(task_t *proc, int sig);
 
+
+extern void* task_kernel_process;
+
+extern int task_kernel_process_length;
+
+void task_kernel_process_iret();
+
 #endif
