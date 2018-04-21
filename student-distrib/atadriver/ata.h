@@ -9,11 +9,14 @@
 #ifndef _ATA_H
 #define _ATA_H
 
+
+#include "../boot/idt.h"
 #include "../types.h"
 #include "../i8259.h"
 #include "../lib.h"
 
 #include "../fs/vfs.h"
+#include "../fs/fs_devfs.h"
 #include "../errno.h"
 #include "../fs/fstab.h"
 #include "../../libc/include/dirent.h"
@@ -42,10 +45,27 @@
 typedef struct s_ata {
 	int32_t slave_bit;		///< master/slave
 	int32_t io_base_reg;	///< primary/secondary
+	int32_t stLBA;			///< lba offset
+	int32_t prt_size;		///< partition size
 } ata_data_t;
 
+//lseek
 void ata_init();
 
-int ata_read_st(uint8_t sectorcount, uint16_t* buf, int32_t lba, ata_data_t* dev);
+void set_driver_data(ata_data_t* usr_data);
+
+int ata_read_st(int32_t sectorcount, uint8_t* buf, int32_t lba, ata_data_t* dev);
+
+int ata_write_st(int32_t sectorcount, uint8_t* buf, int32_t lba, ata_data_t* dev);
+
+ssize_t ata_write(file_t* file, uint8_t *buf, size_t count, off_t *offset);
+
+ssize_t ata_read(file_t* file, uint8_t *buf, size_t count, off_t *offset);
+
+int32_t ata_open(inode_t* inode, file_t* file)
+
+int32_t ata_close(inode_t* inode, file_t* file)
+
+int ata_driver_register();
 
 #endif

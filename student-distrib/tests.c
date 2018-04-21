@@ -17,6 +17,7 @@
 #include "fs/test.h"
 #include "types.h"
 #include "../libc/include/dirent.h"
+#include "atadriver/ata.h"
 
 
 static inline void assertion_failure(){
@@ -520,7 +521,7 @@ void launch_tests() {
 
 	//TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
-	TEST_OUTPUT("paging test",paging_test());
+	//TEST_OUTPUT("paging test",paging_test());
 
 	// IDT tests
 	//TEST_OUTPUT("idt_test", idt_test());
@@ -544,14 +545,38 @@ void launch_tests() {
 	idt_removeEventListener(RTC_IRQ_NUM);
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
+	
+	ata_init();
+	ata_data_t test;
+	test.slave_bit = 0;
+	test.io_base_reg = 0x1F0;
+	test.prt_size = 275456;
+	test.stLBA = 0;
+	//int8_t buf[10] = "testing";
+	//ata_write_st(1, (uint8_t*)buf, 10, test);
+	uint8_t new_buf[512];
+	memset(new_buf, 0, 512);
+	new_buf[0] = 't';
+	new_buf[1] = 'e';
+	new_buf[2] = 's';
+	new_buf[3] = 't';
+	new_buf[4] = 'w';
+	new_buf[5] = 'r';
+	new_buf[6] = 'i';
+	new_buf[7] = 't';
+	new_buf[8] = 'e';
+	ata_write_st(1, (uint8_t*)new_buf, 10879, &test);
+	memset(new_buf, 0, 512);
+	ata_read_st(1, (uint8_t*)new_buf, 10879, &test);
+	printf((int8_t*)new_buf);
 
-	TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
+	//TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 
 	// File and directory test
 
 	// TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
 
-	fs_test();
+	//fs_test();
 
 	// TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
 
