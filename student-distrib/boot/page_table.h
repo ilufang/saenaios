@@ -27,7 +27,7 @@ void page_phys_mem_map_init();
  *	Turn on paging in the processor
  *
  *	@param page_directory: address of page directory
- *	
+ *
  *	@note the address should be aligned to 4KB on memory
  */
 extern void page_turn_on(int page_directory);
@@ -35,38 +35,38 @@ extern void page_turn_on(int page_directory);
 /**
  *	Add a 4KB page table to the page directory
  *
- *	@param virtual_addr: start address of the 4MB space that the page 
+ *	@param virtual_addr: start address of the 4MB space that the page
  *						table is referring to
  *	@param new_page_table: the address of the page table in memory
  *	@param flags: flags of the page directory entry
  *	@return: 0 on success, negative value for errors
  *	@note Will be rejected if the entry already exists
  */
-int page_dir_add_4KB_entry(int virtual_addr, void* new_page_table, int flags);
+int page_dir_add_4KB_entry(uint32_t virtual_addr, void* new_page_table, int flags);
 
 /**
  *	Add a 4MB page table to the page directory
  *
- *	@param virtual_addr: start address of the 4MB space that the page 
+ *	@param virtual_addr: start address of the 4MB space that the page
  *						directory entry is referring to
  *	@param real_addr: physical memory that is referring to, must be a allocated one
  *	@param flags: flags of the page directory entry
  *	@return: 0 on success, negative value for errors
  *	@note Will be rejected if the entry already exists
  */
-int page_dir_add_4MB_entry(int virtual_addr, int real_addr, int flags);
+int page_dir_add_4MB_entry(uint32_t virtual_addr, uint32_t real_addr, int flags);
 
 /**
  *	Add a 4KB page entry in the page table
  *
- *	@param start_addr: start address of the 4KB space that the page 
+ *	@param start_addr: start address of the 4KB space that the page
  *						table entry is referring to
  *	@param real_addr: physical memory that is referring to, must be a allocated one
  *	@param flags: flags of the page table entry
  *	@return: 0 on success, negative value for errors
  *	@note Will be rejected if the entry already exists
  */
-int page_tab_add_entry(int virtual_addr, int real_addr, int flags);
+int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags);
 
 /**
  *	Free a 4MB in the page directory
@@ -75,7 +75,7 @@ int page_tab_add_entry(int virtual_addr, int real_addr, int flags);
  *	@return: 0 on success, negative value for errors
  *	@note Will be rejected if want to free a kernel entry
  */
-int page_dir_delete_entry(int virtual_addr);
+int page_dir_delete_entry(uint32_t virtual_addr);
 
 /**
  *	Free a 4KB page entry to the page table
@@ -84,13 +84,13 @@ int page_dir_delete_entry(int virtual_addr);
  *	@return: 0 on success, negative value for errors
  *	@note Will be rejected if want to free a kernel entry
  */
-int page_tab_delete_entry(int virtual_addr);
+int page_tab_delete_entry(uint32_t virtual_addr);
 /**
  *
  *	Flush tlb for changing process
  *
  * 	This would flush all page cache (except global ones)
- * 	
+ *
  *	@note flush this much tlb would slower the cpu
  */
 void page_flush_tlb();
@@ -116,7 +116,7 @@ int _page_alloc_get_4MB();
 int _page_alloc_get_4KB();
 
 /**
- *	
+ *
  *	private function to add reference count to a 4MB page
  *
  *	@oaram addr: the physical address to add reference
@@ -125,7 +125,7 @@ int _page_alloc_get_4KB();
 int _page_alloc_add_refer_4MB(int addr);
 
 /**
- *	
+ *
  *	private function to add reference count to a 4KB page
  *
  *	@oaram addr: the physical address to add reference
@@ -135,7 +135,7 @@ int _page_alloc_add_refer_4KB(int addr);
 
 /**
  *
- *	exposed function to allocate or reference a 4MB page 
+ *	exposed function to allocate or reference a 4MB page
  *
  *	@param physical_addr: if the pointer points to value 0, then allocate a space,
  *	and change the pointed value; if the pointer points to a non-zero value, then add
@@ -147,7 +147,7 @@ int page_alloc_4MB(int* physical_addr);
 
 /**
  *
- *	exposed function to allocate or reference a 4KB page 
+ *	exposed function to allocate or reference a 4KB page
  *
  *	@param physical_addr: if the pointer points to value 0, then allocate a space,
  *	and change the pointed value; if the pointer points to a non-zero value, then add
@@ -159,7 +159,7 @@ int page_alloc_4KB(int* physical_addr);
 
 /**
  *
- *	exposed function to free a 4MB page 
+ *	exposed function to free a 4MB page
  *
  *	@param physical_addr: value of the physical address to free
  *
@@ -171,7 +171,7 @@ int page_alloc_free_4MB(int physical_addr);
 
 /**
  *
- *	exposed function to free a 4KB page 
+ *	exposed function to free a 4KB page
  *
  *	@param physical_addr: value of the physical address to free
  *
@@ -217,7 +217,7 @@ typedef struct s_page_4KB_descriptor{
 #define	PAGE_DES_RESERVE	0x04	///< dadada
 /*
  *	4KB page directory entry
- *	
+ *
  *	bit 0 - Present (P) flag - 1 (enabled)
  *	bit 1 - R/W - set to 1 (enabled)
  *	bit 2 - User/supervisor flag - set to 1 (User privilege)
@@ -229,7 +229,7 @@ typedef struct s_page_4KB_descriptor{
  */
 /*
  *	4MB page directory entry
- *	
+ *
  *	bit 0 - Present (P) flag - 1 (enabled)
  *	bit 1 - R/W - set to 1 (enabled)
  *	bit 2 - User/supervisor flag - set to 0 (supervisor privilege)

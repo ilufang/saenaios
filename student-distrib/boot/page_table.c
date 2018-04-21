@@ -249,7 +249,7 @@ void page_kernel_mem_map_init(){
 }
 
 // this function should only be called during initialization
-int page_dir_add_4KB_entry(int virtual_addr, void* new_page_table, int flags){
+int page_dir_add_4KB_entry(uint32_t virtual_addr, void* new_page_table, int flags){
 	// check invalid parameter
 	if (!new_page_table){
 		return -EINVAL;
@@ -278,7 +278,7 @@ int page_dir_add_4KB_entry(int virtual_addr, void* new_page_table, int flags){
 	return 0;
 }
 
-int page_dir_add_4MB_entry(int virtual_addr, int real_addr, int flags){
+int page_dir_add_4MB_entry(uint32_t virtual_addr, uint32_t real_addr, int flags){
 	// check inconsistent flag
 	if (!(flags & PAGE_DIR_ENT_4MB)){
 		return -EINVAL;
@@ -313,7 +313,7 @@ int page_dir_add_4MB_entry(int virtual_addr, int real_addr, int flags){
 	return 0;
 }
 
-int page_tab_add_entry(int virtual_addr, int real_addr, int flags){
+int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags){
 	// auto fit to nearest 4KB
 	int page_tab_index = GET_TAB_INDEX(virtual_addr);
 
@@ -351,7 +351,7 @@ int page_tab_add_entry(int virtual_addr, int real_addr, int flags){
 	return 0;
 }
 
-int page_dir_delete_entry(int virtual_addr){
+int page_dir_delete_entry(uint32_t virtual_addr){
 	// cannot delete dir entries before allocatable ones
 	if (GET_DIR_INDEX(virtual_addr) < ALLOCATABLE_4MB_START_INDEX){
 		return -EINVAL;
@@ -366,7 +366,7 @@ int page_dir_delete_entry(int virtual_addr){
 	}
 }
 
-int page_tab_delete_entry(int virtual_addr){
+int page_tab_delete_entry(uint32_t virtual_addr){
 	// cannot delete page table entries other than manyoushu
 	if (GET_DIR_INDEX(virtual_addr) != 3){
 		return -EINVAL;

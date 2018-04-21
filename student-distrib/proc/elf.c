@@ -68,7 +68,7 @@ int elf_load(int fd)  {
 		ph.type = 1;
 		ph.offset = 0;
 		ph.vaddr = 0x08048000;
-		ph.filesz = -1; // TODO get file size
+		ph.filesz = 8192; // TODO get file size
 		ph.flags = 7; // rwx all granted
 		ph.align = 0x1000; // 4kb aligned
 	}
@@ -133,10 +133,18 @@ int elf_load(int fd)  {
 				// Page is writable
 				ptent->pt_flags |= PAGE_DIR_ENT_RDWR;
 			}
+			ptent->pt_flags |= PAGE_DIR_ENT_RDWR; // TODO: workaround write perm
 			ptent->vaddr = addr;
 			ptent->pt_flags |= PAGE_DIR_ENT_PRESENT;
 			ptent->priv_flags = 0;
 
+			if (ptent->pt_flags & PAGE_DIR_ENT_4MB) {
+				// Add 4MB page table entry
+				page_dir_add_4MB_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
+			} else {
+				// Add 4KB page table entry
+				page_tab_add_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
+			}
 			idx++;
 		}
 		ret = syscall_lseek(fd, ph.offset, SEEK_SET);
@@ -144,9 +152,10 @@ int elf_load(int fd)  {
 			return ret;
 		}
 		ret = syscall_read(fd, ph.vaddr, ph.filesz);
-		if (ret != ph.filesz) {
-			return -EIO;
-		}
+		// TODO: after fixing file size
+		// if (ret != ph.filesz) {
+			// return -EIO;
+		// }
 	}
 
 	// Setup stack segment
@@ -167,6 +176,7 @@ int elf_load(int fd)  {
 	ptent->pt_flags |= PAGE_DIR_ENT_RDWR;
 	ptent->pt_flags |= PAGE_DIR_ENT_USER;
 	ptent->pt_flags |= PAGE_DIR_ENT_4MB;
+	page_dir_add_4MB_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
 
 	return 0;
 }

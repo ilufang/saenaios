@@ -44,7 +44,9 @@ void task_create_kernel_pid() {
 	}
 
 	// kick start
+	init_task->pid = 0;
 	init_task->status = TASK_ST_RUNNING;
+	kstack[0].pid = 0;
 
 	// now iret to the kernel process
 	task_kernel_process_iret();
@@ -124,7 +126,8 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		return -EFAULT;
 	}
 
-	proc = task_list + task_current_pid();
+	ret = task_current_pid();
+	proc = task_list + ret;
 
 	// memset((char *)&(proc->regs), 0, sizeof(proc->regs));
 
@@ -132,6 +135,9 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	// Release previous process
 	task_release(proc);
+
+	// Re-take the kernel stack
+	((task_ks_t *)(proc->ks_esp))[-1].pid = ret;
 
 	fd = syscall_open(pathp, O_RDONLY, 0);
 	if (fd < 0) {
@@ -185,14 +191,29 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	// ece391_getargs workaround: bottom of stack points to argv
 	*(uint32_t *)(0xc0000000 - 4) = (uint32_t) u_argv;
 
+	// Initialize FD 0, 1
+	ret = syscall_open("/dev/stdin", O_RDONLY, 0);
+	if (ret != 0) {
+		printf("Failed to open stdin\n");
+	}
+	ret = syscall_open("/dev/stdout", O_WRONLY, 0);
+	if (ret != 1) {
+		printf("Failed to open stdout\n");
+	}
+
 	// Initialize signal handlers
 	for (i = 0; i < SIG_MAX; i++) {
 		proc->sigacts[i].handler = SIG_DFL;
 	}
 
-	// Jump to scheduler to execute
 	proc->status = TASK_ST_RUNNING;
-	scheduler_switch(proc, proc);
+
+	// set up tss
+	tss.ss0 = KERNEL_DS;
+	tss.esp0 = proc->ks_esp;
+
+	// Jump to scheduler to execute
+	scheduler_iret(&(proc->regs));
 
 	return 0; // This line should not hit
 }

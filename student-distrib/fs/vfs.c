@@ -25,9 +25,6 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	file_t *file;
 
 	proc = task_list + task_current_pid();
-	if (proc->status != TASK_ST_RUNNING) {
-		return -ESRCH;
-	}
 
 	errno = -path_cd(path, (char *)pathaddr);
 	if (errno != 0) {
@@ -66,9 +63,7 @@ int syscall_close(int fd, int b, int c) {
 	file_t *file;
 
 	proc = task_list + task_current_pid();
-	if (proc->status != TASK_ST_RUNNING) {
-		return -ESRCH;
-	}
+
 	file = proc->files[fd];
 	//file = curr_pcb->fd_arr[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
@@ -114,9 +109,7 @@ int syscall_read(int fd, int bufaddr, int count) {
 	}
 
 	proc = task_list + task_current_pid();
-	if (proc->status != TASK_ST_RUNNING) {
-		return -ESRCH;
-	}
+
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
@@ -137,9 +130,7 @@ int syscall_write(int fd, int bufaddr, int count) {
 	}
 
 	proc = task_list + task_current_pid();
-	if (proc->status != TASK_ST_RUNNING) {
-		return -ESRCH;
-	}
+
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
@@ -156,9 +147,7 @@ int syscall_lseek(int fd, int offset, int whence) {
 	file_t *file;
 
 	proc = task_list + task_current_pid();
-	if (proc->status != TASK_ST_RUNNING) {
-		return -ESRCH;
-	}
+
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
@@ -199,9 +188,6 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 
 	proc = task_list + task_current_pid();
 
-	if (proc->status != TASK_ST_RUNNING) {
-		return -ESRCH;
-	}
 	file = proc->files[fd];
 	//file = curr_pcb -> fd_arr[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
