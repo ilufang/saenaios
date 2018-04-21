@@ -34,7 +34,8 @@ void task_create_kernel_pid() {
 	// should open fd 0 and 1
 	init_task->parent = -1;
 
-	init_task->ks_esp = 0x800000;
+	tss.ss0 = KERNEL_DS;
+	tss.esp0 = init_task->ks_esp = (uint32_t)(kstack+1);
 	task_pid_allocator = 0;
 
 	// initialize kernel stack page
@@ -53,6 +54,7 @@ int syscall_fork(int a, int b, int c) {
 	cli();
 	int16_t pid, cur_pid;
 	task_t *cur_task, *new_task;
+	regs_t *regs;
 	int i;
 
 	pid = task_alloc_pid();
@@ -67,6 +69,10 @@ int syscall_fork(int a, int b, int c) {
 	memcpy(new_task, cur_task, sizeof(task_t));
 	new_task->pid = pid;
 	new_task->parent = cur_pid;
+
+	// Update register status for forked process
+	regs = scheduler_get_magic();
+	memcpy(&(new_task->regs), regs, sizeof(regs_t));
 
 	// Create kernel stack (512 8kb entries in 4MB page)
 	for (i = 0; i < 512; i++) {
@@ -409,3 +415,19 @@ int task_pf_copy_on_write(uint32_t addr) {
 	return -EFAULT;
 }
 
+int task_make_initd(int a, int b, int c) {
+	regs_t* regs;
+
+	if (task_current_pid() != 0) {
+		// Only initd can call syscall 15
+		return -EPERM;
+	}
+
+	// load register address according to magic number on the stack
+	regs = scheduler_get_magic();
+
+	// save the registers of from process
+	memcpy(&(task_list[0].regs), regs, sizeof(regs_t));
+
+	return 0;
+}

@@ -54,6 +54,9 @@ void syscall_register_all() {
 	// ece391_sigreturn
 	syscall_register(10, NULL);
 
+	// Internal calls
+	syscall_register(15, task_make_initd);
+
 	// POSIX System calls
 
 	// VFS

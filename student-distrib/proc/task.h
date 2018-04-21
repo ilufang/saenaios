@@ -202,4 +202,11 @@ int task_access_memory(uint32_t addr);
  */
 int task_pf_copy_on_write(uint32_t addr);
 
+/**
+ *	Initialize the initd process
+ *
+ *	@return nothing
+ */
+int task_make_initd(int, int, int);
+
 #endif

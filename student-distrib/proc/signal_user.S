@@ -3,11 +3,9 @@
 
 .globl signal_user_ret
 .globl signal_user_ret_offset
+.globl task_kernel_process_offset
 
-.globl  task_kernel_process
-.globl 	task_kernel_process_iret
-
-
+#define LD_BASE	0x8000000
 
 signal_user_base:
 	.long 0xecebcafe // Dummy
@@ -18,68 +16,44 @@ signal_user_ret:
 	popal
 	ret
 
-USER_CS:
-	.long   0x0023
-USER_DS:
-	.long	0x002B
-
-task_kernel_process_iret:
-	movl	USER_DS, %eax
-	movw	%ax, %ds
-	pushl 	%eax
-	pushl 	$0x8001000	// NOTE BRUTAL STACK HERE
-	pushf
-	pushl 	USER_CS
-	pushl 	$task_kernel_process
-	iret
-
-
 task_kernel_process:
-	call fork
-	cmpl $0,%eax
-	je task_kernel_child
-	jmp task_kernel_parent
+	movl	$15, %eax // MAKE_INITD
+	int	$0x80
+	movl	$23, %eax // SYSCALL_FORK
+	int	$0x80
+	cmpl	$0,%eax
+	je	task_kernel_process$child
+	jmp	task_kernel_process$parent
 
 
-task_kernel_child:
-	call task_kernel_get_eip
+task_kernel_process$child:
+	// SYSCALL_EXECVE
+	movl	$25, %eax
+	// PATH
+	movl	$task_kernel_process$execve, %ebx
+	// ARGV
+	movl	$task_kernel_process$argv, %ecx
+	// ENVP
+	movl	$0, %edx
+	// CALL EXECVE
+	int	$0x80
+	// BAD!!!
+	int	$0x1
 
-task_kernel_child_offset_flag:
-	movl task_kernel_child_string_offset(%eax), %eax
-	pushl %eax
-	call printf
-	add $4, %esp
-	jmp task_kernel_child
+task_kernel_process$parent:
+	jmp	task_kernel_process$parent
 
-task_kernel_parent:
-	call task_kernel_get_eip
+task_kernel_process$execve:
+	.string	"/shell"
 
-task_kernel_parent_offset_flag:
-	movl  task_kernel_parent_string_offset(%eax), %eax
-	pushl %eax
-	call printf
-	add $4, %esp
-	jmp task_kernel_parent
-
-
-task_kernel_parent_string:
-	.string "parent\n"
-
-task_kernel_parent_string_offset:
-	.long task_kernel_parent_string - task_kernel_parent_offset_flag
-
-task_kernel_child_string:
-	.string "child\n"
-
-task_kernel_child_string_offset:
-	.long task_kernel_child_string - task_kernel_child_offset_flag
-
-task_kernel_get_eip:
-	movl 	4(%esp), %eax
-	ret
+task_kernel_process$argv:
+	.long	task_kernel_process$execve
+	.long	0
 
 signal_user_length:
 	.long	signal_user_length - signal_user_base
 
 signal_user_ret_offset:
 	.long	signal_user_ret - signal_user_base
+task_kernel_process_offset:
+	.long	task_kernel_process - signal_user_base
