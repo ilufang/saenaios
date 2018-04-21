@@ -174,8 +174,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * without showing you any output */
 	printf("Enabling Interrupts\n");
 	sti();
-	// create a basic process
-	task_create_kernel_pid();
+
 	// install device driver fs
 	devfs_installfs();
 	if (mp3fs_installfs(mp3fs_load_addr)){
@@ -197,25 +196,10 @@ void entry(unsigned long magic, unsigned long addr) {
 	launch_tests();
 #endif
 	scheduling_start();
-	// Have kernel task raise an interrupt to get its iret structure
-	__asm__("int $0x28");
-	int temp_ret;
-	if (!(temp_ret = syscall_fork(0,0,0))){
-		// child process
-		while(1){
-			printf("child!\n");
-		}
-	}else if(temp_ret>0){
-		while(1){
-			printf("parent!\n");
-		}
-	}else{
-		printf("scheduler / fork failed!\n");
-	}
+	// create a basic process
+	task_create_kernel_pid();
 
-
-
-
+	// Bye!
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	printf("\nEnd of startup\n");

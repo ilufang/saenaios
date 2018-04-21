@@ -63,12 +63,13 @@ void scheduler_switch(task_t* from, task_t* to){
 
 	// TODO SET DS
 
-	if (to->regs.cs == KERNEL_CS){
+	/*if (to->regs.cs == KERNEL_CS){
 		scheduler_kernel_iret(&(to->regs), to->regs.esp_k);
 	}else{
 		// brutal force iret
 		scheduler_user_iret(&(to->regs));
-	}
+	}*/
+	scheduler_iret(&(to->regs));
 }
 
 void scheduler_page_clear(task_ptentry_t* pages){

@@ -33,7 +33,7 @@ void task_create_kernel_pid() {
 	task_t* init_task = task_list + 0;
 	// should open fd 0 and 1
 	init_task->parent = -1;
-	init_task->status = TASK_ST_RUNNING;
+
 	init_task->ks_esp = 0x800000;
 	task_pid_allocator = 0;
 
@@ -41,6 +41,15 @@ void task_create_kernel_pid() {
 	for (i=0; i<512; ++i){
 		kstack[i].pid = -1;
 	}
+
+	// copy kernel code
+	memcpy(0x800000, task_kernel_process, task_kernel_process_length);
+
+	// kick start
+	init_task->status = TASK_ST_RUNNING;
+
+	// now iret to the kernel process
+	task_kernel_process_iret();
 }
 
 int syscall_fork(int a, int b, int c) {

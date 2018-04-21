@@ -42,6 +42,10 @@ int getdents(int fd, struct dirent *buf) {
 	return do_syscall(SYSCALL_GETDENTS, fd, (int)buf, 0);
 }
 
+int fork(int a,int b,int c){
+	return do_syscall(SYSCALL_FORK, a, b, c);
+}
+
 #define LIBC_MAX_OPEN_DIR	64
 
 static DIR libc_dir_list[LIBC_MAX_OPEN_DIR];
