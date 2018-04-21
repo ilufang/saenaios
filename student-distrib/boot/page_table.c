@@ -1,4 +1,5 @@
 #include "page_table.h"
+#include "../proc/signal.h"
 
 #define ALLOCATABLE_4MB_START_INDEX	0x4	///< new pages will allocate from here
 
@@ -211,6 +212,8 @@ void page_ece391_init(){
 	page_kernel_mem_map_init();
 	// Initialize global memory blocks
 	memset((char *)0x800000, -1, 4<<20);
+
+	signal_init();
 }
 
 void page_phys_mem_map_init(){

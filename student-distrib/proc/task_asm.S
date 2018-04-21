@@ -15,5 +15,3 @@ task_current_pid$is_kernel:
 	// The temp. kernel stack, return 0
 	xorl	%eax, %eax
 	ret
-
-

@@ -42,8 +42,17 @@ int getdents(int fd, struct dirent *buf) {
 	return do_syscall(SYSCALL_GETDENTS, fd, (int)buf, 0);
 }
 
-int fork(int a,int b,int c){
-	return do_syscall(SYSCALL_FORK, a, b, c);
+pid_t fork() {
+	return do_syscall(SYSCALL_FORK, 0, 0, 0);
+}
+
+int execve(const char *path, char *const argv[], char *const envp[]) {
+	return do_syscall(SYSCALL_EXECVE, (int)path, (int)argv, (int)envp);
+}
+
+
+void _exit(int status) {
+	do_syscall(SYSCALL__EXIT, status, 0, 0);
 }
 
 #define LIBC_MAX_OPEN_DIR	64

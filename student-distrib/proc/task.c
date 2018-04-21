@@ -370,7 +370,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 			page->pt_flags |= PAGE_DIR_ENT_RDWR;
 			page->priv_flags &= ~(TASK_PTENT_CPONWR);
 			// Allocate and copy memory (using virtual 0xc0000000 as temp)
-			if (page_alloc_4MB(&(page->paddr)) != 0) {
+			if (page_alloc_4MB((int *) &(page->paddr)) != 0) {
 				// No memory... Delete this page
 				page->pt_flags = 0;
 				page_alloc_free_4MB(i);
@@ -378,7 +378,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 				return -ENOMEM;
 			}
 			page_dir_add_4MB_entry(0xc0000000, page->paddr, page->pt_flags);
-			memcpy((char *)0xc0000000, page->vaddr, 4<<20);
+			memcpy((char *) 0xc0000000, (char *)page->vaddr, 4<<20);
 			page_dir_delete_entry(0xc0000000);
 			page_alloc_free_4MB(i);
 			page_dir_delete_entry(page->vaddr);
@@ -390,7 +390,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 			page->pt_flags |= PAGE_DIR_ENT_RDWR;
 			page->priv_flags &= ~(TASK_PTENT_CPONWR);
 			// Allocate and copy memory (using virtual 0x08040000 as temp)
-			if (page_alloc_4KB(&(page->paddr)) != 0) {
+			if (page_alloc_4KB((int *) &(page->paddr)) != 0) {
 				// No memory... Delete this page
 				page->pt_flags = 0;
 				page_alloc_free_4KB(i);
@@ -398,7 +398,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 				return -ENOMEM;
 			}
 			page_tab_add_entry(0x08040000, page->paddr, page->pt_flags);
-			memcpy((char *)0x08040000, page->vaddr, 4<<10);
+			memcpy((char *) 0x08040000, (char *) page->vaddr, 4<<10);
 			page_tab_delete_entry(0x08040000);
 			page_alloc_free_4KB(i);
 			page_tab_delete_entry(page->vaddr);

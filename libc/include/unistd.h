@@ -45,4 +45,41 @@ ssize_t write(int fd, const void *buf, size_t count);
  */
 off_t lseek(int fd, off_t offset, int whence);
 
+/**
+ *	Duplicate current process
+ *
+ *	After calling fork, the current process will be duplicated by creating new
+ *	page table entries referencing the same physical addresses. The first
+ *	attempt to write to these pages will then trigger copy-on-write.
+ *
+ *	@return the new PID to the calling process on successful, 0 to the newly
+ *			forked process, or the negative of an errno on failure
+ */
+pid_t fork();
+
+
+/**
+ *	Reload current process with the given executable image.
+ *
+ *	@param path: path to the executable file (ELF)
+ *	@param argv: list of command-line arguments, the last element must be NULL
+ *				 to signify end-of-list
+ *	@param envp: list of environmental variables, the last element must be NULL
+ *				 to signify end-of-list
+ *	@return the negative of an errno on failure. On success, the new process
+ *			is launched and the old process will not be present to receive any
+ *			return values.
+ */
+int execve(const char *path, char *const argv[], char *const envp[]);
+
+/**
+ *	Terminate the calling process with given exit status code
+ *
+ *	This function will always succeed. After calling, the calling process will
+ *	no longer exist to receive any returned values.
+ *
+ *	@param status: the exit status code
+ */
+void _exit(int status);
+
 #endif
