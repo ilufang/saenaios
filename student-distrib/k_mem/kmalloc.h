@@ -18,6 +18,8 @@
 typedef struct malloc_info{
 	int start_addr;	///< the starting address of space
 	int size;		///< number of slabs;
+	char status; 	///< 0 for free, 1 for allocated
+	struct memory_list *link;
 } malloc_info_t;
 
 typedef struct memory_list {
@@ -35,5 +37,7 @@ int get_free_page();
 int ceiling_division(int x, int y);
 
 void* kmalloc(size_t size);
+
+int free(void* ptr);
 
 #endif
