@@ -58,7 +58,8 @@ typedef struct s_task {
 	uint32_t ks_esp;	///< Kernel Stack pointer
 
 	struct sigaction sigacts[SIG_MAX]; ///< Signal handlers
-	uint32_t signals;	///< Pending signals
+	sigset_t signals;	///< Pending signals
+	sigset_t signal_mask; ///< Deferred signals
 } task_t;
 
 /**

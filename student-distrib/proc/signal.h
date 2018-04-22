@@ -23,11 +23,39 @@ typedef struct sigaction task_sigact_t;
 int syscall_sigaction(int sig, int actp, int oldactp);
 
 /**
- *	Invoke signal handler on current process.
+ *	Get or set signal mask
  *
+ *	@param how: action to be performed. See `SIG_*` macro definitions
+ *	@param setp: address of new signal set
+ *	@param oldsetp: address of buffer to read current signal set into
+ *	@return 0 on success, or the negative of an errno on failure
+ */
+int syscall_sigprocmask(int how, int setp, int oldsetp);
+
+/**
+ *	Suspend execution until a signal
+ *
+ *	@param sigsetp: address of signal set of masked signals
+ *	@return always -EINTR
+ */
+int syscall_sigsuspend(int sigsetp, int, int);
+
+/**
+ *	Send signal to process
+ *
+ *	@param pid: the pid of the recipient process
+ *	@param sig: the signal to send
+ *	@return 0 on success, or the negative of an errno on failure
+ */
+int syscall_kill(int pid, int sig, int);
+
+/**
+ *	Invoke signal handler.
+ *
+ *	@param proc: the process
  *	@param sig: the signal number
  */
-void signal_exec(int sig);
+void signal_exec(task_t *proc, int sig);
 
 /**
  *	Execute initializations needed by the signal invocation systems.

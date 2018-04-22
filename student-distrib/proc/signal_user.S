@@ -11,7 +11,16 @@ signal_user_base:
 	.long 0xecebcafe // Dummy
 
 signal_user_ret:
+	// Teardown stack for handler
 	addl	$4, %esp
+	// Restore signal mask
+	movl	$29, %eax // sigprocmask
+	movl	$3, %ebx // SIG_SETMASK
+	movl	%esp, %ecx // Original mask
+	xorl	%edx, %edx // No oldset
+	int	$0x80
+	addl	$4, %esp // Teardown original mask
+	// Restore previous execution status
 	popfl
 	popal
 	ret

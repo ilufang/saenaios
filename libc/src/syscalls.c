@@ -4,6 +4,7 @@
 #include "../include/sys/types.h"
 #include "../include/sys/stat.h"
 #include "../include/errno.h"
+#include "../include/signal.h"
 
 #include "../include/sys/mount.h"
 
@@ -63,9 +64,24 @@ int execve(const char *path, char *const argv[], char *const envp[]) {
 	return do_syscall(SYSCALL_EXECVE, (int)path, (int)argv, (int)envp);
 }
 
-
 void _exit(int status) {
 	do_syscall(SYSCALL__EXIT, status, 0, 0);
+}
+
+int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact) {
+	return do_syscall(SYSCALL_SIGACTION, sig, (int) act, (int) oldact);
+}
+
+int sigprocmask(int how, sigset_t *set, sigset_t *oldset) {
+	return do_syscall(SYSCALL_SIGPROCMASK, how, (int) set, (int) oldset);
+}
+
+int sigsuspend(sigset_t *sigset) {
+	return do_syscall(SYSCALL_SIGSUSPEND, (int) sigset, 0, 0);
+}
+
+int kill(pid_t pid, int sig) {
+	return do_syscall(SYSCALL_KILL, pid, sig, 0);
 }
 
 #define LIBC_MAX_OPEN_DIR	64

@@ -31,6 +31,7 @@ void task_create_kernel_pid() {
 	int i;//iterator
 	// initialize the kernel task
 	task_t* init_task = task_list + 0;
+	memset(init_task, 0, sizeof(task_t));
 	// should open fd 0 and 1
 	init_task->parent = -1;
 

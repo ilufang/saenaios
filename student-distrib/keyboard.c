@@ -5,6 +5,8 @@
 #include "keyboard.h"
 #include "boot/idt.h"
 #include "lib.h"
+#include "proc/task.h"
+#include "proc/signal.h"
 
 #define PRESSED     1			///< key state pressed
 #define UNPRESSED   0			///< key state unpressed
@@ -278,6 +280,9 @@ uint8_t kbdctl[128] =
 	0,	/* All other keys are undefined */
 };
 
+/// PID that is awaiting input
+pid_t keyboard_pid_waiting;
+
 /**
  *	Helper function to append a char keyboard buffer
  *
@@ -392,12 +397,17 @@ void regular_key(uint8_t scancode){
 		// if enter is pressed, mark the previous enter position
 		case ENTER_CHAR:
 		if(curr_char_ptr < KEY_BUF_SIZE){
-				// update enter location
+			// update enter location
 			prev_enter = curr_char_ptr + 1;
-				// append enter in keyboard buffer
+			// append enter in keyboard buffer
 			buf_push(scanchar);
-				// write enter control sequence to terminal driver
+			// write enter control sequence to terminal driver
 			terminal_out_write_(&scanchar, 1);
+			// Signal if there are process awaiting
+			if (keyboard_pid_waiting) {
+				syscall_kill(keyboard_pid_waiting, SIGIO, 0);
+				keyboard_pid_waiting = 0;
+			}
 		}
 		break;
 
@@ -524,10 +534,21 @@ int keyboard_driver_register(){
 	return (devfs_register_driver("stdin", &keyboard_fop));
 }
 
-
 ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
-	// do nothing if there's no enter in buffer
-	while (prev_enter < 0){
+	task_sigact_t sa;
+	sigset_t ss;
+
+	if (prev_enter < 0){
+		// No enter in buffer, set process to sleep until SIGIO
+		keyboard_pid_waiting = task_current_pid();
+		sa.handler = SIG_IGN;
+		sigemptyset(sa.mask);
+		sa.flags = SA_RESTART;
+		syscall_sigaction(SIGIO, (int)&sa, 0);
+		sigfillset(ss);
+		sigdelset(ss, SIGIO);
+		syscall_sigsuspend((int) &ss, NULL, 0);
+		return 0; // Should not hit
 	}
 
 	if (prev_enter < count) {

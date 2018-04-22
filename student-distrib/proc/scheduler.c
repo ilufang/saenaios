@@ -6,24 +6,32 @@ static pid_t scheduler_iterator = 0;
 
 int scheduler_on_flag = 0;
 
-void scheduling_start(){
+void scheduling_start() {
 	scheduler_on_flag = 1;
 }
 
-void scheduler_event(){
+void scheduler_event() {
 	pid_t prev = task_current_pid();
-	task_t *proc;
-	int i, sanity=0;
+	int sanity=0;
 
 	scheduler_iterator ++;
-	while (task_list[scheduler_iterator].status != TASK_ST_RUNNING){
-		++sanity;
-		++scheduler_iterator;
-		if (scheduler_iterator >= (TASK_MAX_PROC-1)){
-			scheduler_iterator = 0;
+	while (1) {
+		if (task_list[scheduler_iterator].signals &
+			~(task_list[scheduler_iterator].signal_mask) ) {
+			break;
 		}
-		if (sanity > TASK_MAX_PROC){
-			return;
+		if (task_list[scheduler_iterator].status != TASK_ST_RUNNING) {
+			++sanity;
+			++scheduler_iterator;
+			if (scheduler_iterator >= (TASK_MAX_PROC-1)){
+				scheduler_iterator = 0;
+			}
+			if (sanity > TASK_MAX_PROC) {
+				printf("[CRITICAL] NO POSSIBLE PROCESS TO EXECUTE!");
+				while (1);
+			}
+		} else {
+			break;
 		}
 	}
 	// don't tell there's only one process running!
@@ -32,22 +40,15 @@ void scheduler_event(){
 		return;
 	}*/
 
-	proc = task_list + scheduler_iterator;
-	if (proc->signals) {
-		for (i = 1; i < SIG_MAX; i++) {
-			if (proc->signals & (1<<i)) {
-				proc->signals &= ~(1<<i);
-				signal_exec(1<<i);
-				// Should not return
-			}
-		}
-	}
-
 	// A different running task! switch to it!
 	scheduler_switch(&task_list[prev], &task_list[scheduler_iterator]);
 }
 
-void scheduler_switch(task_t* from, task_t* to){
+void scheduler_switch(task_t* from, task_t* to) {
+	task_t *proc;
+	sigset_t signal_masked;
+	int i;
+
 	if (to->pid == 2) {
 		tss.ss0 = KERNEL_DS;
 	}
@@ -57,6 +58,18 @@ void scheduler_switch(task_t* from, task_t* to){
 	scheduler_page_setup(to->pages);
 
 	page_flush_tlb();
+
+	proc = task_list + scheduler_iterator;
+	if (proc->signals) {
+		signal_masked = proc->signals & (~proc->signal_mask);
+		for (i = 1; i < SIG_MAX; i++) {
+			if (sigismember(signal_masked, i)) {
+				sigdelset(proc->signals, i);
+				signal_exec(proc, i);
+				break;
+			}
+		}
+	}
 
 	// set up tss
 	tss.ss0 = KERNEL_DS;

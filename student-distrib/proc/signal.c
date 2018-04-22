@@ -1,6 +1,7 @@
 #include "signal.h"
 
 #include "task.h"
+#include "scheduler.h"
 #include "../lib.h"
 #include "../boot/page_table.h"
 #include "signal_user.h"
@@ -41,12 +42,15 @@ char *signal_names[] = {
 	"" // dummy
 };
 
-
 int syscall_sigaction(int sig, int actp, int oldactp) {
 	task_t *proc;
 	task_sigact_t *act;
 
 	if (sig < 0 || sig > SIG_MAX) {
+		return -EINVAL;
+	}
+
+	if (sig == SIGKILL || sig == SIGSTOP) {
 		return -EINVAL;
 	}
 
@@ -69,6 +73,78 @@ int syscall_sigaction(int sig, int actp, int oldactp) {
 	return 0;
 }
 
+int syscall_sigprocmask(int how, int setp, int oldsetp) {
+	task_t *proc;
+	sigset_t *ss;
+
+	proc = task_list + task_current_pid();
+
+	if (oldsetp) {
+		// TODO fully validate user pointer
+		ss = (sigset_t *) oldsetp;
+		*ss = proc->signal_mask;
+	}
+
+	if (setp) {
+		// TODO fully validate user pointer
+		ss = (sigset_t *) setp;
+
+		switch(how) {
+			case SIG_BLOCK:
+				proc->signal_mask &= *ss;
+				break;
+			case SIG_UNBLOCK:
+				proc->signal_mask |= ~*ss;
+				break;
+			case SIG_SETMASK:
+				proc->signal_mask = *ss;
+				break;
+			default:
+				return -EINVAL;
+		}
+		// Enforce SIGKILL and SIGSTOP
+		sigdelset(proc->signal_mask, SIGKILL);
+		sigdelset(proc->signal_mask, SIGSTOP);
+	}
+
+	return 0;
+}
+
+int syscall_sigsuspend(int sigsetp, int b, int c) {
+	task_t *proc;
+
+	proc = task_list + task_current_pid();
+
+	if (sigsetp) {
+		proc->signal_mask = *(sigset_t *)sigsetp & ~(SIGKILL | SIGSTOP);
+	}
+	proc->regs.eax = -EINTR;
+	proc->status = TASK_ST_SLEEP;
+
+	scheduler_event();
+	return 0; // Should not hit
+}
+
+int syscall_kill(int pid, int sig, int c) {
+	task_t *proc;
+
+	if (pid <= 0 || pid >= TASK_MAX_PROC) {
+		return -EINVAL;
+	}
+	if (sig <= 0 || sig >= SIG_MAX) {
+		return -EINVAL;
+	}
+
+	proc = task_list + pid;
+	if (proc->status != TASK_ST_RUNNING && proc->status != TASK_ST_SLEEP) {
+		return -ESRCH;
+	}
+
+	sigaddset(proc->signals, sig);
+
+	return 0;
+}
+
 void signal_init() {
 	uint32_t paddr = 0;
 	page_alloc_4KB((int *)&paddr);
@@ -80,8 +156,7 @@ void signal_init() {
 
 }
 
-void signal_exec(int sig) {
-	task_t *proc;
+void signal_exec(task_t *proc, int sig) {
 	task_sigact_t *sa;
 
 	proc = task_list + task_current_pid();
@@ -101,10 +176,24 @@ void signal_exec(int sig) {
 	}
 
 	// Custom handler provided, execute that
+
 	// Push stack frame for signal_user_ret
-	task_user_pushl(&(proc->regs.esp), proc->regs.eip);
+	if (sa->flags & SA_RESTART) {
+		// Restart INT 0x80
+		// TODO validity check
+		if (*(uint8_t *)(proc->regs.eip - 2) == 0xcd) { // OPCode for INT: CD
+			task_user_pushl(&(proc->regs.esp), proc->regs.eip - 2);
+		} else {
+			task_user_pushl(&(proc->regs.esp), proc->regs.eip);
+		}
+	} else {
+		task_user_pushl(&(proc->regs.esp), proc->regs.eip);
+	}
 	task_user_pushs(&(proc->regs.esp), (uint8_t *)&(proc->regs), 32); // Only the 8 GPRs
 	task_user_pushl(&(proc->regs.esp), proc->regs.eflags);
+	// Push original mask
+	task_user_pushl(&(proc->regs.esp), proc->signal_mask);
+	proc->signal_mask = sa->mask & (~(SIGKILL | SIGSTOP));
 	// Push stack frame for handler
 	task_user_pushl(&(proc->regs.esp), (uint32_t)signal_user_ret_addr);
 	if (task_user_pushl(&(proc->regs.esp), sig) != 0) {
@@ -112,12 +201,8 @@ void signal_exec(int sig) {
 		signal_handler_terminate(proc, SIGSEGV);
 		return; // This line should not hit
 	}
-
-	// Signal options...
-
-
-	// Perform context switch to user mode
-
+	// Jump to handler
+	proc->regs.eip = (uint32_t) sa->handler;
 }
 
 void signal_exec_default(task_t *proc, int sig) {
@@ -142,7 +227,13 @@ void signal_exec_default(task_t *proc, int sig) {
 }
 
 void signal_handler_ignore(task_t *proc, int sig) {
-	// TODO perform context switch
+	if (proc->sigacts[sig].flags & SA_RESTART) {
+		// Restart INT 0x80
+		// TODO validity check
+		if (*(uint8_t *)(proc->regs.eip - 2) == 0xcd) { // OPCode for INT: CD
+			proc->regs.eip -= 2;
+		}
+	}
 }
 
 void signal_handler_terminate(task_t *proc, int sig) {
@@ -154,6 +245,4 @@ void signal_handler_terminate(task_t *proc, int sig) {
 
 void signal_handler_stop(task_t *proc, int sig) {
 	proc->status = TASK_ST_SLEEP;
-	// TODO perform context switch
-
 }
