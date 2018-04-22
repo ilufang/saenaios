@@ -56,7 +56,6 @@ int syscall_fork(int a, int b, int c) {
 	cli();
 	int16_t pid, cur_pid;
 	task_t *cur_task, *new_task;
-	regs_t *regs;
 	int i;
 
 	pid = task_alloc_pid();
@@ -71,10 +70,6 @@ int syscall_fork(int a, int b, int c) {
 	memcpy(new_task, cur_task, sizeof(task_t));
 	new_task->pid = pid;
 	new_task->parent = cur_pid;
-
-	// Update register status for forked process
-	regs = scheduler_get_magic();
-	memcpy(&(new_task->regs), regs, sizeof(regs_t));
 
 	// Create kernel stack (512 8kb entries in 4MB page)
 	for (i = 0; i < 512; i++) {
@@ -96,6 +91,23 @@ int syscall_fork(int a, int b, int c) {
 			// Writable page, need copy (mark as copy-on-write)
 			new_task->pages[i].pt_flags &= ~PAGE_DIR_ENT_RDWR;
 			new_task->pages[i].priv_flags |= TASK_PTENT_CPONWR;
+			// Both have to be protected
+			cur_task->pages[i].pt_flags &= ~PAGE_DIR_ENT_RDWR;
+			cur_task->pages[i].priv_flags |= TASK_PTENT_CPONWR;
+
+			if (cur_task->pages[i].pt_flags & PAGE_DIR_ENT_4MB) {
+				// 4MB
+				page_dir_delete_entry(cur_task->pages[i].vaddr);
+				page_dir_add_4MB_entry(cur_task->pages[i].vaddr,
+									   cur_task->pages[i].paddr,
+									   cur_task->pages[i].pt_flags);
+			} else {
+				// 4KB
+				page_tab_delete_entry(cur_task->pages[i].vaddr);
+				page_tab_add_entry(cur_task->pages[i].vaddr,
+								   cur_task->pages[i].paddr,
+								   cur_task->pages[i].pt_flags);
+			}
 		}
 		if (new_task->pages[i].pt_flags & PAGE_DIR_ENT_4MB) {
 			// 4MB page
@@ -111,7 +123,9 @@ int syscall_fork(int a, int b, int c) {
 
 	// Done. New process will be executed by the scheduler later
 
-	return pid;
+	page_flush_tlb();
+
+	return pid; // Should not hit
 }
 
 int syscall_execve(int pathp, int argvp, int envpp) {
@@ -207,6 +221,8 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	}
 
 	proc->status = TASK_ST_RUNNING;
+
+	page_flush_tlb();
 
 	// set up tss
 	tss.ss0 = KERNEL_DS;
@@ -393,7 +409,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 		if (page->pt_flags & PAGE_DIR_ENT_4MB) {
 			// 4MB page
 			i = page->paddr;
-			page->paddr = NULL;
+			page->paddr = 0;
 			page->pt_flags |= PAGE_DIR_ENT_RDWR;
 			page->priv_flags &= ~(TASK_PTENT_CPONWR);
 			// Allocate and copy memory (using virtual 0xc0000000 as temp)
@@ -413,7 +429,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 		} else {
 			// 4KB page
 			i = page->paddr;
-			page->paddr = NULL;
+			page->paddr = 0;
 			page->pt_flags |= PAGE_DIR_ENT_RDWR;
 			page->priv_flags &= ~(TASK_PTENT_CPONWR);
 			// Allocate and copy memory (using virtual 0x08040000 as temp)
@@ -431,7 +447,8 @@ int task_pf_copy_on_write(uint32_t addr) {
 			page_tab_delete_entry(page->vaddr);
 			page_tab_add_entry(page->vaddr, page->paddr, page->pt_flags);
 		}
-
+		page_flush_tlb();
+		return 0; // Resume program execution
 	}
 	return -EFAULT;
 }

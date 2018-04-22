@@ -82,17 +82,21 @@ void signal_init() {
 
 void signal_exec(int sig) {
 	task_t *proc;
+	task_sigact_t *sa;
 
 	proc = task_list + task_current_pid();
 
 	// Resume program execution
 	proc->status = TASK_ST_RUNNING;
 
-	switch((int)(proc->sigacts[sig].handler)) {
+	sa = proc->sigacts + sig;
+
+	switch((int)(sa->handler)) {
 		case ((int)SIG_DFL):
-			return signal_exec_default(proc, sig);
+			signal_exec_default(proc, sig);
+			return;
 		case ((int)SIG_IGN):
-			// TODO perform context switch
+			signal_handler_ignore(proc, sig);
 			return;
 	}
 
@@ -111,7 +115,9 @@ void signal_exec(int sig) {
 
 	// Signal options...
 
-	// TODO perform context switch to user mode
+
+	// Perform context switch to user mode
+
 }
 
 void signal_exec_default(task_t *proc, int sig) {
@@ -149,4 +155,5 @@ void signal_handler_terminate(task_t *proc, int sig) {
 void signal_handler_stop(task_t *proc, int sig) {
 	proc->status = TASK_ST_SLEEP;
 	// TODO perform context switch
+
 }

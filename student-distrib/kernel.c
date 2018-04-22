@@ -185,8 +185,9 @@ void entry(unsigned long magic, unsigned long addr) {
 		while(1);
 	}
 	// mount filesystems
-	mount("","/","mp3fs",0,"");
-	mount("","/dev","devfs",0,"");
+	struct sys_mount_opts mount_opts;
+	syscall_mount((int)"mp3fs", (int)"/", (int)(&mount_opts));
+	syscall_mount((int)"devfs", (int)"/dev", (int)(&mount_opts));
 
 	// register drivers
 	terminal_out_driver_register();

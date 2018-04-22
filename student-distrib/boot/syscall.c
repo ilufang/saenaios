@@ -23,6 +23,10 @@ int syscall_register(int index, syscall_handler handler) {
 }
 
 int syscall_invoke(int index, int a, int b, int c) {
+	if (index < 0 || index >= SYSCALL_NUMBER_MAX) {
+		printf("Bad syscall number %d\n", index);
+		return -1;
+	}
 	if (syscall_handler_table[index]) {
 		return (*syscall_handler_table[index])(a, b, c);
 	}

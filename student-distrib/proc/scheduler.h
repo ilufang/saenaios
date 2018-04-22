@@ -56,6 +56,18 @@ void scheduler_page_setup(task_ptentry_t* pages);
 regs_t*	scheduler_get_magic();
 
 /**
+ *	Update the regs for the current user process
+ *
+ *	@note This function is called at the beginning of the ISR, before any
+ *		  handler is executed. Thus the `regs` field should already be valid
+ *		  when any handler is executing. Handlers do not need to update `regs`
+ *		  unless it is intended.
+ *
+ *	@param regs: pointer to the saved registers and iret structure
+ */
+void scheduler_update_taskregs(regs_t *regs);
+
+/**
  *
  *	assembly function to do actual iret to switch task
  *

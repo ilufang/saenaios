@@ -48,10 +48,15 @@ void scheduler_event(){
 }
 
 void scheduler_switch(task_t* from, task_t* to){
+	if (to->pid == 2) {
+		tss.ss0 = KERNEL_DS;
+	}
 	// tear down original paging
 	scheduler_page_clear(from->pages);
 	// set up new pagin
 	scheduler_page_setup(to->pages);
+
+	page_flush_tlb();
 
 	// set up tss
 	tss.ss0 = KERNEL_DS;
@@ -59,11 +64,13 @@ void scheduler_switch(task_t* from, task_t* to){
 
 	// ---- play with registers & set up IRET ----
 
+	/* // No longer needed
 	// load register address according to magic number on the stack
 	regs_t* original = scheduler_get_magic();
 
 	// save the registers of from process
 	memcpy(&from->regs, original, sizeof(regs_t));
+	*/
 
 	// TODO SET DS
 
@@ -73,7 +80,14 @@ void scheduler_switch(task_t* from, task_t* to){
 		// brutal force iret
 		scheduler_user_iret(&(to->regs));
 	}*/
+
 	scheduler_iret(&(to->regs));
+}
+
+void scheduler_update_taskregs(regs_t *regs) {
+	task_t *proc;
+	proc = task_list + task_current_pid();
+	memcpy(&(proc->regs), regs, sizeof(regs_t));
 }
 
 void scheduler_page_clear(task_ptentry_t* pages){

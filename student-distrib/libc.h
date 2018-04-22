@@ -8,3 +8,5 @@
 #include "../libc/include/fcntl.h"
 #include "../libc/include/unistd.h"
 #include "../libc/include/sys/mount.h"
+
+#include "../libc/src/syscalls.h"

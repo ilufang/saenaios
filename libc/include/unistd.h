@@ -6,6 +6,8 @@
 #ifndef UNISTD_H
 #define UNISTD_H
 
+#include "sys/types.h"
+
 #define SEEK_SET	0 ///< Seek relative to the start of the file
 #define SEEK_CUR	1 ///< Seek relative to the current position
 #define SEEK_END	2 ///< Seek relative to the end of file

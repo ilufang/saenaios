@@ -73,8 +73,6 @@ idt_int_msg_ss:
 	.string "Stack-Segment Fault at %x (err=%x)\n"
 idt_int_msg_gp:
 	.string "General Protection Fault at %x (err=%x)\n"
-idt_int_msg_pf:
-	.string "Page Fault at %x (err=%x, addr=%x)\n"
 idt_int_msg_mf:
 	.string "Math Fault at %x\n"
 idt_int_msg_ac:
@@ -111,6 +109,11 @@ idt_int_de:
 	movl	%esp, iret_struct
 	pushl	36(%esp)
 	pushl	$idt_int_msg_de
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$12, %esp
 	popal
@@ -120,6 +123,11 @@ idt_int_nmi:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	$idt_int_msg_nmi
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$8, %esp
 	popal
@@ -128,6 +136,11 @@ idt_int_bp:
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_bp_handler
 	addl	$4, %esp
 	popal
@@ -136,6 +149,11 @@ idt_int_of:
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_of_handler
 	addl	$4, %esp
 	popal
@@ -146,6 +164,11 @@ idt_int_br:
 	movl	%esp, iret_struct
 	pushl	36(%esp)
 	pushl	$idt_int_msg_br
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$12, %esp
 	popal
@@ -156,6 +179,11 @@ idt_int_ud:
 	movl	%esp, iret_struct
 	pushl	36(%esp)
 	pushl	$idt_int_msg_ud
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$12, %esp
 	popal
@@ -166,6 +194,11 @@ idt_int_nm:
 	movl	%esp, iret_struct
 	pushl	36(%esp)
 	pushl	$idt_int_msg_nm
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$12, %esp
 	popal
@@ -175,6 +208,11 @@ idt_int_df:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	$idt_int_msg_df
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$8, %esp
 	popal
@@ -187,6 +225,11 @@ idt_int_ts:
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ts
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$16, %esp
 	popal
@@ -199,6 +242,11 @@ idt_int_np:
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_np
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$16, %esp
 	popal
@@ -211,6 +259,11 @@ idt_int_ss:
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ss
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$16, %esp
 	popal
@@ -223,6 +276,11 @@ idt_int_gp:
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_gp
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$16, %esp
 	popal
@@ -238,9 +296,13 @@ idt_int_pf:
 	andl	$0xf, %eax
 	pushl	%eax		// Err code (masked)
 	pushl	44(%esp)	// EIP
-	pushl	$idt_int_msg_pf
-	call	idt_int_panic
-	addl	$20, %esp
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_pf_handler
+	addl	$16, %esp
 	popal
 	iret
 idt_int_mf:
@@ -251,6 +313,11 @@ idt_int_mf:
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_mf
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$16, %esp
 	popal
@@ -263,6 +330,11 @@ idt_int_ac:
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_ac
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$16, %esp
 	popal
@@ -272,6 +344,11 @@ idt_int_mc:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	$idt_int_msg_mc
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$8, %esp
 	popal
@@ -284,6 +361,11 @@ idt_int_xf:
 	pushl	TMPVAL		// Err code
 	pushl	36(%esp)	// EIP
 	pushl	$idt_int_msg_xf
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$16, %esp
 	popal
@@ -293,6 +375,11 @@ idt_int_reserved:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	$idt_int_msg_reserved
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
 	addl	$8, %esp
 	popal
@@ -356,6 +443,11 @@ idt_int_irqexec:
 	pushal
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	movl	TMPVAL, %eax
 	pushl	%eax
 	call	*idt_int_irq_listeners(,%eax,4)
@@ -373,6 +465,11 @@ idt_int_usr:
 	pushl	%ecx
 	pushl	%ebx
 	pushl	%eax
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	syscall_invoke
 	addl	$16, %esp
 

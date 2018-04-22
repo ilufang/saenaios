@@ -33,11 +33,11 @@
 #define SYSCALL_EXECVE		25
 #define SYSCALL_SIGACTION	26
 
-struct __attribute__((__packed__)) sys_mount_opts {
+struct sys_mount_opts {
 	const char *source;
 	unsigned long mountflags;
 	const char *opts;
-};
+} __attribute__((__packed__));
 
 /**
  *	Execute syscall linkage wrapper (used for testing)

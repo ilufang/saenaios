@@ -215,6 +215,18 @@ void idt_int_bp_handler();
 void idt_int_of_handler();
 
 /**
+ *	Page fault handler
+ *
+ *	The page fault handler also handles copy-on-write in addition to simply
+ *	sending a SIGSEGV signal to the faulting process.
+ *
+ *	@param eip: faulting instruction
+ *	@param err: error code
+ *	@param addr: faulting address
+ */
+void idt_int_pf_handler(int eip, int err, int addr);
+
+/**
  *	Prints panic message and halts the processor.
  *
  *	@param msg: The panic message. Could be a formatted string with up to four
