@@ -2,6 +2,7 @@
 
 #include "../fs/vfs.h"
 #include "task.h"
+#include "../../libc/include/sys/stat.h"
 
 int elf_load_pheader(int fd, int offset, elf_pheader_t *ph) {
 	int ret;
@@ -31,7 +32,7 @@ int elf_load(int fd)  {
 	int i, ret, idx;
 	uint32_t addr, align_off;
 	task_ptentry_t *ptent;
-
+	stat_t file_stat;
 	proc = task_list + task_current_pid();
 
 	ret = syscall_read(fd, (int)&eh, sizeof(eh));
@@ -68,7 +69,8 @@ int elf_load(int fd)  {
 		ph.type = 1;
 		ph.offset = 0;
 		ph.vaddr = 0x08048000;
-		ph.filesz = 8192; // TODO get file size
+		syscall_fstat(fd, (int)(&file_stat), 0);
+		ph.filesz = (uint32_t)file_stat.st_size; // TODO get file size
 		ph.flags = 7; // rwx all granted
 		ph.align = 0x1000; // 4kb aligned
 	}
@@ -152,10 +154,9 @@ int elf_load(int fd)  {
 			return ret;
 		}
 		ret = syscall_read(fd, ph.vaddr, ph.filesz);
-		// TODO: after fixing file size
-		// if (ret != ph.filesz) {
-			// return -EIO;
-		// }
+		if (ret != ph.filesz) {
+			return -EIO;
+		}
 	}
 
 	// Setup stack segment

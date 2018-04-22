@@ -71,6 +71,9 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_MOUNT, syscall_mount);
 	syscall_register(SYSCALL_UMOUNT, syscall_umount);
 	syscall_register(SYSCALL_GETDENTS, syscall_getdents);
+	syscall_register(SYSCALL_STAT, syscall_stat);
+	syscall_register(SYSCALL_FSTAT, syscall_fstat);
+	syscall_register(SYSCALL_LSTAT, syscall_lstat);
 
 	// Process
 	syscall_register(SYSCALL_FORK, syscall_fork);

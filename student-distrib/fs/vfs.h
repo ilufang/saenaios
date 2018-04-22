@@ -7,7 +7,7 @@
 #define FS_VFS_H
 
 #include "../types.h"
-
+#include "../../libc/include/sys/stat.h"
 #include "pathname.h"
 
 
@@ -419,6 +419,41 @@ int syscall_lseek(int fd, int offset, int whence);
  *	@return: 0 on success, or negative of an errno on failure
  */
 int syscall_getdents(int fd, int bufaddr, int);
+
+/**
+ *	System call handler for `stat`: get file status
+ *
+ *	@param path: char string of the path
+ *	@param stat_in: pointer to a user allocated stat structure
+ *	@param c: placeholder
+ *
+ *	@return 0 for success, negative value for errors
+ */
+int syscall_stat(int path, int stat_in, int c);
+
+/**
+ *	System call handler for `fstat`: get file status
+ *
+ *	@param fd: fd of the file, of course, a valid one
+ *	@param stat_in: pointer to a user allocated stat structure
+ *	@param c: placeholder
+ *
+ *	@return 0 for success, negative value for errors
+ */
+int syscall_fstat(int fd, int stat_in, int c);
+
+/**
+ *	System call handler for `lstat`: get file status
+ *
+ *	@param path: char string of the path
+ *	@param stat_in: pointer to a user allocated stat structure
+ *	@param c: placeholder
+ *
+ *	@return 0 for success, negative value for errors
+ *
+ *	@note not implemented yet
+ */
+int syscall_lstat(int path, int stat, int c);
 
 // For consistent include order
 #include "fstab.h"

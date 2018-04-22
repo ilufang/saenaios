@@ -7,6 +7,7 @@
 #define UNISTD_H
 
 #include "sys/types.h"
+#include "sys/stat.h"
 
 #define SEEK_SET	0 ///< Seek relative to the start of the file
 #define SEEK_CUR	1 ///< Seek relative to the current position
@@ -59,6 +60,51 @@ off_t lseek(int fd, off_t offset, int whence);
  */
 pid_t fork();
 
+/**
+ *	Get file status & info
+ *
+ *	Given the file path and name, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param path: char string of the path
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ *
+ *	@note will open symbolic link and redirect to the file linked
+ */
+int stat(const char* path, struct s_stat* buf);
+
+/**
+ *	Get file status & info
+ *
+ *	Given the file descriptor, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param fd: fd of the file, of course, a valid one
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ */
+int fstat(int fd, struct s_stat* buf);
+
+/**
+ *	Get symbolic link file status & info
+ *
+ *	Given the symbolic file path and name, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param path: char string of the path
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ *
+ *	@note this will fill the stat of the symbolic link file
+ */
+int lstat(const char* path, struct s_stat* buf);
 
 /**
  *	Reload current process with the given executable image.

@@ -206,11 +206,11 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	*(uint32_t *)(0xc0000000 - 4) = (uint32_t) u_argv;
 
 	// Initialize FD 0, 1
-	ret = syscall_open("/dev/stdin", O_RDONLY, 0);
+	ret = syscall_open((int)"/dev/stdin", O_RDONLY, 0);
 	if (ret != 0) {
 		printf("Failed to open stdin\n");
 	}
-	ret = syscall_open("/dev/stdout", O_WRONLY, 0);
+	ret = syscall_open((int)"/dev/stdout", O_WRONLY, 0);
 	if (ret != 1) {
 		printf("Failed to open stdout\n");
 	}

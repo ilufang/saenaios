@@ -260,3 +260,86 @@ int vfs_close_file(file_t *file) {
 	return 0;
 }
 
+int syscall_stat(int path, int stat_in, int c){
+	int temp_return;
+	int fd;
+	stat_t* stat = (stat_t*)stat_in;
+	task_t* proc;
+	file_t* temp_file;
+
+	if (!stat){
+		return -EINVAL;
+	}
+
+	temp_return = syscall_open(path, O_RDONLY, 0);
+	if (temp_return < 0){
+		return temp_return;
+	}
+
+	fd = temp_return;
+
+	proc = task_list + task_current_pid();
+
+	temp_file = proc->files[fd];
+
+	//TODO PERMISSION CHECK
+
+	// fill in the stat data
+	stat->st_ino = temp_file->inode->ino;
+	stat->st_mode = temp_file->mode;		// NEED CHECK
+	//stat->st_uid							TODO
+	//stat->st_gid							TODO
+
+	//NOTE, TEMPORARY WORKAROUND
+	stat->st_size = temp_file->inode->private_data;
+	//stat->st_blksize						TODO
+	//stat->st_blocks						TODO
+
+	syscall_close(fd, 0, 0);
+
+	return 0;
+}
+
+int syscall_fstat(int fd, int stat_in, int c){
+	stat_t* stat = (stat_t*)stat_in;
+	task_t* proc;
+	file_t* temp_file;
+
+	if (fd < 0){
+		// invalid fd
+		return -EINVAL;
+	}
+
+	if (!stat){
+		return -EINVAL;
+	}
+
+	proc = task_list + task_current_pid();
+
+	temp_file = proc->files[fd];
+
+	//TODO PERMISSION CHECK
+
+	if (temp_file->open_count <= 0){
+		// invalid fd
+		return -EINVAL;
+	}
+
+	// fill in the stat data
+	stat->st_ino = temp_file->inode->ino;
+	stat->st_mode = temp_file->mode;		// NEED CHECK
+	//stat->st_uid							TODO
+	//stat->st_gid							TODO
+
+	//NOTE, TEMPORARY WORKAROUND
+	stat->st_size = temp_file->inode->private_data;
+	//stat->st_blksize						TODO
+	//stat->st_blocks						TODO
+
+	return 0;
+}
+
+int syscall_lstat(int path, int stat, int c){
+	//TODO
+	return -ENOSYS;
+}

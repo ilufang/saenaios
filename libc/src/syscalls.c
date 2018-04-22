@@ -2,6 +2,7 @@
 
 #include "../include/stddef.h"
 #include "../include/sys/types.h"
+#include "../include/sys/stat.h"
 #include "../include/errno.h"
 
 #include "../include/sys/mount.h"
@@ -44,6 +45,18 @@ int getdents(int fd, struct dirent *buf) {
 
 pid_t fork() {
 	return do_syscall(SYSCALL_FORK, 0, 0, 0);
+}
+
+int stat(const char* path, struct s_stat* buf){
+	return do_syscall(SYSCALL_STAT, (int)path, (int)buf, 0);
+}
+
+int fstat(int fd, struct s_stat* buf){
+	return do_syscall(SYSCALL_FSTAT, fd, (int)buf, 0);
+}
+
+int lstat(const char* path, struct s_stat* buf){
+	return do_syscall(SYSCALL_LSTAT, (int)path, (int)buf, 0);
 }
 
 int execve(const char *path, char *const argv[], char *const envp[]) {
