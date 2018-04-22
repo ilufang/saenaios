@@ -59,6 +59,10 @@ task_kernel_process$argv:
 	.long	task_kernel_process$execve
 	.long	0
 
+task_ece391_execute:
+	movl	$2, %eax
+
+
 signal_user_length:
 	.long	signal_user_length - signal_user_base
 

@@ -99,6 +99,10 @@ extern void* task_kernel_process;
 
 extern int task_kernel_process_length;
 
+/**
+ *	Asm function to iret to user level kernel init process
+ *
+ */
 void task_kernel_process_iret();
 
 #endif

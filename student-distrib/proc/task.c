@@ -258,33 +258,60 @@ int syscall__exit(int status, int b, int c) {
 
 int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	char *cmdline = (char *)cmdlinep;
-	char *argv = NULL;
+	char *argv[2] = {NULL, NULL};
 	int i;
+	int child_pid;
+	task_t* child_proc;
+	task_t* parent_proc = task_list + task_current_pid();
+	sigset_t ss;
 
 	if (!cmdlinep) {
 		return -EFAULT;
 	}
+	while (*cmdline == ' ') cmdline++;
 	for (i = 0; cmdline[i]; i++) {
 		if (!argv) {
 			// Space not detected yet
 			if (cmdline[i] == ' ') {
 				cmdline[i] = '\0';
-				argv = cmdline + 1;
+				argv[0] = cmdline + i + 1;
 			}
 		} else {
 			// Space detected
 			if (cmdline[i] == ' ') {
-				argv = cmdline + 1;
+				argv[0] = cmdline + i + 1;
 			} else {
 				break;
 			}
 		}
 	}
-	if (!argv) {
-		argv = cmdline + i;
-	}
 
-	// TODO modify user stack for BOTH
+	// -----fork a new process, go in, set up execute-----
+	// no worries here since in the syscall, interrupts are all masked
+
+	// directly call syscall_fork
+	child_pid = syscall_fork(0,0,0);
+	if (child_pid<0){
+		//error condition
+		return child_pid;
+	}
+	child_proc = task_list + child_pid;
+
+	// need to update parent process' regs so next time parent process could correctly return
+	memcpy(&(parent_proc->regs), scheduler_get_magic(), sizeof(regs_t));
+
+	// magically change user iret registers
+	child_proc->regs.eax = SYSCALL_EXECVE;
+	child_proc->regs.ebx = (int)cmdline;
+	child_proc->regs.ecx = (int)argv;
+	child_proc->regs.edx = 0;
+	child_proc->regs.eip -= 2;
+
+	// TODO set parent to wait / sleep
+	sigfillset(ss);
+	sigdelset(ss, SIGIO);
+	syscall_sigsuspend((int) &ss, NULL, 0);
+
 	return 0;
 }
 

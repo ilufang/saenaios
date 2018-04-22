@@ -129,6 +129,22 @@ int syscall__exit(int status, int, int);
 int syscall_ece391_execute(int cmdlinep, int b, int c);
 
 /**
+ *	Assembly magic workaround for ece391 execute wrapper
+ *
+ *	Essentially, this function set up the syscall_execve function stack on the kernel stack of the
+ *	child process, change esp to it, and then call syscall_execve. Then the syscall_execve will work
+ *	on the child process.
+ *
+ *	@param target_esp: the stack bottom of the child process to execute
+ *	@param pathp: parameter for the syscall_execve
+ *	@param argvp: parameter for the syscall_execve
+ *	@param envpp: parameter for the syscall_execve
+ *
+ *	@note: this magic will not change parent's page table or entries, but I think it is safe to do so. Need testing
+ */
+void syscall_ece391_execute_magic(int target_esp, int pathp, int argvp, int envpp);
+
+/**
  *	ECE391 halt wrapper
  *
  *	@return This call will not return
