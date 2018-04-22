@@ -118,7 +118,7 @@ int syscall_sigsuspend(int sigsetp, int b, int c) {
 	if (sigsetp) {
 		proc->signal_mask = *(sigset_t *)sigsetp & ~(SIGKILL | SIGSTOP);
 	}
-	proc->regs.eax = -EINTR;
+	// proc->regs.eax = -EINTR;
 	proc->status = TASK_ST_SLEEP;
 
 	scheduler_event();
@@ -158,8 +158,6 @@ void signal_init() {
 
 void signal_exec(task_t *proc, int sig) {
 	task_sigact_t *sa;
-
-	proc = task_list + task_current_pid();
 
 	// Resume program execution
 	proc->status = TASK_ST_RUNNING;
