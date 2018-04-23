@@ -147,7 +147,7 @@ int syscall_kill(int pid, int sig, int c) {
 
 void signal_init() {
 	uint32_t paddr = 0;
-	page_alloc_4KB((int *)&paddr);
+	page_alloc_4KB(&paddr);
 	page_tab_add_entry(PROC_USR_BASE, paddr, PAGE_TAB_ENT_PRESENT |
 					   PAGE_TAB_ENT_RDWR | PAGE_TAB_ENT_USER |
 					   PAGE_TAB_ENT_GLOBAL);

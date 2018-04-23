@@ -223,7 +223,7 @@ idt_int_ts:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
-	pushl	36(%esp)	// EIP
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_ts
 
 	pushl	iret_struct
@@ -240,7 +240,7 @@ idt_int_np:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
-	pushl	36(%esp)	// EIP
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_np
 
 	pushl	iret_struct
@@ -257,7 +257,7 @@ idt_int_ss:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
-	pushl	36(%esp)	// EIP
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_ss
 
 	pushl	iret_struct
@@ -274,7 +274,7 @@ idt_int_gp:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
-	pushl	36(%esp)	// EIP
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_gp
 
 	pushl	iret_struct
@@ -311,7 +311,7 @@ idt_int_mf:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
-	pushl	36(%esp)	// EIP
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_mf
 
 	pushl	iret_struct
@@ -328,7 +328,7 @@ idt_int_ac:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
-	pushl	36(%esp)	// EIP
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_ac
 
 	pushl	iret_struct
@@ -359,7 +359,7 @@ idt_int_xf:
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
 	pushl	TMPVAL		// Err code
-	pushl	36(%esp)	// EIP
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_xf
 
 	pushl	iret_struct

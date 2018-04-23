@@ -80,7 +80,7 @@ int elf_load(int fd)  {
 
 	// Prepare to create new memory pages
 	for (idx = 0; idx < TASK_MAX_PAGE_MAPS; idx++) {
-		if (!(proc->pages[i].pt_flags & PAGE_TAB_ENT_PRESENT))
+		if (!(proc->pages[idx].pt_flags & PAGE_TAB_ENT_PRESENT))
 			break;
 	}
 	if (idx == TASK_MAX_PAGE_MAPS) {
@@ -149,6 +149,7 @@ int elf_load(int fd)  {
 			}
 			idx++;
 		}
+		page_flush_tlb();
 		ret = syscall_lseek(fd, ph.offset, SEEK_SET);
 		if (ret < 0) {
 			return ret;
@@ -159,25 +160,6 @@ int elf_load(int fd)  {
 		}
 	}
 
-	// Setup stack segment
-	// allocate 4MB page from 0xbfc00000 - 0xc0000000 for stack
-	if (idx == TASK_MAX_PAGE_MAPS) {
-		// No more pages may be allocated for this process
-		return -ENOMEM;
-	}
-	ptent = proc->pages + idx;
-	ptent->vaddr = 0xbfc00000;
-	ret = page_alloc_4MB((int *)&(ptent->paddr));
-	if (ret != 0) {
-		// Page allocation failed. Probably ENOMEM
-		return ret;
-	}
-	ptent->priv_flags = 0;
-	ptent->pt_flags = PAGE_DIR_ENT_PRESENT;
-	ptent->pt_flags |= PAGE_DIR_ENT_RDWR;
-	ptent->pt_flags |= PAGE_DIR_ENT_USER;
-	ptent->pt_flags |= PAGE_DIR_ENT_4MB;
-	page_dir_add_4MB_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
 
 	return 0;
 }

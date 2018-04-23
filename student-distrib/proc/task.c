@@ -135,46 +135,45 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	int fd, ret, i;
 	task_t *proc;
 	uint32_t *u_argv, *u_envp, argc, envc;
+	task_ptentry_t ptent_stack;
 
 	// Sanity checks
 	if (!pathp) {
 		return -EFAULT;
 	}
 
-	ret = task_current_pid();
-	proc = task_list + ret;
+	proc = task_list + task_current_pid();
 
 	// memset((char *)&(proc->regs), 0, sizeof(proc->regs));
 
 	// TODO: Permission checks
 
-	// Release previous process
-	task_release(proc);
+	// Copy execution information to new user stack
 
-	// Re-take the kernel stack
-	((task_ks_t *)(proc->ks_esp))[-1].pid = ret;
-
-	fd = syscall_open(pathp, O_RDONLY, 0);
-	if (fd < 0) {
-		return fd;
-	}
-	ret = elf_load(fd);
-	syscall_close(fd, 0, 0);
-
+	// allocate 4MB page for new stack (temporary at 0xc0000000 - 0xc0400000)
+	ptent_stack.vaddr = 0xc0000000;
+	ptent_stack.paddr = 0;
+	ret = page_alloc_4MB((int *)&(ptent_stack.paddr));
 	if (ret != 0) {
-		// Something very bad happened. Squash this process
-		syscall__exit(1,0,0); // 1 for unsuccessful exit
-		return -ENOEXEC; // This line should not hit though
+		// Page allocation failed. Probably ENOMEM
+		return ret;
 	}
+	ptent_stack.priv_flags = 0;
+	ptent_stack.pt_flags = PAGE_DIR_ENT_PRESENT;
+	ptent_stack.pt_flags |= PAGE_DIR_ENT_RDWR;
+	ptent_stack.pt_flags |= PAGE_DIR_ENT_USER;
+	ptent_stack.pt_flags |= PAGE_DIR_ENT_4MB;
+	page_dir_add_4MB_entry(ptent_stack.vaddr, ptent_stack.paddr,
+						   ptent_stack.pt_flags);
+	page_flush_tlb();
 
 	// Push argv and envp onto stack, set ESP and EBP
-	proc->regs.esp = 0xc0000000; // Default stack address
-	proc->regs.ebp = 0xc0000000;
+	proc->regs.esp = 0xc0400000; // Default stack address
 
 	task_user_pushl(&(proc->regs.esp), 0); // Reserve dword for args lookup
 
 	// Parse argv
-	u_argv = (uint32_t *) 0xbfc00000; // Temporarily use top of stack as heap
+	u_argv = (uint32_t *) 0xc0000000; // Temporarily use top of stack as heap
 	if (argv) {
 		for (argc = 0; argv[argc]; argc++) {
 			task_user_pushs(&(proc->regs.esp), (uint8_t *) argv[argc], strlen(argv[argc]));
@@ -204,7 +203,42 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	task_user_pushl(&(proc->regs.esp), argc);
 
 	// ece391_getargs workaround: bottom of stack points to argv
-	*(uint32_t *)(0xc0000000 - 4) = (uint32_t) u_argv;
+	*(uint32_t *)(0xc0400000 - 4) = (uint32_t) u_argv;
+
+	strcpy((char *)0xc0000000, (char *)pathp); // Copy path to top-of-stack
+
+	// Release previous process
+	ret = task_current_pid();
+	task_release(proc);
+	// Update kernel stack PID
+	((task_ks_t *)(proc->ks_esp))[-1].pid = ret;
+
+
+	// Re-map new stack
+	page_dir_delete_entry(ptent_stack.vaddr);
+	ptent_stack.vaddr = 0xbfc00000;
+	page_dir_add_4MB_entry(ptent_stack.vaddr, ptent_stack.paddr,
+						   ptent_stack.pt_flags);
+	memcpy(proc->pages+0, &ptent_stack, sizeof(task_ptentry_t));
+	proc->regs.esp = 0xc0000000;
+	page_flush_tlb();
+
+
+	// Try to open ELF file for reading
+	fd = syscall_open(0xbfc00000, O_RDONLY, 0);
+	if (fd < 0) {
+		page_alloc_free_4MB(ptent_stack.vaddr);
+		return fd;
+	}
+
+	ret = elf_load(fd);
+	syscall_close(fd, 0, 0);
+
+	if (ret != 0) {
+		// Something very bad happened. Squash this process
+		syscall__exit(1,0,0); // 1 for unsuccessful exit
+		return -ENOEXEC; // This line should not hit though
+	}
 
 	// Initialize FD 0, 1
 	ret = syscall_open((int)"/dev/stdin", O_RDONLY, 0);
@@ -219,6 +253,9 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	// Initialize signal handlers
 	for (i = 0; i < SIG_MAX; i++) {
 		proc->sigacts[i].handler = SIG_DFL;
+		proc->sigacts[i].flags = 0;
+		sigfillset(proc->sigacts[i].mask);
+		sigdelset(proc->sigacts[i].mask, i);
 	}
 
 	proc->status = TASK_ST_RUNNING;
