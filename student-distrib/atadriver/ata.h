@@ -62,9 +62,9 @@ ssize_t ata_write(file_t* file, uint8_t *buf, size_t count, off_t *offset);
 
 ssize_t ata_read(file_t* file, uint8_t *buf, size_t count, off_t *offset);
 
-int32_t ata_open(inode_t* inode, file_t* file)
+int32_t ata_open(inode_t* inode, file_t* file);
 
-int32_t ata_close(inode_t* inode, file_t* file)
+int32_t ata_close(inode_t* inode, file_t* file);
 
 int ata_driver_register();
 

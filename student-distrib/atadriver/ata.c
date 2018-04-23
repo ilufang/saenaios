@@ -316,5 +316,5 @@ int ata_driver_register(){
 	ata_fop.read = &ata_read;
 	ata_fop.write = &ata_write;
 	ata_fop.readdir = NULL;
-	return (devfs_register_driver("stdin", &ata_fop));
+	return (devfs_register_driver("hda", &ata_fop));
 }

@@ -502,6 +502,37 @@ int test_pcb(){
 
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
+int test_ata() {
+	TEST_HEADER;
+	ata_init();
+	ata_data_t test;
+	test.slave_bit = 0;
+	test.io_base_reg = 0x1F0;
+	test.prt_size = 275456;
+	test.stLBA = 0;
+	//int8_t buf[10] = "testing";
+	//ata_write_st(1, (uint8_t*)buf, 10, test);
+	uint8_t new_buf[512];
+	memset(new_buf, 0, 512);
+	ata_read_st(1, (uint8_t*)new_buf, 10879, &test);
+	printf((int8_t*)new_buf);
+	new_buf[0] = 't';
+	new_buf[1] = 'e';
+	new_buf[2] = 's';
+	new_buf[3] = 't';
+	new_buf[4] = 'w';
+	new_buf[5] = 'r';
+	new_buf[6] = 'i';
+	new_buf[7] = 't';
+	new_buf[8] = 'e';
+	ata_write_st(1, (uint8_t*)new_buf, 10879, &test);
+	memset(new_buf, 0, 512);
+	printf("clearing buffer content\n");
+	ata_read_st(1, (uint8_t*)new_buf, 10879, &test);
+	printf((int8_t*)new_buf);
+	return PASS;
+}
+
 
 
 /* Test suite entry point */
@@ -546,29 +577,7 @@ void launch_tests() {
 	idt_addEventListener(KBD_IRQ_NUM, kbd_orig);
 	idt_addEventListener(RTC_IRQ_NUM, rtc_orig);
 	
-	ata_init();
-	ata_data_t test;
-	test.slave_bit = 0;
-	test.io_base_reg = 0x1F0;
-	test.prt_size = 275456;
-	test.stLBA = 0;
-	//int8_t buf[10] = "testing";
-	//ata_write_st(1, (uint8_t*)buf, 10, test);
-	uint8_t new_buf[512];
-	memset(new_buf, 0, 512);
-	new_buf[0] = 't';
-	new_buf[1] = 'e';
-	new_buf[2] = 's';
-	new_buf[3] = 't';
-	new_buf[4] = 'w';
-	new_buf[5] = 'r';
-	new_buf[6] = 'i';
-	new_buf[7] = 't';
-	new_buf[8] = 'e';
-	ata_write_st(1, (uint8_t*)new_buf, 10879, &test);
-	memset(new_buf, 0, 512);
-	ata_read_st(1, (uint8_t*)new_buf, 10879, &test);
-	printf((int8_t*)new_buf);
+	TEST_OUTPUT("test ata driver", test_ata());
 
 	//TEST_OUTPUT("Syscall dispatcher test", test_syscall_dispatcher());
 
