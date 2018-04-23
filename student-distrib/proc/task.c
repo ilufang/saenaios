@@ -184,8 +184,8 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	u_argv = (uint32_t *) 0xc0000000; // Temporarily use top of stack as heap
 	if (argv) {
 		for (argc = 0; argv[argc]; argc++) {
-			task_user_pushs(&(proc->regs.esp), (uint8_t *) argv[argc], strlen(argv[argc]));
-			u_argv[argc] = proc->regs.esp;
+			task_user_pushs(&(proc->regs.esp), (uint8_t *) argv[argc], strlen(argv[argc])+1);
+			u_argv[argc] = proc->regs.esp - 0x400000;
 		}
 	} else {
 		argc = 0;
@@ -194,8 +194,8 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	u_envp = u_argv + argc;
 	if (envp) {
 		for (envc = 0; envp[envc]; envc++) {
-			task_user_pushs(&(proc->regs.esp), (uint8_t *) envp[envc], strlen(envp[envc]));
-			u_envp[envc] = proc->regs.esp;
+			task_user_pushs(&(proc->regs.esp), (uint8_t *) envp[envc], strlen(envp[envc])+1);
+			u_envp[envc] = proc->regs.esp - 0x400000;
 		}
 		task_user_pushl(&(proc->regs.esp), 0); // Ending zero
 	} else {
@@ -203,9 +203,9 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	}
 	// Move temp values back
 	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_argv, 4*argc);
-	u_argv = (uint32_t *) proc->regs.esp;
+	u_argv = (uint32_t *) proc->regs.esp - 0x400000 / 4;	// /4 for uin32_t pointer
 	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_envp, 4*(envc+1));
-	u_envp = (uint32_t *) proc->regs.esp;
+	u_envp = (uint32_t *) proc->regs.esp - 0x400000 / 4;
 	task_user_pushl(&(proc->regs.esp), (uint32_t) u_envp);
 	task_user_pushl(&(proc->regs.esp), (uint32_t) u_argv);
 	task_user_pushl(&(proc->regs.esp), argc);
@@ -236,7 +236,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	page_dir_add_4MB_entry(ptent_stack.vaddr, ptent_stack.paddr,
 						   ptent_stack.pt_flags);
 	memcpy(proc->pages+0, &ptent_stack, sizeof(task_ptentry_t));
-	proc->regs.esp = 0xc0000000;
+	proc->regs.esp -= 0x400000;
 	page_flush_tlb();
 
 	// Try to open ELF file for reading
@@ -323,7 +323,7 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	}
 	while (*cmdline == ' ') cmdline++;
 	for (i = 0; cmdline[i]; i++) {
-		if (!argv) {
+		if (!argv[0]) {
 			// Space not detected yet
 			if (cmdline[i] == ' ') {
 				cmdline[i] = '\0';
@@ -370,7 +370,23 @@ int syscall_ece391_halt(int a, int b, int c) {
 }
 
 int syscall_ece391_getargs(int buf, int nbytes, int c) {
-	return -ENOSYS; // TODO
+	uint8_t* buff = (uint8_t*)buf;
+	uint8_t** argv = (uint8_t**)(*(int*)(0xc0000000 - 4));
+	int length = 0;
+	uint8_t* temp = argv[0];
+	// ece391 is only going to use one parameter at last
+
+	if (!buff)
+		return -EINVAL;
+
+	while (*temp){
+		temp++;
+		length++;
+	}
+
+	memcpy(buff, argv[0], length);
+
+	return 0;
 }
 
 void task_release(task_t *proc) {
