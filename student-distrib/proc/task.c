@@ -310,6 +310,45 @@ int syscall__exit(int status, int b, int c) {
 	return 0; // This line should not hit
 }
 
+int syscall_wait(int statusp, int b, int c) {
+	pid_t pid;
+	int i, found_child;
+	task_sigact_t sa;
+	sigset_t ss;
+
+	pid = task_current_pid();
+
+	found_child = 0;
+	for (i = 0; i < TASK_MAX_PROC; i++) {
+		if (task_list[i].parent == pid) {
+			switch (task_list[i].status) {
+				case TASK_ST_ZOMBIE:
+				if (statusp) {
+					*(int *)statusp = task_list[i].regs.eax;
+				}
+				return task_list[i].pid;
+				case TASK_ST_RUNNING:
+				case TASK_ST_SLEEP:
+					found_child = 1;
+					break;
+			}
+		}
+	}
+	if (!found_child) {
+		// No child process found
+		return -ECHILD;
+	}
+	// Child process found, but non are terminated. Put parent to sleep
+	sa.handler = SIG_IGN;
+	sigemptyset(sa.mask);
+	sa.flags = SA_RESTART;
+	syscall_sigaction(SIGCHLD, (int)&sa, 0);
+	sigfillset(ss);
+	sigdelset(ss, SIGCHLD);
+	syscall_sigsuspend((int) &ss, NULL, 0);
+	return 0; // Should not hit
+}
+
 int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	char *cmdline = (char *)cmdlinep;
 	char *argv[2] = {NULL, NULL};

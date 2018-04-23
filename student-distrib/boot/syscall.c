@@ -79,5 +79,11 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_FORK, syscall_fork);
 	syscall_register(SYSCALL__EXIT, syscall__exit);
 	syscall_register(SYSCALL_EXECVE, syscall_execve);
+	syscall_register(SYSCALL_WAIT, syscall_wait);
+
+	// Signals
+	syscall_register(SYSCALL_KILL, syscall_kill);
 	syscall_register(SYSCALL_SIGACTION, syscall_sigaction);
+	syscall_register(SYSCALL_SIGSUSPEND, syscall_sigsuspend);
+	syscall_register(SYSCALL_SIGPROCMASK, syscall_sigprocmask);
 }

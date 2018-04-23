@@ -68,6 +68,10 @@ void _exit(int status) {
 	do_syscall(SYSCALL__EXIT, status, 0, 0);
 }
 
+pid_t wait(int *status) {
+	return do_syscall(SYSCALL_WAIT, (int)status, 0, 0);
+}
+
 int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact) {
 	return do_syscall(SYSCALL_SIGACTION, sig, (int) act, (int) oldact);
 }

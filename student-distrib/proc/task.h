@@ -118,6 +118,15 @@ int syscall_execve(int pathp, int argvp, int envpp);
 int syscall__exit(int status, int, int);
 
 /**
+ *	Wait for child process to terminate
+ *
+ *	@param statusp: pointer to int buffer for receiving return value
+ *	@return the pid of the terminated process on success, or the negative of
+ *			an errno on failure
+ */
+int syscall_wait(int statusp, int, int);
+
+/**
  *	ECE391 (`exec` style) execute wrapper
  *
  *	@param cmdlinep: pointer to `char *`, the entire command line
