@@ -34,6 +34,22 @@ static page_table_t ece391_init_page_table;
 
 static page_table_t manyoushu_page_table;
 
+int get_phys_mem_reference_count(int physical_addr){
+	// align to 4MB
+	int mem_index = GET_MEM_MAP_INDEX(physical_addr);
+
+	if ((mem_index == 0) || (mem_index >= MAX_DYNAMIC_4MB_PAGE))
+		return -EINVAL;
+
+	if (mem_index == 3){
+		// manyoushu page
+		int mem_table_index = GET_MANYOU_INDEX(physical_addr);
+		return manyoushu_mem_table[mem_table_index].count;
+	}else{
+		return page_phys_mem_map[mem_index].count;
+	}
+}
+
 int _page_alloc_get_4MB(){
 	int sanity_count = 0;
 	// find next free 4MB page

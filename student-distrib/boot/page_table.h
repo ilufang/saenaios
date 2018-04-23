@@ -24,6 +24,13 @@ void page_kernel_mem_map_init();
 void page_phys_mem_map_init();
 
 /**
+ * 	Exposed function for getting memory reference count of
+ *	a physical memory address
+ *
+ */
+int get_phys_mem_reference_count(int physical_addr);
+
+/**
  *	Turn on paging in the processor
  *
  *	@param page_directory: address of page directory
