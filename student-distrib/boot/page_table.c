@@ -38,15 +38,15 @@ int get_phys_mem_reference_count(int physical_addr){
 	// align to 4MB
 	int mem_index = GET_MEM_MAP_INDEX(physical_addr);
 
-	if ((page_dir_index == 0) || (page_dir_index >= MAX_DYNAMIC_4MB_PAGE))
+	if ((mem_index == 0) || (mem_index >= MAX_DYNAMIC_4MB_PAGE))
 		return -EINVAL;
 
-	if (page_dir_index == 3){
+	if (mem_index == 3){
 		// manyoushu page
 		int mem_table_index = GET_MANYOU_INDEX(physical_addr);
 		return manyoushu_mem_table[mem_table_index].count;
 	}else{
-		return page_phys_mem_map.count;
+		return page_phys_mem_map[mem_index].count;
 	}
 }
 
