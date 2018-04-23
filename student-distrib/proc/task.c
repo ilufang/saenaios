@@ -18,6 +18,8 @@ task_ks_t *kstack = (task_ks_t *)0x800000;
 int16_t task_alloc_pid() {
 	pid_t ret;
 	for(ret = task_pid_allocator + 1; ret != task_pid_allocator; ret++) {
+		if (ret >= TASK_MAX_PROC)
+			ret = 0;
 		if(task_list[ret].status == TASK_ST_NA) {
 			task_pid_allocator = ret;
 			return ret;
@@ -476,6 +478,21 @@ int task_pf_copy_on_write(uint32_t addr) {
 
 		// OK. Copy page to be writable
 		page = proc->pages + i;
+		if (get_phys_mem_reference_count(page->paddr) == 1) {
+			page->pt_flags |= PAGE_DIR_ENT_RDWR;
+			page->priv_flags &= ~(TASK_PTENT_CPONWR);
+			if (page->pt_flags & PAGE_DIR_ENT_4MB) {
+				// 4MB page
+				page_dir_delete_entry(page->vaddr);
+				page_dir_add_4MB_entry(page->vaddr, page->paddr, page->pt_flags);
+			} else {
+				// 4KB page
+				page_tab_delete_entry(page->vaddr);
+				page_tab_add_entry(page->vaddr, page->paddr, page->pt_flags);
+			}
+			page_flush_tlb();
+			return 0;
+		}
 		if (page->pt_flags & PAGE_DIR_ENT_4MB) {
 			// 4MB page
 			i = page->paddr;
