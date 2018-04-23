@@ -4,6 +4,7 @@
 .globl signal_user_ret
 .globl signal_user_ret_offset
 .globl task_kernel_process_offset
+.globl syscall_ece391_execute_magic
 
 #define LD_BASE	0x8000000
 
@@ -62,6 +63,13 @@ task_kernel_process$argv:
 task_ece391_execute:
 	movl	$2, %eax
 
+/*
+	These are what used for ece391 execute
+*/
+syscall_ece391_execute_magic_start:
+	int 	$0x80 					// eax is already loaded with execve number
+	movl	$24, %eax 				// if execve returned to this line, means error occurs
+	int 	$0x80 					// then call syscall__exit
 
 signal_user_length:
 	.long	signal_user_length - signal_user_base
@@ -70,3 +78,6 @@ signal_user_ret_offset:
 	.long	signal_user_ret - signal_user_base
 task_kernel_process_offset:
 	.long	task_kernel_process - signal_user_base
+
+syscall_ece391_execute_magic:
+	.long  	syscall_ece391_execute_magic_start - signal_user_base
