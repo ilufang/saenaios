@@ -3,7 +3,7 @@
 static int screen_x=0, screen_y=0;	//x,y position on the screen
 static int curser_x=0, curser_y=0;	//not useful for now
 //pointing to start address of video memory
-static char* video_mem = (char *)VIDEO;	
+static char* video_mem = (char *)VIDEO;
 // scroll offset initialized to 0
 //static int screen_stroll_offset=0;
 // if last_newline is 1, then cannot backspace to last line
@@ -34,7 +34,7 @@ int terminal_out_driver_register(){
 	// inflate the operation pointer table
 	terminal_out_op.open = & terminal_out_open;
 	terminal_out_op.release = & terminal_out_close;
-	terminal_out_op.read = & terminal_out_read;
+	terminal_out_op.read = NULL;
 	terminal_out_op.write = & terminal_out_write;
 	terminal_out_op.readdir = NULL;
 
@@ -110,10 +110,6 @@ int terminal_out_write_(uint8_t* buf, int length){
 		}
 	}
 	return length;	// note for now
-}
-
-ssize_t terminal_out_read(file_t* file, uint8_t* buf,size_t count,off_t* offset){
-	return 0;	// for now
 }
 
 /*int terminal_out_escape_sequence(uint8_t *buf,int max_length){
@@ -194,7 +190,7 @@ void terminal_out_newline(){
 
 void terminal_out_backspace(){
 	int temp_offset;
-	
+
 	screen_x--;
 	// return to previous line check
 	if (screen_x<0){
@@ -218,8 +214,8 @@ void terminal_out_scroll_down(){
 		for (j=0;j<NUM_COLS;++j){
 			temp_offset = (i*NUM_COLS+j)<<1;
 			// memory content of next line overwrite this line
-			*(uint8_t*)(video_mem + temp_offset) = *(uint8_t*)(video_mem + temp_offset + NUM_COLS*2); 
-			*(uint8_t*)(video_mem + temp_offset+1) = *(uint8_t*)(video_mem + temp_offset + NUM_COLS*2+1); 
+			*(uint8_t*)(video_mem + temp_offset) = *(uint8_t*)(video_mem + temp_offset + NUM_COLS*2);
+			*(uint8_t*)(video_mem + temp_offset+1) = *(uint8_t*)(video_mem + temp_offset + NUM_COLS*2+1);
 		}
 	}
 	for (j=0;j<NUM_COLS;++j){

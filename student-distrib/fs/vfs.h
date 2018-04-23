@@ -360,6 +360,16 @@ int syscall_ece391_open(int pathaddr, int, int);
 int syscall_close(int fd, int, int);
 
 /**
+ *	ECE391 wrapper for `syscall_close`. @see syscall_close
+ *
+ *	This wrapper will return -1 on failure instead of error information.
+ *
+ *	@param fd: the file descriptor to close
+ *	@return 0 on success, or -1 on failure.
+ */
+int syscall_ece391_close(int fd, int, int);
+
+/**
  *	System call handler for `read`: read bytes from an open fd into a provided
  *	user buffer.
  *
@@ -397,6 +407,18 @@ int syscall_ece391_read(int fd, int bufaddr, int size);
  *	@return the number of bytes written, or the negative of an errno on failure.
  */
 int syscall_write(int fd, int bufaddr, int size);
+
+/**
+ *	ECE391 wrapper for `syscall_write`. @see syscall_write
+ *
+ *	This wrapper will return -1 on failure instead of error information.
+ *
+ *	@param fd: the file descriptor to write to
+ *	@param bufaddr: pointer to the user buffer to write from
+ *	@param size: the size of the buffer
+ *	@return the number of bytes written, or -1 on failure.
+ */
+int syscall_ece391_write(int fd, int bufaddr, int count);
 
 /**
  *	System call handler for `lseek`: seek file pointer to given position

@@ -14,7 +14,15 @@ file_t vfs_files[VFS_MAX_OPEN_FILES];
 #define DIRENT_INDEX_AUTO	-2
 
 int syscall_ece391_open(int pathaddr, int b, int c) {
-	return syscall_open(pathaddr, O_RDONLY, 0);
+	int ret;
+	ret = syscall_open(pathaddr, O_RDONLY, 0);
+	if (ret < 0)
+		return -1;
+	if (ret >= 8) {
+		syscall_close(ret, 0, 0);
+		return -1;
+	}
+	return ret;
 }
 
 int syscall_open(int pathaddr, int flags, int mode) {
@@ -58,6 +66,18 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	return avail_fd;
 }
 
+int syscall_ece391_close(int fd, int b, int c) {
+	int ret;
+	if (fd == 0 || fd == 1) {
+		// ECE391 think they shouldn't be able to close stdin and stdout
+		return -1;
+	}
+	ret = syscall_close(fd, b, c);
+	if (ret < 0)
+		return -1;
+	return ret;
+}
+
 int syscall_close(int fd, int b, int c) {
 	task_t *proc;
 	file_t *file;
@@ -97,9 +117,7 @@ int syscall_ece391_read(int fd, int bufaddr, int size) {
 	return ret;
 }
 
-
 int syscall_read(int fd, int bufaddr, int count) {
-
 	task_t *proc;
 	file_t *file;
 
@@ -118,6 +136,14 @@ int syscall_read(int fd, int bufaddr, int count) {
 	}
 	// TODO: no permission check
 	return (*file->f_op->read)(file, (uint8_t *) bufaddr, count, &(file->pos));
+}
+
+int syscall_ece391_write(int fd, int bufaddr, int count) {
+	int ret;
+	ret = syscall_write(fd, bufaddr, count);
+	if (ret < 0)
+		return -1;
+	return ret;
 }
 
 int syscall_write(int fd, int bufaddr, int count) {
@@ -172,7 +198,6 @@ int syscall_lseek(int fd, int offset, int whence) {
 		return (*file->f_op->llseek)(file, offset, whence);
 	}
 }
-
 
 int syscall_getdents(int fd, int bufaddr, int c) {
 	task_t *proc;

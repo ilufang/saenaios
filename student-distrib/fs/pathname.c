@@ -10,6 +10,10 @@ int path_cd(pathname_t path, const char *relpath) {
 		return -EINVAL;
 	}
 
+	if (strlen(relpath) == 0) {
+		return -EINVAL;
+	}
+
 	ptr = strlen(path);
 
 	if (path[ptr-1] != '/') {
