@@ -54,9 +54,9 @@ void syscall_register_all() {
 	// ece391_vidmap
 	syscall_register(8, NULL);
 	// ece391_set_handler
-	syscall_register(9, NULL);
+	syscall_register(9, syscall_ece391_set_handler);
 	// ece391_sigreturn
-	syscall_register(10, NULL);
+	syscall_register(10, syscall_ece391_sigreturn);
 
 	// Internal calls
 	syscall_register(15, task_make_initd);
@@ -80,6 +80,7 @@ void syscall_register_all() {
 	syscall_register(SYSCALL__EXIT, syscall__exit);
 	syscall_register(SYSCALL_EXECVE, syscall_execve);
 	syscall_register(SYSCALL_WAIT, syscall_wait);
+	syscall_register(SYSCALL_GETPID, syscall_getpid);
 
 	// Signals
 	syscall_register(SYSCALL_KILL, syscall_kill);

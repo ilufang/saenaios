@@ -8,6 +8,38 @@ TMPVAL:
 iret_struct:
 	.long	0
 
+#define SIGHUP		$1	///< terminal line hangup
+#define SIGINT		$2	///< interrupt program
+#define SIGQUIT		$3	///< quit program
+#define SIGILL		$4	///< illegal instruction
+#define SIGTRAP		$5	///< trace trap
+#define SIGABRT		$6	///< abort program (formerly SIGIOT)
+#define SIGEMT		$7	///< emulate instruction executed
+#define SIGFPE		$8	///< floating-point exception
+#define SIGKILL		$9	///< kill program
+#define SIGBUS		$10	///< bus error
+#define SIGSEGV		$11	///< segmentation violation
+#define SIGSYS		$12	///< non-existent system call invoked
+#define SIGPIPE		$13	///< write on a pipe with no reader
+#define SIGALRM		$14	///< real-time timer expired
+#define SIGTERM		$15	///< software termination signal
+#define SIGURG		$16	///< urgent condition present on socket
+#define SIGSTOP		$17	///< stop (cannot be caught or ignored)
+#define SIGTSTP		$18	///< stop signal generated from
+#define SIGCONT		$19	///< continue after stop
+#define SIGCHLD		$20	///< child status has changed
+#define SIGTTIN		$21	///< background read attempted from control terminal
+#define SIGTTOU		$22	///< background write attempted to control terminal
+#define SIGIO		$23	///< I/O is possible on a descriptor
+#define SIGXCPU		$24	///< cpu time limit exceeded
+#define SIGXFSZ		$25	///< file size limit exceeded
+#define SIGVTALRM	$26	///< virtual time alarm
+#define SIGPROF		$27	///< profiling timer alarm
+#define SIGWINCH	$28	///< Window size change
+#define SIGINFO		$29	///< status request from keyboard
+#define SIGUSR1		$30	///< User defined signal 1
+#define SIGUSR2		$31	///< User defined signal 2
+#define SIG_MAX		$32	///< Total number of signals
 
 .globl idt_int_de
 .globl idt_int_nmi
@@ -107,15 +139,14 @@ idt_int_de:
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	36(%esp)
-	pushl	$idt_int_msg_de
+	pushl	SIGFPE
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$12, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_nmi:
@@ -162,45 +193,42 @@ idt_int_br:
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	36(%esp)
-	pushl	$idt_int_msg_br
+	pushl	SIGSEGV
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$12, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_ud:
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	36(%esp)
-	pushl	$idt_int_msg_ud
+	pushl	SIGILL
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$12, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_nm:
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	36(%esp)
-	pushl	$idt_int_msg_nm
+	pushl	SIGFPE
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$12, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_df:
@@ -218,71 +246,59 @@ idt_int_df:
 	popal
 	iret
 idt_int_ts:
-	popl	TMPVAL		// Err code
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	TMPVAL		// Err code
-	pushl	40(%esp)	// EIP
-	pushl	$idt_int_msg_ts
+	pushl	SIGBUS
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$16, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_np:
-	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	TMPVAL		// Err code
-	pushl	40(%esp)	// EIP
-	pushl	$idt_int_msg_np
+	pushl	SIGBUS
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$16, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_ss:
-	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	TMPVAL		// Err code
-	pushl	40(%esp)	// EIP
-	pushl	$idt_int_msg_ss
+	pushl	SIGBUS
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$16, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_gp:
-	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	TMPVAL		// Err code
-	pushl	40(%esp)	// EIP
-	pushl	$idt_int_msg_gp
+	pushl	SIGSEGV
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$16, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_pf:
@@ -306,20 +322,17 @@ idt_int_pf:
 	popal
 	iret
 idt_int_mf:
-	popl	TMPVAL
 	pusha
 	pushl	STACK_REG_MAGIC
 	movl	%esp, iret_struct
-	pushl	TMPVAL		// Err code
-	pushl	40(%esp)	// EIP
-	pushl	$idt_int_msg_mf
+	pushl	SIGFPE
 
 	pushl	iret_struct
 	call	scheduler_update_taskregs
 	addl	$4, %esp
 
-	call	idt_int_panic
-	addl	$16, %esp
+	call	idt_int_signal
+	addl	$8, %esp
 	popal
 	iret
 idt_int_ac:

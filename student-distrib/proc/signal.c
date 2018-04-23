@@ -7,38 +7,38 @@
 #include "signal_user.h"
 
 char *signal_names[] = {
-	"Unknown signal: 0",
-	"Hangup: 1",
-	"Interrupt: 2",
-	"Quit: 3",
-	"Illegal instruction: 4",
-	"Trace/BPT trap: 5",
-	"Abort trap: 6",
-	"EMT trap: 7",
-	"Floating point exception: 8",
-	"Killed: 9",
-	"Bus error: 10",
-	"Segmentation fault: 11",
-	"Bad system call: 12",
-	"Broken pipe: 13",
-	"Alarm clock: 14",
-	"Terminated: 15",
-	"Urgent I/O condition: 16",
-	"Suspended (signal): 17",
-	"Suspended: 18",
-	"Continued: 19",
-	"Child exited: 20",
-	"Stopped (tty input): 21",
-	"Stopped (tty output): 22",
-	"I/O possible: 23",
-	"Cputime limit exceeded: 24",
-	"Filesize limit exceeded: 25",
-	"Virtual timer expired: 26",
-	"Profiling timer expired: 27",
-	"Window size changes: 28",
-	"Information request: 29",
-	"User defined signal 1: 30",
-	"User defined signal 2: 31",
+	"Unknown signal: 0\n",
+	"Hangup: 1\n",
+	"Interrupt: 2\n",
+	"Quit: 3\n",
+	"Illegal instruction: 4\n",
+	"Trace/BPT trap: 5\n",
+	"Abort trap: 6\n",
+	"EMT trap: 7\n",
+	"Floating point exception: 8\n",
+	"Killed: 9\n",
+	"Bus error: 10\n",
+	"Segmentation fault: 11\n",
+	"Bad system call: 12\n",
+	"Broken pipe: 13\n",
+	"Alarm clock: 14\n",
+	"Terminated: 15\n",
+	"Urgent I/O condition: 16\n",
+	"Suspended (signal): 17\n",
+	"Suspended: 18\n",
+	"Continued: 19\n",
+	"Child exited: 20\n",
+	"Stopped (tty input): 21\n",
+	"Stopped (tty output): 22\n",
+	"I/O possible: 23\n",
+	"Cputime limit exceeded: 24\n",
+	"Filesize limit exceeded: 25\n",
+	"Virtual timer expired: 26\n",
+	"Profiling timer expired: 27\n",
+	"Window size changes: 28\n",
+	"Information request: 29\n",
+	"User defined signal 1: 30\n",
+	"User defined signal 2: 31\n",
 	"" // dummy
 };
 
@@ -103,8 +103,8 @@ int syscall_sigprocmask(int how, int setp, int oldsetp) {
 				return -EINVAL;
 		}
 		// Enforce SIGKILL and SIGSTOP
-		sigdelset(proc->signal_mask, SIGKILL);
-		sigdelset(proc->signal_mask, SIGSTOP);
+		sigdelset(&(proc->signal_mask), SIGKILL);
+		sigdelset(&(proc->signal_mask), SIGSTOP);
 	}
 
 	return 0;
@@ -140,8 +140,35 @@ int syscall_kill(int pid, int sig, int c) {
 		return -ESRCH;
 	}
 
-	sigaddset(proc->signals, sig);
+	sigaddset(&(proc->signals), sig);
 
+	return 0;
+}
+
+/// Map ECE391 signal number to POSIX signal number
+int signal_ece391_map[] = {
+	SIGFPE,		// DIV_ZERO
+	SIGSEGV,	// SEGFAULT
+	SIGTERM,	// INTERRUPT
+	SIGALRM,	// ALARM
+	SIGUSR1		// USER1
+};
+
+int syscall_ece391_set_handler(int sig, int handlerp, int c) {
+	task_sigact_t sa;
+
+	if (sig < 0 || sig >= 5) {
+		return -EINVAL;
+	}
+	sig = signal_ece391_map[sig];
+	sa.handler = (void (*)(int))handlerp;
+	sigemptyset(&(sa.mask));
+	sigaddset(&(sa.mask), sig);
+	sa.flags = 0;
+	return syscall_sigaction(sig, (int)&sa, 0);
+}
+
+int syscall_ece391_sigreturn(int a, int b, int c) {
 	return 0;
 }
 
@@ -210,6 +237,11 @@ void signal_exec_default(task_t *proc, int sig) {
 		case SIGIO:
 		case SIGWINCH:
 		case SIGINFO:
+		// The next 3 signals should have been terminated, but is currently set
+		// to be ignored for ece391 signal handling logic
+		case SIGALRM:
+		case SIGUSR1:
+		case SIGUSR2:
 			signal_handler_ignore(proc, sig);
 			break;
 		case SIGSTOP:

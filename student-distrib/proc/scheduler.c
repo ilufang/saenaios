@@ -70,8 +70,8 @@ void scheduler_switch(task_t* from, task_t* to) {
 	if (proc->signals) {
 		signal_masked = proc->signals & (~proc->signal_mask);
 		for (i = 1; i < SIG_MAX; i++) {
-			if (sigismember(signal_masked, i)) {
-				sigdelset(proc->signals, i);
+			if (sigismember(&signal_masked, i)) {
+				sigdelset(&(proc->signals), i);
 				signal_exec(proc, i);
 				// Resume program execution
 				proc->status = TASK_ST_RUNNING;

@@ -49,15 +49,15 @@
 typedef uint32_t sigset_t;
 
 /// Add signal to set
-#define sigaddset(set, signo) ((set) |= (1<<(signo)))
+#define sigaddset(set, signo) (*(set) |= (1<<(signo)))
 /// Delete signal from set
-#define sigdelset(set, signo) ((set) &= ~(1<<(signo)))
+#define sigdelset(set, signo) (*(set) &= ~(1<<(signo)))
 /// Deselect all signals
-#define sigemptyset(set) ((set) = 0)
+#define sigemptyset(set) (*(set) = 0)
 /// Select all signals
-#define sigfillset(set) ((set) = -1)
+#define sigfillset(set) (*(set) = -1)
 /// Test signal existence in set
-#define sigismember(set, signo) ((set) & (1<<(signo)))
+#define sigismember(set, signo) (*(set) & (1<<(signo)))
 
 #define SIG_BLOCK	1	///< Block signals in set
 #define SIG_UNBLOCK	2	///< Unblock signals in set

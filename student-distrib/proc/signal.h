@@ -51,6 +51,24 @@ int syscall_sigsuspend(int sigsetp, int, int);
 int syscall_kill(int pid, int sig, int);
 
 /**
+ *	ECE391 Set Signal Handler
+ *
+ *	@param sig: the signal number
+ *	@param handlerp: pointer to handler function
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_ece391_set_handler(int sig, int handlerp, int);
+
+/**
+ *	ECE391 Signal Return
+ *
+ *	Does nothing
+ *
+ *	@return nothing
+ */
+int syscall_ece391_sigreturn(int, int, int);
+
+/**
  *	Invoke signal handler.
  *
  *	@param proc: the process

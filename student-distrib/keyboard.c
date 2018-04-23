@@ -542,11 +542,10 @@ ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
 		// No enter in buffer, set process to sleep until SIGIO
 		keyboard_pid_waiting = task_current_pid();
 		sa.handler = SIG_IGN;
-		sigemptyset(sa.mask);
+		sigemptyset(&(sa.mask));
 		sa.flags = SA_RESTART;
 		syscall_sigaction(SIGIO, (int)&sa, 0);
-		sigfillset(ss);
-		sigdelset(ss, SIGIO);
+		sigemptyset(&ss);
 		syscall_sigsuspend((int) &ss, NULL, 0);
 		return 0; // Should not hit
 	}

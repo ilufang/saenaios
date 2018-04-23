@@ -227,6 +227,13 @@ void idt_int_of_handler();
 void idt_int_pf_handler(int eip, int err, int addr);
 
 /**
+ *	Delivers a signal to the current process to handle the exception
+ *
+ *	@param sig: the signal
+ */
+void idt_int_signal(int sig);
+
+/**
  *	Prints panic message and halts the processor.
  *
  *	@param msg: The panic message. Could be a formatted string with up to four

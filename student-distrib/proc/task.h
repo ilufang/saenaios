@@ -91,6 +91,13 @@ void task_create_kernel_pid();
 int16_t task_alloc_pid();
 
 /**
+ *	Get current process PID
+ *
+ *	@return the pid
+ */
+int syscall_getpid(int, int, int);
+
+/**
  *	Fork current process
  *
  *	@return The new pid on success, or the negative of an errno on failure

@@ -2,6 +2,8 @@
 
 #include "../lib.h"
 #include "../proc/task.h"
+#include "../proc/signal.h"
+#include "../proc/scheduler.h"
 
 void idt_int_bp_handler() {
 	printf("Breakpoint\n");
@@ -20,10 +22,13 @@ void idt_int_pf_handler(int eip, int err, int addr) {
 			// Success!
 			return;
 		case -ENOMEM:
-			printf("Copy-on-write Attempted. But no memory is available\n");
+			/*
+			printf("System is out of memory\n");
 			while (1);
+			*/
 		case -EFAULT:
 		default:
+			/*
 			printf("[CAT] PAGE FAULT at %x, faulting address %x\n", eip, addr);
 			if (err & 4)
 				printf("User tried to ");
@@ -41,6 +46,9 @@ void idt_int_pf_handler(int eip, int err, int addr) {
 				printf(" while fetching an instruction");
 			printf("\n");
 			while (1);
+			*/
+			syscall_kill(task_current_pid(), SIGSEGV, 0);
+			scheduler_event();
 	}
 }
 
@@ -51,6 +59,11 @@ void idt_int_panic(char *msg, int a, int b, int c, int d) {
 	while(1) {
 		// asm volatile("hlt");
 	}
+}
+
+void idt_int_signal(int sig) {
+	syscall_kill(task_current_pid(), sig, 0);
+	scheduler_event();
 }
 
 void idt_int_irq_default(int irq) {

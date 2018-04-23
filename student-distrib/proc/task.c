@@ -56,6 +56,10 @@ void task_create_kernel_pid() {
 	task_kernel_process_iret();
 }
 
+int syscall_getpid(int a, int b, int c) {
+	return task_current_pid();
+}
+
 int syscall_fork(int a, int b, int c) {
 	int16_t pid, cur_pid;
 	task_t *cur_task, *new_task;
@@ -184,28 +188,31 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	u_argv = (uint32_t *) 0xc0000000; // Temporarily use top of stack as heap
 	if (argv) {
 		for (argc = 0; argv[argc]; argc++) {
-			task_user_pushs(&(proc->regs.esp), (uint8_t *) argv[argc], strlen(argv[argc])+1);
+			task_user_pushs(&(proc->regs.esp), (uint8_t *) argv[argc],
+							strlen(argv[argc])+1);
 			u_argv[argc] = proc->regs.esp - 0x400000;
 		}
 	} else {
 		argc = 0;
 	}
+	u_argv[argc] = 0; // Terminating zero
 	// Parse envp
-	u_envp = u_argv + argc;
+	u_envp = u_argv + argc + 1;
 	if (envp) {
 		for (envc = 0; envp[envc]; envc++) {
-			task_user_pushs(&(proc->regs.esp), (uint8_t *) envp[envc], strlen(envp[envc])+1);
+			task_user_pushs(&(proc->regs.esp), (uint8_t *) envp[envc],
+							strlen(envp[envc])+1);
 			u_envp[envc] = proc->regs.esp - 0x400000;
 		}
-		task_user_pushl(&(proc->regs.esp), 0); // Ending zero
 	} else {
 		envc = 0;
 	}
+	u_envp[envc] = 0; // Terminating zero
 	// Move temp values back
-	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_argv, 4*argc);
-	u_argv = (uint32_t *) proc->regs.esp - 0x400000 / 4;	// /4 for uin32_t pointer
+	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_argv, 4*(argc+1));
+	u_argv = (uint32_t *)(proc->regs.esp - 0x400000);
 	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_envp, 4*(envc+1));
-	u_envp = (uint32_t *) proc->regs.esp - 0x400000 / 4;
+	u_envp = (uint32_t *)(proc->regs.esp - 0x400000);
 	task_user_pushl(&(proc->regs.esp), (uint32_t) u_envp);
 	task_user_pushl(&(proc->regs.esp), (uint32_t) u_argv);
 	task_user_pushl(&(proc->regs.esp), argc);
@@ -260,8 +267,8 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	for (i = 0; i < SIG_MAX; i++) {
 		proc->sigacts[i].handler = SIG_DFL;
 		proc->sigacts[i].flags = 0;
-		sigfillset(proc->sigacts[i].mask);
-		sigdelset(proc->sigacts[i].mask, i);
+		sigemptyset(&(proc->sigacts[i].mask));
+		sigaddset(&(proc->sigacts[i].mask), i);
 	}
 
 	proc->status = TASK_ST_RUNNING;
@@ -340,11 +347,10 @@ int syscall_wait(int statusp, int b, int c) {
 	}
 	// Child process found, but non are terminated. Put parent to sleep
 	sa.handler = SIG_IGN;
-	sigemptyset(sa.mask);
+	sigemptyset(&(sa.mask));
 	sa.flags = SA_RESTART;
 	syscall_sigaction(SIGCHLD, (int)&sa, 0);
-	sigfillset(ss);
-	sigdelset(ss, SIGCHLD);
+	sigemptyset(&ss);
 	syscall_sigsuspend((int) &ss, NULL, 0);
 	return 0; // Should not hit
 }
@@ -356,26 +362,31 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	int child_pid;
 	task_t* child_proc;
 	sigset_t ss;
+	uint32_t *kheap;
 
 	if (!cmdlinep) {
 		return -EFAULT;
 	}
 	while (*cmdline == ' ') cmdline++;
+	argv[0] = cmdline;
 	for (i = 0; cmdline[i]; i++) {
-		if (!argv[0]) {
+		if (!argv[1]) {
 			// Space not detected yet
 			if (cmdline[i] == ' ') {
 				cmdline[i] = '\0';
-				argv[0] = cmdline + i + 1;
+				argv[1] = cmdline + i + 1;
 			}
 		} else {
 			// Space detected
 			if (cmdline[i] == ' ') {
-				argv[0] = cmdline + i + 1;
+				argv[1] = cmdline + i + 1;
 			} else {
 				break;
 			}
 		}
+	}
+	if (argv[1] && !*argv[1]) {
+		argv[1] = NULL;
 	}
 
 	// -----fork a new process, go in, set up execute-----
@@ -389,16 +400,21 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	}
 	child_proc = task_list + child_pid;
 
+	// Put argv onto its kernel heap (top of kernel stack)
+	kheap = (uint32_t *)(child_proc->ks_esp - sizeof(task_ks_t) + 4);
+	kheap[1] = (uint32_t) argv[0];
+	kheap[2] = (uint32_t) argv[1];
+	kheap[3] = 0;
+
 	// magically change user iret registers
 	child_proc->regs.eax = SYSCALL_EXECVE;
-	child_proc->regs.ebx = (int)cmdline;
-	child_proc->regs.ecx = (int)argv;
+	child_proc->regs.ebx = (uint32_t)cmdline;
+	child_proc->regs.ecx = (uint32_t)(kheap + 1);
 	child_proc->regs.edx = 0;
 	child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
 
 	// set parent to wait / sleep
-	sigfillset(ss);
-	sigdelset(ss, SIGCHLD);
+	sigemptyset(&ss);
 	syscall_sigsuspend((int) &ss, NULL, 0);
 
 	return 0;
@@ -408,22 +424,35 @@ int syscall_ece391_halt(int a, int b, int c) {
 	return syscall__exit(0, 0, 0);
 }
 
-int syscall_ece391_getargs(int buf, int nbytes, int c) {
-	uint8_t* buff = (uint8_t*)buf;
-	uint8_t** argv = (uint8_t**)(*(int*)(0xc0000000 - 4));
-	int length = 0;
-	uint8_t* temp = argv[0];
-	// ece391 is only going to use one parameter at last
+int syscall_ece391_getargs(int bufp, int nbytes, int c) {
+	char *buf;
+	char** argv;
+	int i, ptr, len;
 
-	if (!buff)
-		return -EINVAL;
-
-	while (*temp){
-		temp++;
-		length++;
+	if (!bufp) {
+		return -EFAULT;
 	}
 
-	memcpy(buff, argv[0], length);
+	buf = (char *) bufp;
+	argv = *(char***)(0xc0000000 - 4);
+
+	if (!argv[0] || !argv[1]) {
+		return -1;
+	}
+
+	ptr = 0;
+	for (i = 1; argv[i]; i++) {
+		len = strlen(argv[i]);
+		if (ptr + len + 1 >= nbytes) {
+			// Not enough space
+			return -1;
+		}
+		memcpy(buf + ptr, argv[i], len);
+		ptr += len + 1;
+		buf[ptr-1] = ' ';
+	}
+	buf[ptr-1] = '\0';
+	strcpy((char *)buf, argv[1]);
 
 	return 0;
 }
