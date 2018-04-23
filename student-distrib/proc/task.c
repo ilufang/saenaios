@@ -50,6 +50,7 @@ void task_create_kernel_pid() {
 	kstack[0].pid = 0;
 
 	// now iret to the kernel process
+	scheduling_start();
 	task_kernel_process_iret();
 }
 
@@ -139,7 +140,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	// Sanity checks
 	if (!pathp) {
-		return -EFAULT;
+		return -1;
 	}
 
 	proc = task_list + task_current_pid();
@@ -156,7 +157,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	ret = page_alloc_4MB((int *)&(ptent_stack.paddr));
 	if (ret != 0) {
 		// Page allocation failed. Probably ENOMEM
-		return ret;
+		return -1;
 	}
 	ptent_stack.priv_flags = 0;
 	ptent_stack.pt_flags = PAGE_DIR_ENT_PRESENT;
@@ -209,6 +210,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	// Release previous process
 	ret = task_current_pid();
+	scheduler_page_clear(proc->pages);
 	task_release(proc);
 	// Update kernel stack PID
 	((task_ks_t *)(proc->ks_esp))[-1].pid = ret;
@@ -236,7 +238,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	if (ret != 0) {
 		// Something very bad happened. Squash this process
-		syscall__exit(1,0,0); // 1 for unsuccessful exit
+		syscall__exit(-1,0,0); // 1 for unsuccessful exit
 		return -ENOEXEC; // This line should not hit though
 	}
 
@@ -274,17 +276,20 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 int syscall__exit(int status, int b, int c) {
 	task_t *proc, *parent;
+	task_sigact_t *sa;
 
 	proc = task_list + task_current_pid();
 	parent = task_list + proc->parent;
+	sa = parent->sigacts + SIGCHLD;
+	proc->regs.eax = status;
 
-	if (parent->status == TASK_ST_RUNNING) {
+	if (parent->status == TASK_ST_SLEEP || parent->status == TASK_ST_RUNNING) {
 		// Parent is alive, notify parent
-		proc->regs.eax = status;
 		proc->status = TASK_ST_ZOMBIE;
-		// syscall_kill(proc->parent, SIGCHLD); // TODO
+		syscall_kill(proc->parent, SIGCHLD, 0);
 	} else {
 		// Otherwise, just release the process
+		scheduler_page_clear(proc->pages);
 		task_release(proc);
 	}
 
@@ -328,9 +333,9 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 
 	// directly call syscall_fork
 	child_pid = syscall_fork(0,0,0);
-	if (child_pid<0){
+	if (child_pid < 0){
 		//error condition
-		return child_pid;
+		return -1;
 	}
 	child_proc = task_list + child_pid;
 
@@ -346,7 +351,7 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 
 	// TODO set parent to wait / sleep
 	sigfillset(ss);
-	sigdelset(ss, SIGIO);
+	sigdelset(ss, SIGCHLD);
 	syscall_sigsuspend((int) &ss, NULL, 0);
 
 	return 0;
@@ -371,9 +376,8 @@ void task_release(task_t *proc) {
 		}
 	}
 	// Release all pages
-	scheduler_page_clear(proc->pages);
 	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
-		if (proc->pages[i].pt_flags & PAGE_TAB_ENT_PRESENT) {
+		if (!(proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT)) {
 			// End of page list
 			break;
 		}
@@ -386,6 +390,7 @@ void task_release(task_t *proc) {
 		}
 		proc->pages[i].pt_flags = 0;
 	}
+	page_flush_tlb();
 	// Release kernel stack
 	((task_ks_t *)(proc->ks_esp))[-1].pid = -1;
 	// Mark program as void

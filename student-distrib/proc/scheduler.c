@@ -41,7 +41,12 @@ void scheduler_event() {
 	}*/
 
 	// A different running task! switch to it!
-	scheduler_switch(&task_list[prev], &task_list[scheduler_iterator]);
+	if (prev == (pid_t)-1) {
+		// Prev is DEAD
+		scheduler_switch(NULL, &task_list[scheduler_iterator]);
+	} else {
+		scheduler_switch(&task_list[prev], &task_list[scheduler_iterator]);
+	}
 }
 
 void scheduler_switch(task_t* from, task_t* to) {
@@ -53,7 +58,9 @@ void scheduler_switch(task_t* from, task_t* to) {
 		tss.ss0 = KERNEL_DS;
 	}
 	// tear down original paging
-	scheduler_page_clear(from->pages);
+	if (from) {
+		scheduler_page_clear(from->pages);
+	}
 	// set up new pagin
 	scheduler_page_setup(to->pages);
 
@@ -66,6 +73,8 @@ void scheduler_switch(task_t* from, task_t* to) {
 			if (sigismember(signal_masked, i)) {
 				sigdelset(proc->signals, i);
 				signal_exec(proc, i);
+				// Resume program execution
+				proc->status = TASK_ST_RUNNING;
 				break;
 			}
 		}
@@ -74,25 +83,6 @@ void scheduler_switch(task_t* from, task_t* to) {
 	// set up tss
 	tss.ss0 = KERNEL_DS;
 	tss.esp0 = to->ks_esp;
-
-	// ---- play with registers & set up IRET ----
-
-	/* // No longer needed
-	// load register address according to magic number on the stack
-	regs_t* original = scheduler_get_magic();
-
-	// save the registers of from process
-	memcpy(&from->regs, original, sizeof(regs_t));
-	*/
-
-	// TODO SET DS
-
-	/*if (to->regs.cs == KERNEL_CS){
-		scheduler_kernel_iret(&(to->regs), to->regs.esp_k);
-	}else{
-		// brutal force iret
-		scheduler_user_iret(&(to->regs));
-	}*/
 
 	scheduler_iret(&(to->regs));
 }
@@ -104,15 +94,18 @@ void scheduler_update_taskregs(regs_t *regs) {
 }
 
 void scheduler_page_clear(task_ptentry_t* pages){
-	int i;
+	int i, ret;
 	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
 		// check whether the page is present
 		if (pages[i].pt_flags & PAGE_DIR_ENT_PRESENT) {
 			// then delete this entry
 			if (pages[i].pt_flags & PAGE_DIR_ENT_4MB){
-				page_dir_delete_entry(pages[i].vaddr);
+				ret = page_dir_delete_entry(pages[i].vaddr);
 			}else{
-				page_tab_delete_entry(pages[i].vaddr);
+				ret = page_tab_delete_entry(pages[i].vaddr);
+			}
+			if (ret != 0) {
+				printf("Scheduler page clear failed %d\n", ret);
 			}
 		}
 		// else do nothing
@@ -120,15 +113,18 @@ void scheduler_page_clear(task_ptentry_t* pages){
 }
 
 void scheduler_page_setup(task_ptentry_t* pages){
-	int i;
+	int i, ret;
 	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
 		// check whether the page is present
 		if (pages[i].pt_flags & PAGE_DIR_ENT_PRESENT) {
 			// then setup this entry
 			if (pages[i].pt_flags & PAGE_DIR_ENT_4MB){
-				page_dir_add_4MB_entry(pages[i].vaddr, pages[i].paddr, pages[i].pt_flags);
+				ret = page_dir_add_4MB_entry(pages[i].vaddr, pages[i].paddr, pages[i].pt_flags);
 			}else{
-				page_tab_add_entry(pages[i].vaddr, pages[i].paddr, pages[i].pt_flags);
+				ret = page_tab_add_entry(pages[i].vaddr, pages[i].paddr, pages[i].pt_flags);
+			}
+			if (ret != 0) {
+				printf("Scheduler page setup failed %d\n", ret);
 			}
 		}
 		// else do nothing

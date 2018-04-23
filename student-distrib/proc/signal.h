@@ -71,6 +71,13 @@ void signal_init();
 void signal_exec_default(task_t *proc, int sig);
 
 /**
+ *	Default SIGCHLD handler
+ *
+ *	@param proc: the process
+ */
+void signal_handler_child(task_t *proc);
+
+/**
  *	Handle signal by simply discarding the signal.
  *
  *	@param proc: the process

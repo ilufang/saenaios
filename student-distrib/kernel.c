@@ -199,7 +199,6 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Run tests */
 	launch_tests();
 #endif
-	scheduling_start();
 	// create a basic process
 	task_create_kernel_pid();
 

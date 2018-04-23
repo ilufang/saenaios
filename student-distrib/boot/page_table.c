@@ -368,7 +368,7 @@ int page_dir_delete_entry(uint32_t virtual_addr){
 
 int page_tab_delete_entry(uint32_t virtual_addr){
 	// cannot delete page table entries other than manyoushu
-	if (GET_DIR_INDEX(virtual_addr) != 3){
+	if (GET_DIR_INDEX(virtual_addr) != 32){
 		return -EINVAL;
 	}
 

@@ -29,7 +29,7 @@ int elf_load(int fd)  {
 	elf_eheader_t eh;
 	elf_pheader_t ph;
 	task_t *proc;
-	int i, ret, idx;
+	int i, ret, idx, idx0;
 	uint32_t addr, align_off;
 	task_ptentry_t *ptent;
 	stat_t file_stat;
@@ -108,6 +108,7 @@ int elf_load(int fd)  {
 			// Bad alignment
 			return -ENOEXEC;
 		}
+		idx0 = idx;
 		for (addr = ph.vaddr - align_off;
 			 addr < ph.vaddr+ph.filesz;
 			 addr += ph.align) {
@@ -131,21 +132,20 @@ int elf_load(int fd)  {
 				// Page allocation failed. Probably ENOMEM
 				return ret;
 			}
-			if (ph.flags & 2) {
-				// Page is writable
-				ptent->pt_flags |= PAGE_DIR_ENT_RDWR;
-			}
-			ptent->pt_flags |= PAGE_DIR_ENT_RDWR; // TODO: workaround write perm
+			ptent->pt_flags |= PAGE_DIR_ENT_RDWR;
 			ptent->vaddr = addr;
 			ptent->pt_flags |= PAGE_DIR_ENT_PRESENT;
 			ptent->priv_flags = 0;
 
 			if (ptent->pt_flags & PAGE_DIR_ENT_4MB) {
 				// Add 4MB page table entry
-				page_dir_add_4MB_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
+				ret = page_dir_add_4MB_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
 			} else {
 				// Add 4KB page table entry
-				page_tab_add_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
+				ret = page_tab_add_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
+			}
+			if (ret != 0) {
+				printf("Mapping failed. %d\n", ret);
 			}
 			idx++;
 		}
@@ -158,8 +158,36 @@ int elf_load(int fd)  {
 		if (ret != ph.filesz) {
 			return -EIO;
 		}
+		if (!(ph.flags & 2)) {
+				// Page is readonly
+			for (i = idx0 ; i < idx; i++) {
+				ptent = proc->pages + i;
+				ptent->pt_flags &= ~PAGE_DIR_ENT_RDWR;
+				if (ptent->pt_flags & PAGE_DIR_ENT_4MB) {
+					// Reload 4MB page table entry
+					ret = page_dir_delete_entry(ptent->vaddr);
+					if (ret != 0) {
+						printf("DeMapping failed. %d\n", ret);
+					}
+					ret = page_dir_add_4MB_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
+					if (ret != 0) {
+						printf("ReMapping failed. %d\n", ret);
+					}
+				} else {
+					// Reload 4KB page table entry
+					ret = page_tab_delete_entry(ptent->vaddr);
+					if (ret != 0) {
+						printf("DeMapping failed. %d\n", ret);
+					}
+					ret = page_tab_add_entry(ptent->vaddr, ptent->paddr, ptent->pt_flags);
+					if (ret != 0) {
+						printf("ReMapping failed. %d\n", ret);
+					}
+				}
+			}
+		}
 	}
-
+	page_flush_tlb();
 
 	return 0;
 }

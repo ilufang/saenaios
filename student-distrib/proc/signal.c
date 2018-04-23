@@ -147,7 +147,7 @@ int syscall_kill(int pid, int sig, int c) {
 
 void signal_init() {
 	uint32_t paddr = 0;
-	page_alloc_4KB(&paddr);
+	page_alloc_4KB((int *)&paddr);
 	page_tab_add_entry(PROC_USR_BASE, paddr, PAGE_TAB_ENT_PRESENT |
 					   PAGE_TAB_ENT_RDWR | PAGE_TAB_ENT_USER |
 					   PAGE_TAB_ENT_GLOBAL);
@@ -158,9 +158,6 @@ void signal_init() {
 
 void signal_exec(task_t *proc, int sig) {
 	task_sigact_t *sa;
-
-	// Resume program execution
-	proc->status = TASK_ST_RUNNING;
 
 	sa = proc->sigacts + sig;
 
@@ -205,9 +202,11 @@ void signal_exec(task_t *proc, int sig) {
 
 void signal_exec_default(task_t *proc, int sig) {
 	switch(sig) {
+		case SIGCHLD:
+			signal_handler_child(proc);
+			break;
 		case SIGURG:
 		case SIGCONT:
-		case SIGCHLD:
 		case SIGIO:
 		case SIGWINCH:
 		case SIGINFO:
@@ -221,6 +220,23 @@ void signal_exec_default(task_t *proc, int sig) {
 			break;
 		default:
 			signal_handler_terminate(proc, sig);
+	}
+}
+
+void signal_handler_child(task_t *proc) {
+	int i;
+
+	// Gather child information
+	for (i = 0; i < TASK_MAX_PROC; i++) {
+		if (task_list[i].parent == proc->pid &&
+			task_list[i].status == TASK_ST_ZOMBIE) {
+			if (proc->status == TASK_ST_SLEEP) {
+				// Only send child info if the parent is awaiting for that
+				proc->regs.eax = task_list[i].regs.eax;
+			}
+			task_release(task_list + i);
+			break;
+		}
 	}
 }
 
@@ -238,7 +254,7 @@ void signal_handler_terminate(task_t *proc, int sig) {
 	// Print to stdout
 	syscall_write(1, (int)signal_names[sig], strlen(signal_names[sig]));
 	// Halt process
-	syscall__exit(1, 0, 0);
+	syscall__exit(256, 0, 0);
 }
 
 void signal_handler_stop(task_t *proc, int sig) {
