@@ -21,6 +21,10 @@ void scheduler_event() {
 			break;
 		}
 		if (task_list[scheduler_iterator].status != TASK_ST_RUNNING) {
+			if (task_list[scheduler_iterator].status == TASK_ST_DEAD) {
+				// Clean up
+				task_release();
+			}
 			++sanity;
 			++scheduler_iterator;
 			if (scheduler_iterator >= (TASK_MAX_PROC-1)){

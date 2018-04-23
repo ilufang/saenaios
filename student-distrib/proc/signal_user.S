@@ -69,6 +69,7 @@ task_ece391_execute:
 syscall_ece391_execute_magic_start:
 	int 	$0x80 					// eax is already loaded with execve number
 	movl	$24, %eax 				// if execve returned to this line, means error occurs
+	movl	$-1, %ebx
 	int 	$0x80 					// then call syscall__exit
 
 signal_user_length:

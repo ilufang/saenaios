@@ -69,7 +69,6 @@ int syscall_close(int fd, int b, int c) {
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
-	(*(file->f_op->release))(file->inode, file);
 
 	vfs_close_file(file);
 

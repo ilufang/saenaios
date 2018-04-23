@@ -55,7 +55,6 @@ void task_create_kernel_pid() {
 }
 
 int syscall_fork(int a, int b, int c) {
-	cli();
 	int16_t pid, cur_pid;
 	task_t *cur_task, *new_task;
 	int i;
@@ -72,6 +71,12 @@ int syscall_fork(int a, int b, int c) {
 	memcpy(new_task, cur_task, sizeof(task_t));
 	new_task->pid = pid;
 	new_task->parent = cur_pid;
+
+	for (i = 0; i < TASK_MAX_OPEN_FILES; ++i) {
+		if (new_task->files[i]) {
+			new_task->files[i]->open_count++;
+		}
+	}
 
 	// Create kernel stack (512 8kb entries in 4MB page)
 	for (i = 0; i < 512; i++) {
@@ -210,11 +215,18 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	// Release previous process
 	ret = task_current_pid();
+
+	// Close all fd
+	for (i = 2; i < TASK_MAX_OPEN_FILES; i++) {
+		if (proc->files[i]) {
+			syscall_close(i, 0, 0);
+		}
+	}
+
 	scheduler_page_clear(proc->pages);
 	task_release(proc);
 	// Update kernel stack PID
 	((task_ks_t *)(proc->ks_esp))[-1].pid = ret;
-
 
 	// Re-map new stack
 	page_dir_delete_entry(ptent_stack.vaddr);
@@ -225,11 +237,11 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	proc->regs.esp = 0xc0000000;
 	page_flush_tlb();
 
-
 	// Try to open ELF file for reading
 	fd = syscall_open(0xbfc00000, O_RDONLY, 0);
 	if (fd < 0) {
 		page_alloc_free_4MB(ptent_stack.vaddr);
+		syscall__exit(-1,0,0);
 		return fd;
 	}
 
@@ -240,16 +252,6 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		// Something very bad happened. Squash this process
 		syscall__exit(-1,0,0); // 1 for unsuccessful exit
 		return -ENOEXEC; // This line should not hit though
-	}
-
-	// Initialize FD 0, 1
-	ret = syscall_open((int)"/dev/stdin", O_RDONLY, 0);
-	if (ret != 0) {
-		printf("Failed to open stdin\n");
-	}
-	ret = syscall_open((int)"/dev/stdout", O_WRONLY, 0);
-	if (ret != 1) {
-		printf("Failed to open stdout\n");
 	}
 
 	// Initialize signal handlers
@@ -277,11 +279,19 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 int syscall__exit(int status, int b, int c) {
 	task_t *proc, *parent;
 	task_sigact_t *sa;
+	int i;
 
 	proc = task_list + task_current_pid();
 	parent = task_list + proc->parent;
 	sa = parent->sigacts + SIGCHLD;
 	proc->regs.eax = status;
+
+	// Close all fd
+	for (i = 0; i < TASK_MAX_OPEN_FILES; i++) {
+		if (proc->files[i]) {
+			syscall_close(i, 0, 0);
+		}
+	}
 
 	if (parent->status == TASK_ST_SLEEP || parent->status == TASK_ST_RUNNING) {
 		// Parent is alive, notify parent
@@ -304,7 +314,6 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	int i;
 	int child_pid;
 	task_t* child_proc;
-	task_t* parent_proc = task_list + task_current_pid();
 	sigset_t ss;
 
 	if (!cmdlinep) {
@@ -339,9 +348,6 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	}
 	child_proc = task_list + child_pid;
 
-	// need to update parent process' regs so next time parent process could correctly return
-	memcpy(&(parent_proc->regs), scheduler_get_magic(), sizeof(regs_t));
-
 	// magically change user iret registers
 	child_proc->regs.eax = SYSCALL_EXECVE;
 	child_proc->regs.ebx = (int)cmdline;
@@ -369,12 +375,6 @@ void task_release(task_t *proc) {
 	int i;
 	// Mark program as dead
 	proc->status = TASK_ST_DEAD;
-	// Close all fd
-	for (i = 0; i < TASK_MAX_OPEN_FILES; i++) {
-		if (proc->files[i]) {
-			syscall_close(i, 0, 0);
-		}
-	}
 	// Release all pages
 	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
 		if (!(proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT)) {
@@ -525,6 +525,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 
 int task_make_initd(int a, int b, int c) {
 	regs_t* regs;
+	int ret;
 
 	if (task_current_pid() != 0) {
 		// Only initd can call syscall 15
@@ -537,5 +538,13 @@ int task_make_initd(int a, int b, int c) {
 	// save the registers of from process
 	memcpy(&(task_list[0].regs), regs, sizeof(regs_t));
 
+	ret = syscall_open((int)"/dev/stdin", O_RDONLY, 0);
+	if (ret != 0) {
+		printf("Cannot open stdin %d\n", ret);
+	}
+	ret = syscall_open((int)"/dev/stdout", O_WRONLY, 0);
+	if (ret != 1) {
+		printf("Cannot open stdout %d\n", ret);
+	}
 	return 0;
 }
