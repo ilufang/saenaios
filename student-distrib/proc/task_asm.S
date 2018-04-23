@@ -34,26 +34,3 @@ task_kernel_process_iret:
 	addl	$0x8000000, %eax
 	pushl	%eax
 	iret
-
-syscall_ece391_execute_magic:
-	movl	4(%esp),%ecx 	// get target esp base
-
-	// copy stack data for execute, note the reversed sequence
-	// copy envpp first, bottom of stack
-	movl 	16(%esp), %eax
-	addl 	$-4, %ecx
-	movl	%eax, (%ecx)
-	// then argvp
-	movl 	12(%esp), %eax
-	addl 	$-4, %ecx
-	movl	%eax, (%ecx)
-	// pathp at last
-	movl 	8(%esp), %eax
-	addl 	$-4, %ecx
-	movl 	%eax, (%ecx)
-
-	// now change esp to ecx, ebp doesn't matter here since execve doesn't return at all
-	movl 	%ecx, %esp
-
-	// bye
-	call 	syscall_execve

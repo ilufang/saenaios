@@ -342,9 +342,9 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	child_proc->regs.ebx = (int)cmdline;
 	child_proc->regs.ecx = (int)argv;
 	child_proc->regs.edx = 0;
-	child_proc->regs.eip -= 2;
+	child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
 
-	// TODO set parent to wait / sleep
+	// set parent to wait / sleep
 	sigfillset(ss);
 	sigdelset(ss, SIGIO);
 	syscall_sigsuspend((int) &ss, NULL, 0);

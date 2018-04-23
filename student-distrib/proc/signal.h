@@ -105,4 +105,15 @@ extern int task_kernel_process_length;
  */
 void task_kernel_process_iret();
 
+/**
+ *	Assembly magic workaround for ece391 execute wrapper
+ *
+ *	This function will run execve for the user program, eax, ebx, ecx, edx are already loaded
+ *	with values needed. If an error occurs, and returns from execve, this function will help
+ *	do syscall_exit
+ *
+ */
+extern int syscall_ece391_execute_magic;
+
+
 #endif
