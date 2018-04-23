@@ -13,6 +13,9 @@
 /// Set to 1 when scheduler is enabled. (Used by RTC ISR)
 extern int scheduler_on_flag;
 
+/**
+ *	Turn on scheduler
+ */
 void scheduling_start();
 
 /**

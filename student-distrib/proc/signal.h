@@ -9,6 +9,7 @@
 #include "../../libc/include/signal.h"
 #include "task.h"
 
+/// Signal hander. See libc's `struct sigaction` in signal.h
 typedef struct sigaction task_sigact_t;
 
 /**
@@ -100,11 +101,6 @@ void signal_handler_terminate(task_t *proc, int sig);
  *	@param sig: the signal number
  */
 void signal_handler_stop(task_t *proc, int sig);
-
-
-extern void* task_kernel_process;
-
-extern int task_kernel_process_length;
 
 /**
  *	Asm function to iret to user level kernel init process

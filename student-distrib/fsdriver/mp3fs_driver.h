@@ -1,13 +1,10 @@
 /**
- *	@file fsdriver.h
+ *	@file fsdriver/mp3fs_driver.h
  *
  *	Header file for filesystem driver
- *
- *	vim:ts=4 noexpandtab
  */
-
-#ifndef _MP3FS_DRIVER_H
-#define _MP3FS_DRIVER_H
+#ifndef FSDRIVER_MP3FS_DRIVER_H
+#define FSDRIVER_MP3FS_DRIVER_H
 
 #include "../types.h"
 #include "../i8259.h"
@@ -45,7 +42,7 @@ typedef struct fsys_inode{
 
 /**
  *	bootblock struct used for file system parsing
- */ 
+ */
 typedef struct fsys_bootblock{
     int32_t dir_count;					///< total number of dentries
     int32_t inode_count;				///< total number of inode
@@ -140,7 +137,7 @@ int mp3fs_i_op_readlink(inode_t* inode, char* buf);
 /**
  *	File system file open function
  *
- *	Open the file filename, find an available fd for the 
+ *	Open the file filename, find an available fd for the
  *	file and initialize the file structure
  *
  *	@param filename: the name of the file to open

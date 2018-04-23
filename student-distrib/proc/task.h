@@ -127,15 +127,15 @@ int syscall__exit(int status, int, int);
 int syscall_wait(int statusp, int, int);
 
 /**
- *	ECE391 (`exec` style) execute wrapper
+ *	ECE391 (`system` style) execute wrapper
  *
  *	@param cmdlinep: pointer to `char *`, the entire command line
  *	@return 0 on success, or the negative of an error on failure
  *	@note This call emulates the ece391_execute by appending a new frame
- *		  executing `wait` onto the current user stack, so that the user code
- *		  will not resume execution until the child process has terminated.
+ *		  executing `sigsuspend` onto the current user stack, so that the user
+ *		  code will not resume execution until the child process has terminated.
  */
-int syscall_ece391_execute(int cmdlinep, int b, int c);
+int syscall_ece391_execute(int cmdlinep, int, int);
 
 /**
  *	ECE391 halt wrapper

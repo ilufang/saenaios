@@ -446,7 +446,7 @@ int syscall_fstat(int fd, int stat_in, int c);
  *	System call handler for `lstat`: get file status
  *
  *	@param path: char string of the path
- *	@param stat_in: pointer to a user allocated stat structure
+ *	@param stat: pointer to a user allocated stat structure
  *	@param c: placeholder
  *
  *	@return 0 for success, negative value for errors
