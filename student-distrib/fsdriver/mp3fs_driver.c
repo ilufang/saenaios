@@ -131,7 +131,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 // functions below connect with vfs
 int mp3fs_installfs(int32_t bootblock_start_addr){
     // need to magicalize the file data
-    
+
     // get address of boot block from parameter
     boot_ptr = (mp3fs_bootblock_t*)bootblock_start_addr;
     if ((bootblock_start_addr > 0x800000) && (bootblock_start_addr < 0xC00000)){
@@ -177,8 +177,8 @@ int mp3fs_installfs(int32_t bootblock_start_addr){
 void mp3fs_brutal_magic(){
     int i;
     for (i=0; i<boot_ptr->dir_count; ++i){
-        if (strncmp(mp3fs_inode_start_ptr[i].filename, "rtc", 3)==0){
-            mp3fs_inode_start_ptr[i].inode_num = 64;
+        if (strncmp(mp3fs_dentry_start_ptr[i].filename, "rtc", 3)==0){
+            mp3fs_dentry_start_ptr[i].inode_num = 64;
             break;
         }
     }
