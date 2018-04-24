@@ -15,7 +15,6 @@
 #include "fsdriver/mp3fs_driver.h"
 #include "boot/idt.h"
 #include "boot/page_table.h"
-#include "boot/ece391_syscall.h"
 
 #include "proc/task.h"
 #include "fs/vfs.h"
@@ -192,16 +191,18 @@ void entry(unsigned long magic, unsigned long addr) {
 
 #ifdef RUN_TESTS
 	/* Run tests */
-	//launch_tests();
+	launch_tests();
 #endif
 	/* Execute the first program ("shell") ... */
-	mount("","/","mp3fs",0,"");
 	int32_t fd_in, fd_out;
 	fd_in = open("/dev/stdin", O_RDONLY, 0);
 	fd_out = open("/dev/stdout", O_WRONLY, 0);
-	mp3_execute((uint8_t*)"shell");
+	printf("Testing syscall assembly linkage wrapper\n");
+	printf("Executing shell\n");
+	syscall_ece391_execute((int)"shell",0,0);
 	close(fd_in);
 	close(fd_out);
+
 	/* Spin (nicely, so we don't chew up cycles) */
 	printf("\nEnd of startup\n");
 	while(1);

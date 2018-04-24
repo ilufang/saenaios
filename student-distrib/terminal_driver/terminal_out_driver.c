@@ -113,7 +113,7 @@ int terminal_out_write_(uint8_t* buf, int length){
 }
 
 ssize_t terminal_out_read(file_t* file, uint8_t* buf,size_t count,off_t* offset){
-	return -1;	// for now
+	return 0;	// for now
 }
 
 /*int terminal_out_escape_sequence(uint8_t *buf,int max_length){

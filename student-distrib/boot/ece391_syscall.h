@@ -20,11 +20,7 @@
 // why is there a 48000 offset in discussion slide though
 #define PROG_IMG_OFFSET 0x8048000   ///< starting point to load an program image
 #define	RPL_USR			0x03		///< bitmask offset for privilege level 3
-#define ENTRY_POINT_OFFSET	24		///< start of entry point address in elf file
 #define PHYS_MEM_OFFSET	0xC00000	///< starting offset of physical memory.
-#define VID_MEM_OFFSET	0xB8000		///< physical address of video memory
-#define VID_VIRT_OFFSET 0x8400000	///< pre-defined virtual address of video memory
-
 
 /**
  *	Execute syscall handler
@@ -49,13 +45,5 @@ int32_t syscall_ece391_halt(int status, int, int);
  *	@return -1 on error, 0 on success
  */
 int32_t syscall_ece391_getargs(int buf, int nbytes, int);
-
-/**
- *	Vidmap syscall handler
- *
- *	@param screen_start_in: user pointer that stores the virtual address
- *	@return -1 on error, virtual address of video memory on success
- */
-int32_t syscall_ece391_vidmap(int screen_start_in, int, int);
 
 #endif

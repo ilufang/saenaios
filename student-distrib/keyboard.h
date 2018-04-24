@@ -17,10 +17,6 @@
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
 
-#include "boot/ece391_syscall.h"
-
-#include "libc.h"
-
 #define DATA_REG    0x60		///< keyboard data register
 #define CTRL_REG    0x64		///< keyboard control register
 
@@ -48,8 +44,6 @@
 #define RSHIFT_R	0xB6		///< keycode right shift released
 
 #define KEY_BUF_SIZE	128		///< max keyboard buffer size
-
-#define CTRL_C		3			///< ascii for control+c
 
 /**
  *	Scan code to character mapping

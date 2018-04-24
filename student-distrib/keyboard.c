@@ -367,11 +367,6 @@ void regular_key(uint8_t scancode){
 	// send control character if control key is pressed
 	if(ctrl_status == PRESSED){
 		scanchar = kbdctl[scancode];
-		if(scanchar == CTRL_C){
-			//sti();
-			syscall_ece391_halt(-1, 0, 0);
-			return;
-		}
 		terminal_out_write_(&scanchar,1);
 		return;
 	}
@@ -481,8 +476,6 @@ void update_mode(uint8_t scancode){
 
 
 void keyboard_handler(){
-	
-	send_eoi(KBD_IRQ_NUM);
 	uint8_t scancode;
 	/* reads scancode */
 	scancode = inb(DATA_REG);
@@ -513,6 +506,7 @@ void keyboard_handler(){
 		break;
 	}
 
+	send_eoi(KBD_IRQ_NUM);
 }
 
 

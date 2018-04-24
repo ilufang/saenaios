@@ -14,14 +14,7 @@ file_t vfs_files[VFS_MAX_OPEN_FILES];
 #define DIRENT_INDEX_AUTO	-2
 
 int syscall_ece391_open(int pathaddr, int b, int c) {
-	int ret;
-	// open argument check
-	if(*(uint8_t*)pathaddr==' '||*(uint8_t*)pathaddr=='\n'||*(uint8_t*)pathaddr=='\0'){
-		return -1;
-	}
-	ret = syscall_open(pathaddr, O_RDONLY, 0);
-	if(ret < 0) ret = -1;
-	return ret;
+	return syscall_open(pathaddr, O_RDONLY, 0);
 }
 
 int syscall_open(int pathaddr, int flags, int mode) {
@@ -75,17 +68,6 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	return avail_fd;
 }
 
-
-int syscall_ece391_close(int fd, int b, int c){
-	// syserr behaviour: closing stdin/stdout should fail
-	if(fd < FD_START){
-		return -1;
-	}
-	int ret = syscall_close(fd, b, c);
-	if(ret < 0) ret = -1;
-	return ret;
-}
-
 int syscall_close(int fd, int b, int c) {
 	task_t *proc;
 	file_t *file;
@@ -113,7 +95,6 @@ int syscall_close(int fd, int b, int c) {
 int syscall_ece391_read(int fd, int bufaddr, int size) {
 	int ret;
 	struct dirent dent;
-	memset((uint8_t*)bufaddr, 0, size);
 	ret = syscall_read(fd, bufaddr, size);
 	if (ret == -EISDIR) {
 		dent.index = DIRENT_INDEX_AUTO; // Workaround ece391_read auto dir listing
@@ -159,12 +140,6 @@ int syscall_read(int fd, int bufaddr, int count) {
 	}
 	// TODO: no permission check
 	return (*file->f_op->read)(file, (uint8_t *) bufaddr, count, &(file->pos));
-}
-
-int syscall_ece391_write(int fd, int bufaddr, int count){
-	int ret = syscall_write(fd, bufaddr, count);
-	if(ret < 0) ret = -1;
-	return ret;
 }
 
 int syscall_write(int fd, int bufaddr, int count) {

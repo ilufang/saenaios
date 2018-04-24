@@ -15,8 +15,8 @@
 #define TASK_ST_NA			0	///< Process PID is not in use
 #define TASK_ST_RUNNING		1	///< Process is actively running on processor
 
-#define TASK_MAX_PROC		10	///< Maximum of concurrently-scheduled tasks (capped for demo)
-#define TASK_MAX_OPEN_FILES	8	///< Per-process limit of concurrent open files
+#define TASK_MAX_PROC		65536 ///< Maximum of concurrently-scheduled tasks
+#define TASK_MAX_OPEN_FILES	16 ///< Per-process limit of concurrent open files
 
 #define M_BYTE			0x100000	///< offset for 1MB
 #define K_BYTE			0x400		///< offset for 1kb
@@ -35,9 +35,8 @@ typedef struct s_task {
 	int32_t esp;			///< esp pointer
 	int32_t ebp;			///< ebp pointer
 	int32_t flags;			///< flags stored for current process
-	int32_t status; 		///< Current status of this task
-	uint8_t args[MAX_ARGS];	///< arguments for current task
-	uint8_t vid_mapped;		///< flag for vidmap status
+	int32_t status; ///< Current status of this task
+	uint8_t args[MAX_ARGS];
 	file_t *files[TASK_MAX_OPEN_FILES]; ///< File descriptor pool
 } task_t;
 
