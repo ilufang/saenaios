@@ -1,4 +1,5 @@
 *.o
+*.a
 Makefile.dep
 bootimg
 mp3.img

@@ -6,9 +6,7 @@
 #include "lib.h"
 #include "errno.h"
 
-
-// static char rtc_status = 0;
-// static volatile int rtc_freq = 0;
+#include "proc/scheduler.h"
 
 static volatile int rtc_count_prev = 0;
 static volatile int rtc_count = 1;
@@ -62,6 +60,9 @@ void rtc_handler(){
 	/* reads from register C so that the interrupt will happen again */
 	outb(REG_C, RTC_PORT);
 	inb(CMOS_PORT);
+	if (scheduler_on_flag) {
+		scheduler_event();
+	}
 }
 
 void test_rtc_handler() {
@@ -124,7 +125,7 @@ int rtc_close(inode_t* inode, file_t* file) {
 }
 
 ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
-	
+
 	int v_rtc_status;
 	int v_rtc_freq;
 	v_rtc_status = rtc_file_table[rtc_openfile].rtc_status;

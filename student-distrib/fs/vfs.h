@@ -7,7 +7,7 @@
 #define FS_VFS_H
 
 #include "../types.h"
-
+#include "../../libc/include/sys/stat.h"
 #include "pathname.h"
 
 
@@ -93,6 +93,17 @@ typedef struct s_file_operations {
 	 */
 	ssize_t (*write)(struct s_file *file, uint8_t *buf, size_t count,
 					off_t *offset);
+
+	/**
+	 *	Seek to a given position
+	 *
+	 *	@param file: the file to seek
+	 *	@param offset: the new file pointer, relative to `whence`
+	 *	@param whence: reference frame for `offset`. See `SEEK_*` macros.
+	 *	@return the absolute offset on success, or the negative of an errno on
+	 *	failure.
+	 */
+	off_t (*llseek)(struct s_file *file, off_t offset, int whence);
 
 	/**
 	 *	Read the directory file for dir entires.
@@ -349,6 +360,16 @@ int syscall_ece391_open(int pathaddr, int, int);
 int syscall_close(int fd, int, int);
 
 /**
+ *	ECE391 wrapper for `syscall_close`. @see syscall_close
+ *
+ *	This wrapper will return -1 on failure instead of error information.
+ *
+ *	@param fd: the file descriptor to close
+ *	@return 0 on success, or -1 on failure.
+ */
+int syscall_ece391_close(int fd, int, int);
+
+/**
  *	System call handler for `read`: read bytes from an open fd into a provided
  *	user buffer.
  *
@@ -388,6 +409,29 @@ int syscall_ece391_read(int fd, int bufaddr, int size);
 int syscall_write(int fd, int bufaddr, int size);
 
 /**
+ *	ECE391 wrapper for `syscall_write`. @see syscall_write
+ *
+ *	This wrapper will return -1 on failure instead of error information.
+ *
+ *	@param fd: the file descriptor to write to
+ *	@param bufaddr: pointer to the user buffer to write from
+ *	@param size: the size of the buffer
+ *	@return the number of bytes written, or -1 on failure.
+ */
+int syscall_ece391_write(int fd, int bufaddr, int count);
+
+/**
+ *	System call handler for `lseek`: seek file pointer to given position
+ *
+ *	@param fd: the file descriptor to write to
+ *	@param offset: the new file pointer, relative to `whence`
+ *	@param whence: reference frame for `offset`. See `SEEK_*` macros.
+ *	@return the absolute offset on success, or the negative of an errno on
+ *	failure.
+ */
+int syscall_lseek(int fd, int offset, int whence);
+
+/**
  *	System call handler for `getdents`: get next entry in directory
  *
  *	@param fd: the file descriptor of the directory to be listed
@@ -397,6 +441,41 @@ int syscall_write(int fd, int bufaddr, int size);
  *	@return: 0 on success, or negative of an errno on failure
  */
 int syscall_getdents(int fd, int bufaddr, int);
+
+/**
+ *	System call handler for `stat`: get file status
+ *
+ *	@param path: char string of the path
+ *	@param stat_in: pointer to a user allocated stat structure
+ *	@param c: placeholder
+ *
+ *	@return 0 for success, negative value for errors
+ */
+int syscall_stat(int path, int stat_in, int c);
+
+/**
+ *	System call handler for `fstat`: get file status
+ *
+ *	@param fd: fd of the file, of course, a valid one
+ *	@param stat_in: pointer to a user allocated stat structure
+ *	@param c: placeholder
+ *
+ *	@return 0 for success, negative value for errors
+ */
+int syscall_fstat(int fd, int stat_in, int c);
+
+/**
+ *	System call handler for `lstat`: get file status
+ *
+ *	@param path: char string of the path
+ *	@param stat: pointer to a user allocated stat structure
+ *	@param c: placeholder
+ *
+ *	@return 0 for success, negative value for errors
+ *
+ *	@note not implemented yet
+ */
+int syscall_lstat(int path, int stat, int c);
 
 // For consistent include order
 #include "fstab.h"

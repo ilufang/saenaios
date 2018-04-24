@@ -48,7 +48,7 @@ void terminal_out_backspace();
  *
  *	This function handles escape sequence and dispatch special handlers
  *
- *  @param buf: buffer of the escape sequence to be handled, 
+ *  @param buf: buffer of the escape sequence to be handled,
  *				buffer may be trailed with remaining characters to be printed
  *  @param max_length: length that tells how many characters are left in the buffer
  *	@return the length of the escape sequence handled
@@ -65,7 +65,7 @@ int terminal_out_escape_sequence(uint8_t *buf,int max_length);
 void terminal_out_clear();
 
 /**
- *	Print a single character on the terminal 
+ *	Print a single character on the terminal
  *
  *	This function prints a single character on the screen
  *
@@ -132,22 +132,8 @@ int terminal_out_write_(uint8_t* buf, int length);
 ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count,off_t *offset);
 
 /**
- *	read for terminal out driver
- *
- *	this is invalid operation of terminal out dirver
- *
- *	@param file: object
- * 	@param buf: A pointer to buffer of output content
- *	@param count: number to be read
- *	@param offset: offset of read
- *	@return 0
- *	
- *  @note behavior not defined!
- */
-ssize_t terminal_out_read(file_t* file, uint8_t *buf, size_t count, off_t *offset);
-/**
  *	register the terminal out driver
- *	
+ *
  *	or stdout, which I may call it
  */
 int terminal_out_driver_register();

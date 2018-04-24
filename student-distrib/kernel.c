@@ -16,12 +16,14 @@
 #include "boot/idt.h"
 #include "boot/page_table.h"
 
+#include "proc/signal.h"
+#include "proc/scheduler.h"
 #include "proc/task.h"
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
 #include "libc.h"
 
-#define RUN_TESTS
+//#define RUN_TESTS
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -158,8 +160,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	/* Initialize Paging */
 	page_ece391_init();
-	page_dir_add_4MB_entry(mp3fs_load_addr,mp3fs_load_addr,PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
-							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
+
 	/* Init the PIC */
 	i8259_init();
 
@@ -168,20 +169,25 @@ void entry(unsigned long magic, unsigned long addr) {
 	keyboard_init();
 	rtc_init();
 
+	signal_init();
+
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
 	printf("Enabling Interrupts\n");
 	sti();
-	// create a basic process
-	task_create_kernel_pid();
+
 	// install device driver fs
 	devfs_installfs();
-	mp3fs_installfs(mp3fs_load_addr);
+	if (mp3fs_installfs(mp3fs_load_addr)){
+		printf("error installing mp3fs\n");
+		while(1);
+	}
 	// mount filesystems
-	mount("","/","mp3fs",0,"");
-	mount("","/dev","devfs",0,"");
+	struct sys_mount_opts mount_opts;
+	syscall_mount((int)"mp3fs", (int)"/", (int)(&mount_opts));
+	syscall_mount((int)"devfs", (int)"/dev", (int)(&mount_opts));
 
 	// register drivers
 	terminal_out_driver_register();
@@ -193,15 +199,10 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Run tests */
 	launch_tests();
 #endif
-	/* Execute the first program ("shell") ... */
-	int32_t fd_in, fd_out;
-	fd_in = open("/dev/stdin", O_RDONLY, 0);
-	fd_out = open("/dev/stdout", O_WRONLY, 0);
-	printf("Testing syscall assembly linkage wrapper\n");
-	printf("Executing shell\n");
-	syscall_ece391_execute((int)"shell",0,0);
-	close(fd_in);
-	close(fd_out);
+	// create a basic process
+	task_create_kernel_pid();
+
+	// Bye!
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	printf("\nEnd of startup\n");

@@ -9,7 +9,6 @@
 #include "fsdriver/mp3fs_test.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "boot/page_table.h"
-#include "boot/ece391_syscall.h"
 
 #include "proc/task.h"
 #include "boot/syscall.h"
@@ -74,61 +73,73 @@ int paging_test(){
 	temp = *(int*)(0x600000);
 	// video memory paging test
 	temp = *(int*)(0xB8500);
-	// fs memory paging test
-	//temp = *(int*)(0xA00000);
-	//printf("kernel memory & video memory paging test passed\n");
-
-	// memory from 0 to the beginning of video memory crashing test
-	//printf("crashing 0 - 0xB7FFF space!\n");
-	//temp = *(int*)(0x10000);
-	// memory after video memory to the beginning of kernel memory crashing test
-	//printf("crashing 0xB9000 - 0x3FFFFF space!\n");
-	//temp = *(int*)(0xBA000);
-	// memory after kernel memory crashing test
-	// printf("crashing 0xC00000 - 4GB space!\n");
-	// temp = *(int*)(0xC00000);
-	// assertion_failure();
-	//printf("now mapping two virtual address to the same physical address\n");
-
-	page_dir_add_4MB_entry(0x08000000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
-							PAGE_DIR_ENT_SUPERVISOR);
-	page_dir_add_4MB_entry(0x08400000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
-							PAGE_DIR_ENT_SUPERVISOR);
-	*((int*)0x08000000) = 3;
-	if (*((int*)0x08400000) != 3){
-		printf("virtual memory paging failed\n");
+	if (page_dir_add_4MB_entry(0x08000000, 0xC00000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
+							PAGE_DIR_ENT_SUPERVISOR) == 0){
+		printf("page security check failed\n");
 		return FAIL;
 	}
-	*((int*)0x08400000) = 233;
-	if (*((int*)0x08000000) != 233){
-		printf("virtual memory paging failed\n");
+	temp = 0;
+	if (page_alloc_4MB(&temp)){
+		printf("4MB page allocation failed\n");
+		return FAIL;
+	}
+	if (temp < 0x1000000){
+		printf("4MB page allocation start addr error\n");
+		return FAIL;
+	}
+	if (page_dir_add_4MB_entry(0x08400000, temp, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
+							PAGE_DIR_ENT_4MB | PAGE_DIR_ENT_SUPERVISOR)){
+		printf("page add failed\n");
+		return FAIL;
+	}
+	// if page fault, error
+	*((int*)0x08400000) = 3;
+
+	temp = 0;
+	// crazy allocation test
+	while (page_alloc_4MB(&temp) != -ENOMEM){
+		temp = 0;
+	}
+
+	page_alloc_free_4MB(0x1000000);
+
+	if(page_alloc_4MB(&temp)){
+		printf("physical page leak\n");
 		return FAIL;
 	}
 
-	// now change those entries
+	if (temp != 0x1000000){
+		printf("physical page leak\n");
+		return FAIL;
+	}
 
+	// well well well all test done and clean up
+	while (page_alloc_free_4MB(temp)){
+		temp += 0x400000;
+	}
+
+	if (temp < 10000000){
+		printf("page allocation freeing failed\n");
+		return FAIL;
+	}
+
+	if (page_dir_delete_entry(0x08400000)){
+		printf("page table delete entry failed\n");
+		return FAIL;
+	}
+/*	flush test ignored
 	page_dir_add_4MB_entry(0x08800000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
 	*((int*)0x08800000) = 333;
-	//printf("before %d\n", *((int*)0x08400000));
 
 	page_dir_add_4MB_entry(0x08400000, 0x1000000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR);
-	//printf("after  %d\n", *((int*)0x08400000));
 
-	// after changing the entry, tlb is not cleared, so
-	// the original mapping remains
-/*	if ((*((int*)0x08400000)) != 233){
-		printf("tlb wrongly flushed\n");
-		return FAIL;
-	}*/
-	// now flushed, the mapping should be changed
 	page_flush_tlb();
-	//printf("after flush %d\n", *((int*)0x08400000));
 	if ((*((int*)0x08400000)) != 333){
 		printf("tlb flush failed\n");
 		return FAIL;
-	}
+	}*/
 	return PASS; // If execution hits this, BAD!
 }
 

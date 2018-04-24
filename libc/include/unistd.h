@@ -6,6 +6,13 @@
 #ifndef UNISTD_H
 #define UNISTD_H
 
+#include "sys/types.h"
+#include "sys/stat.h"
+
+#define SEEK_SET	0 ///< Seek relative to the start of the file
+#define SEEK_CUR	1 ///< Seek relative to the current position
+#define SEEK_END	2 ///< Seek relative to the end of file
+
 /**
  *	Read bytes from an open file
  *
@@ -28,5 +35,99 @@ ssize_t read(int fd, void *buf, size_t count);
  *	@return the number of bytes written, or the negative of an errno on failure.
  */
 ssize_t write(int fd, const void *buf, size_t count);
+
+
+/**
+ *	System call handler for `lseek`: seek file pointer to given position
+ *
+ *	@param fd: the file descriptor to write to
+ *	@param offset: the new file pointer, relative to `whence`
+ *	@param whence: reference frame for `offset`. See `SEEK_*` macros.
+ *	@return the absolute offset on success, or the negative of an errno on
+ *	failure.
+ */
+off_t lseek(int fd, off_t offset, int whence);
+
+/**
+ *	Duplicate current process
+ *
+ *	After calling fork, the current process will be duplicated by creating new
+ *	page table entries referencing the same physical addresses. The first
+ *	attempt to write to these pages will then trigger copy-on-write.
+ *
+ *	@return the new PID to the calling process on successful, 0 to the newly
+ *			forked process, or the negative of an errno on failure
+ */
+pid_t fork();
+
+/**
+ *	Get file status & info
+ *
+ *	Given the file path and name, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param path: char string of the path
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ *
+ *	@note will open symbolic link and redirect to the file linked
+ */
+int stat(const char* path, struct s_stat* buf);
+
+/**
+ *	Get file status & info
+ *
+ *	Given the file descriptor, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param fd: fd of the file, of course, a valid one
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ */
+int fstat(int fd, struct s_stat* buf);
+
+/**
+ *	Get symbolic link file status & info
+ *
+ *	Given the symbolic file path and name, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param path: char string of the path
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ *
+ *	@note this will fill the stat of the symbolic link file
+ */
+int lstat(const char* path, struct s_stat* buf);
+
+/**
+ *	Reload current process with the given executable image.
+ *
+ *	@param path: path to the executable file (ELF)
+ *	@param argv: list of command-line arguments, the last element must be NULL
+ *				 to signify end-of-list
+ *	@param envp: list of environmental variables, the last element must be NULL
+ *				 to signify end-of-list
+ *	@return the negative of an errno on failure. On success, the new process
+ *			is launched and the old process will not be present to receive any
+ *			return values.
+ */
+int execve(const char *path, char *const argv[], char *const envp[]);
+
+/**
+ *	Terminate the calling process with given exit status code
+ *
+ *	This function will always succeed. After calling, the calling process will
+ *	no longer exist to receive any returned values.
+ *
+ *	@param status: the exit status code
+ */
+void _exit(int status);
 
 #endif

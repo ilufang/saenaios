@@ -4,10 +4,10 @@
 
 #include "mp3fs_driver.h"
 
-
+#include "../boot/page_table.h"
 
 static mp3fs_bootblock_t* boot_ptr;
-static mp3fs_dentry_t* mp3fs_inode_start_ptr;
+static mp3fs_dentry_t* mp3fs_dentry_start_ptr;
 // temporary file array used for testing
 fsys_file_t * test_fd_arr[FSYS_MAX_FILE];
 
@@ -45,7 +45,7 @@ int32_t read_dentry_by_name (const uint8_t* fname, mp3fs_dentry_t* dentry){
             return 0;
         }
     }
-    
+
     return -1;
 }
 
@@ -104,13 +104,13 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
         n_copy = BLOCK_SIZE - offset % BLOCK_SIZE;
     }
     // ptr to source address of current copy operation
-    uint8_t* cpy_src = (uint8_t*)(data_block_ptr + 
-                                  target_inode ->data_block_num[block_idx] * BLOCK_SIZE + 
+    uint8_t* cpy_src = (uint8_t*)(data_block_ptr +
+                                  target_inode ->data_block_num[block_idx] * BLOCK_SIZE +
                                   offset % BLOCK_SIZE);
     while(rem_len > 0){
         (void)memcpy(buf, cpy_src, n_copy);
         rem_len -= n_copy;
-        read_len += n_copy; 
+        read_len += n_copy;
         if(rem_len <= 0){
             return read_len;
         }
@@ -134,8 +134,15 @@ int mp3fs_installfs(int32_t bootblock_start_addr){
     
     // get address of boot block from parameter
     boot_ptr = (mp3fs_bootblock_t*)bootblock_start_addr;
-
-    mp3fs_inode_start_ptr = (mp3fs_dentry_t*)((uint8_t*)boot_ptr + DENTRY_SIZE);
+    if ((bootblock_start_addr > 0x800000) && (bootblock_start_addr < 0xC00000)){
+        page_dir_add_4MB_entry(bootblock_start_addr,bootblock_start_addr,
+                            PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
+                            PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
+    }
+    if (!((bootblock_start_addr > 0x400000) && (bootblock_start_addr < 0x800000))){
+        return -EINVAL;
+    }
+    mp3fs_dentry_start_ptr = (mp3fs_dentry_t*)((uint8_t*)boot_ptr + DENTRY_SIZE);
 
     mp3fs_brutal_magic();
     //mp3fs_inode_index = 0;
@@ -161,7 +168,7 @@ int mp3fs_installfs(int32_t bootblock_start_addr){
     strcpy(mp3fs.name, "mp3fs");
 
     mp3fs.get_sb = &mp3fs_get_sb;
-    
+
     mp3fs.kill_sb = &mp3fs_kill_sb;
 
     return fstab_register_fs(&mp3fs);
@@ -186,7 +193,7 @@ super_block_t* mp3fs_get_sb(struct s_file_system *fs, int flags,
     mp3fs_sb.s_op = &mp3fs_s_op;
 
     // get root dentry's (i.e. root dir) inode number
-    mp3fs_sb.root = mp3fs_inode_start_ptr->inode_num;
+    mp3fs_sb.root = mp3fs_dentry_start_ptr->inode_num;
 
     // initialize file table
     // of course brutal force table
@@ -250,6 +257,8 @@ int mp3fs_s_op_drop_inode(inode_t* inode){
 
 inode_t* _mp3fs_fetch_inode(ino_t ino){
     int i;
+    mp3fs_inode_t * target_inode;
+
     int32_t dentry_count = boot_ptr->dir_count;
     // check for invalid dentry index
     if(ino >= MP3FS_MAX_FILE_NUM || ino < 0){
@@ -258,21 +267,25 @@ inode_t* _mp3fs_fetch_inode(ino_t ino){
     }
 
     for (i=0; i<dentry_count; ++i){
-        if (mp3fs_inode_start_ptr[i].inode_num == ino)
+        if (mp3fs_dentry_start_ptr[i].inode_num == ino)
             break;
-    }    
+    }
+
     if (i >= dentry_count){
         errno = ENOENT;
         return NULL;
     }
+    target_inode = (mp3fs_inode_t*)((uint8_t*)boot_ptr + BLOCK_SIZE * (ino + 1));
+
     // found it, ah, fetch from disk
-    mp3fs_file_table[ino].file_type = mp3fs_ftype_string[mp3fs_inode_start_ptr[i].filetype];
+    mp3fs_file_table[ino].file_type = mp3fs_ftype_string[mp3fs_dentry_start_ptr[i].filetype];
     mp3fs_file_table[ino].open_count = 1;   // should be 1 isn't it?
     // TODO mp3fs_file_table[ino].mode
     mp3fs_file_table[ino].sb = &mp3fs_sb;
     mp3fs_file_table[ino].i_op = &mp3fs_i_op;
     mp3fs_file_table[ino].f_op = &mp3fs_f_op;
-    // no private data for now
+    // private data is the length of the file
+    mp3fs_file_table[ino].private_data = target_inode->length;
     return &mp3fs_file_table[ino];
 }
 
@@ -314,7 +327,7 @@ int mp3fs_f_op_close(struct s_inode *inode, struct s_file *file){
     // sanity check
     if ((!inode) || (!file))
         return -EINVAL;
-    // no private data 
+    // no private data
     return 0;
 }
 

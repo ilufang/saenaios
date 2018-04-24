@@ -28,34 +28,23 @@
 #define SYSCALL_MOUNT		20
 #define SYSCALL_UMOUNT		21
 #define SYSCALL_GETDENTS	22
+#define SYSCALL_FORK		23
+#define SYSCALL__EXIT		24
+#define SYSCALL_EXECVE		25
+#define SYSCALL_SIGACTION	26
+#define SYSCALL_KILL		27
+#define SYSCALL_SIGSUSPEND	28
+#define SYSCALL_SIGPROCMASK	29
+#define SYSCALL_WAIT		30
+#define SYSCALL_STAT		31
+#define SYSCALL_FSTAT		32
+#define SYSCALL_LSTAT		33
+#define SYSCALL_GETPID		34
 
-struct __attribute__((__packed__)) sys_mount_opts {
+struct sys_mount_opts {
 	const char *source;
 	unsigned long mountflags;
 	const char *opts;
-};
-
-/**
- *	Execute syscall linkage wrapper (used for testing)
- *
- *	@param command: the command to execute
- */
-int mp3_execute(unsigned char* command);
-
-
-/**
- *	Halt syscall linkage wrapper (used for testing)
- *
- *	@return the return value from the halted process
- */
-int mp3_halt(unsigned char status);
-
-int mp3_open(unsigned char* fname);
-
-int mp3_close(int fd);
-
-int mp3_read(int fd, unsigned char* buf, int numbyte);
-
-int mp3_write(int fd, unsigned char* buf, int numbyte);
+} __attribute__((__packed__));
 
 #endif

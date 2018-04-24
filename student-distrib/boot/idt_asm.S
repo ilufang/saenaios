@@ -1,5 +1,45 @@
-RETVAL:
+#define STACK_REG_MAGIC $1145141919
+
+TMPVAL:
 	.long	0
+
+.globl iret_struct
+
+iret_struct:
+	.long	0
+
+#define SIGHUP		$1	///< terminal line hangup
+#define SIGINT		$2	///< interrupt program
+#define SIGQUIT		$3	///< quit program
+#define SIGILL		$4	///< illegal instruction
+#define SIGTRAP		$5	///< trace trap
+#define SIGABRT		$6	///< abort program (formerly SIGIOT)
+#define SIGEMT		$7	///< emulate instruction executed
+#define SIGFPE		$8	///< floating-point exception
+#define SIGKILL		$9	///< kill program
+#define SIGBUS		$10	///< bus error
+#define SIGSEGV		$11	///< segmentation violation
+#define SIGSYS		$12	///< non-existent system call invoked
+#define SIGPIPE		$13	///< write on a pipe with no reader
+#define SIGALRM		$14	///< real-time timer expired
+#define SIGTERM		$15	///< software termination signal
+#define SIGURG		$16	///< urgent condition present on socket
+#define SIGSTOP		$17	///< stop (cannot be caught or ignored)
+#define SIGTSTP		$18	///< stop signal generated from
+#define SIGCONT		$19	///< continue after stop
+#define SIGCHLD		$20	///< child status has changed
+#define SIGTTIN		$21	///< background read attempted from control terminal
+#define SIGTTOU		$22	///< background write attempted to control terminal
+#define SIGIO		$23	///< I/O is possible on a descriptor
+#define SIGXCPU		$24	///< cpu time limit exceeded
+#define SIGXFSZ		$25	///< file size limit exceeded
+#define SIGVTALRM	$26	///< virtual time alarm
+#define SIGPROF		$27	///< profiling timer alarm
+#define SIGWINCH	$28	///< Window size change
+#define SIGINFO		$29	///< status request from keyboard
+#define SIGUSR1		$30	///< User defined signal 1
+#define SIGUSR2		$31	///< User defined signal 2
+#define SIG_MAX		$32	///< Total number of signals
 
 .globl idt_int_de
 .globl idt_int_nmi
@@ -19,8 +59,22 @@ RETVAL:
 .globl idt_int_mc
 .globl idt_int_xf
 .globl idt_int_reserved
-.globl idt_int_irq
-.globl idt_int_irq_size
+.globl idt_int_irq0
+.globl idt_int_irq1
+.globl idt_int_irq2
+.globl idt_int_irq3
+.globl idt_int_irq4
+.globl idt_int_irq5
+.globl idt_int_irq6
+.globl idt_int_irq7
+.globl idt_int_irq8
+.globl idt_int_irq9
+.globl idt_int_irq10
+.globl idt_int_irq11
+.globl idt_int_irq12
+.globl idt_int_irq13
+.globl idt_int_irq14
+.globl idt_int_irq15
 .globl idt_int_irq_listeners
 .globl idt_int_usr
 
@@ -51,8 +105,6 @@ idt_int_msg_ss:
 	.string "Stack-Segment Fault at %x (err=%x)\n"
 idt_int_msg_gp:
 	.string "General Protection Fault at %x (err=%x)\n"
-idt_int_msg_pf:
-	.string "Page Fault at %x (err=%x, addr=%x)\n"
 idt_int_msg_mf:
 	.string "Math Fault at %x\n"
 idt_int_msg_ac:
@@ -64,265 +116,379 @@ idt_int_msg_xf:
 idt_int_msg_reserved:
 	.string "Reserved Interrupt\n"
 
+/*
+ *	Regarding magical constants used in the calculation of relative stack
+ *	addresses
+ *
+ *	On each call to the interrupt gate, the processor would push a structure
+ *	used by `iret` and a dword error code in some exceptions. All gates are
+ *	designed to first pop off the error code into a temporary variable, then
+ *	execute a `pushal` to put all GPRs right on top of the iret structure,
+ *	and then push a magical constant for code to find the saved state. In
+ *	case the faulting address is needed, it would be offset 36 from the top
+ *	of the saved state structure (1 magic dword and 8 saved registers).
+ *	`TMPVAL` is used to save the error code.
+ *
+ *	When returning, all the arguments pushed for the function call, plus the
+ *	magic dword, will be popped off the stack before executing `popal` and
+ *	`iret`. In short, stack spaced allocated by all the visible `pushl`s are
+ *	popped.
+ */
+
 idt_int_de:
-	pushl	(%esp)
-	pushl	$idt_int_msg_de
-	call	idt_int_panic
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGFPE
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
 	addl	$8, %esp
+	popal
 	iret
 idt_int_nmi:
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	$idt_int_msg_nmi
-	call	idt_int_panic
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
 	addl	$4, %esp
+
+	call	idt_int_panic
+	addl	$8, %esp
+	popal
 	iret
 idt_int_bp:
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_bp_handler
+	addl	$4, %esp
+	popal
 	iret
 idt_int_of:
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_of_handler
+	addl	$4, %esp
+	popal
 	iret
 idt_int_br:
-	pushl	(%esp)
-	pushl	$idt_int_msg_br
-	call	idt_int_panic
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGSEGV
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
 	addl	$8, %esp
+	popal
 	iret
 idt_int_ud:
-	pushl	(%esp)
-	pushl	$idt_int_msg_ud
-	call	idt_int_panic
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGILL
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
 	addl	$8, %esp
+	popal
 	iret
 idt_int_nm:
-	pushl	(%esp)
-	pushl	$idt_int_msg_nm
-	call	idt_int_panic
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGFPE
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
 	addl	$8, %esp
+	popal
 	iret
 idt_int_df:
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	$idt_int_msg_df
-	call	idt_int_panic
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
 	addl	$4, %esp
+
+	call	idt_int_panic
+	addl	$8, %esp
+	popal
 	iret
 idt_int_ts:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
-	pushl	$idt_int_msg_ts
-	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGBUS
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
+	addl	$8, %esp
+	popal
 	iret
 idt_int_np:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
-	pushl	$idt_int_msg_np
-	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGBUS
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
+	addl	$8, %esp
+	popal
 	iret
 idt_int_ss:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
-	pushl	$idt_int_msg_ss
-	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGBUS
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
+	addl	$8, %esp
+	popal
 	iret
 idt_int_gp:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
-	pushl	$idt_int_msg_gp
-	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGSEGV
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
+	addl	$8, %esp
+	popal
 	iret
 idt_int_pf:
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	movl	%cr2, %eax
-	pushl	%eax	// Faulting address
-	movl	4(%esp), %eax
+	pushl	%eax		// Faulting address
+	movl	TMPVAL, %eax
 	andl	$0xf, %eax
-	pushl	%eax	// Err code (masked)
-	pushl	12(%esp)// EIP
-	pushl	$idt_int_msg_pf
-	call	idt_int_panic
-	addl	$20, %esp // 4 args + 1 err code
+	pushl	%eax		// Err code (masked)
+	pushl	44(%esp)	// EIP
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_pf_handler
+	addl	$16, %esp
+	popal
 	iret
 idt_int_mf:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
-	pushl	$idt_int_msg_mf
-	call	idt_int_panic
-	addl	$16, %esp // 3 args + 1 err code
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	SIGFPE
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	idt_int_signal
+	addl	$8, %esp
+	popal
 	iret
 idt_int_ac:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	TMPVAL		// Err code
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_ac
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
-	addl	$8, %esp // 1 arg + 1 err code
+	addl	$16, %esp
+	popal
 	iret
 idt_int_mc:
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	$idt_int_msg_mc
-	call	idt_int_panic
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
 	addl	$4, %esp
+
+	call	idt_int_panic
+	addl	$8, %esp
+	popal
 	iret
 idt_int_xf:
-	pushl	(%esp)	// Err code
-	pushl	8(%esp)	// EIP
+	popl	TMPVAL
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+	pushl	TMPVAL		// Err code
+	pushl	40(%esp)	// EIP
 	pushl	$idt_int_msg_xf
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
 	call	idt_int_panic
-	addl	$8, %esp // 1 arg + 1 err code
+	addl	$16, %esp
+	popal
 	iret
 idt_int_reserved:
+	pusha
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
 	pushl	$idt_int_msg_reserved
-	call	idt_int_panic
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
 	addl	$4, %esp
+
+	call	idt_int_panic
+	addl	$8, %esp
+	popal
 	iret
 
-.align 4
 idt_int_irq_listeners:
 	.rept	16
 	.long	idt_int_irq_default
 	.endr
 
-idt_int_irq:
-idt_int_irq20:
+idt_int_irq0:
+	movl	$0, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq1:
+	movl	$1, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq2:
+	movl	$2, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq3:
+	movl	$3, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq4:
+	movl	$4, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq5:
+	movl	$5, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq6:
+	movl	$6, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq7:
+	movl	$7, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq8:
+	movl	$8, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq9:
+	movl	$9, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq10:
+	movl	$10, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq11:
+	movl	$11, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq12:
+	movl	$12, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq13:
+	movl	$13, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq14:
+	movl	$14, TMPVAL
+	jmp	idt_int_irqexec
+idt_int_irq15:
+	movl	$15, TMPVAL
+	jmp	idt_int_irqexec
+
+idt_int_irqexec:
 	pushal
-	pushl	$0
-	call	*(idt_int_irq_listeners+0)
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+
+	pushl	iret_struct
+	call	scheduler_update_taskregs
 	addl	$4, %esp
+
+	movl	TMPVAL, %eax
+	pushl	%eax
+	call	*idt_int_irq_listeners(,%eax,4)
+
+	addl	$8, %esp
 	popal
 	iret
-idt_int_irq21:
-	pushal
-	pushl	$1
-	call	*(idt_int_irq_listeners+4)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq22:
-	pushal
-	pushl	$2
-	call	*(idt_int_irq_listeners+8)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq23:
-	pushal
-	pushl	$3
-	call	*(idt_int_irq_listeners+12)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq24:
-	pushal
-	pushl	$4
-	call	*(idt_int_irq_listeners+16)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq25:
-	pushal
-	pushl	$5
-	call	*(idt_int_irq_listeners+20)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq26:
-	pushal
-	pushl	$6
-	call	*(idt_int_irq_listeners+24)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq27:
-	pushal
-	pushl	$7
-	call	*(idt_int_irq_listeners+28)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq28:
-	pushal
-	pushl	$8
-	call	*(idt_int_irq_listeners+32)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq29:
-	pushal
-	pushl	$9
-	call	*(idt_int_irq_listeners+36)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq2a:
-	pushal
-	pushl	$10
-	call	*(idt_int_irq_listeners+40)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq2b:
-	pushal
-	pushl	$11
-	call	*(idt_int_irq_listeners+44)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq2c:
-	pushal
-	pushl	$12
-	call	*(idt_int_irq_listeners+48)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq2d:
-	pushal
-	pushl	$13
-	call	*(idt_int_irq_listeners+52)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq2e:
-	pushal
-	pushl	$14
-	call	*(idt_int_irq_listeners+56)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq2f:
-	pushal
-	pushl	$15
-	call	*(idt_int_irq_listeners+60)
-	addl	$4, %esp
-	popal
-	iret
-idt_int_irq_size:
-	.long	idt_int_irq21 - idt_int_irq20
 
 idt_int_usr:
-	
 	pushal
-	pushfl		// save registers
-	
-	cmpl	$22, %eax
-	jg		syscall_invalid
-	cmpl	$1, %eax
-	jl		syscall_invalid		// check for invalid syscall number
-	
+	pushl	STACK_REG_MAGIC
+	movl	%esp, iret_struct
+
 	pushl	%edx
 	pushl	%ecx
 	pushl	%ebx
 	pushl	%eax
-	call	syscall_invoke
-	addl	$16, %esp			// push arguments and call jump table
-	
-	jmp		syscall_ret
 
-syscall_invalid:
-	movl	$-1, %eax
-	jmp		syscall_ret			// return -1 for invalid argument
-	
-syscall_ret:
-	movl	%eax, RETVAL
-	popfl
+	pushl	iret_struct
+	call	scheduler_update_taskregs
+	addl	$4, %esp
+
+	call	syscall_invoke
+	addl	$16, %esp
+
+	movl	%eax, TMPVAL
+	addl	$4, %esp
 	popal
-	movl	RETVAL, %eax		// return value in eax, restore registers
+	movl	TMPVAL, %eax
+
 	iret
