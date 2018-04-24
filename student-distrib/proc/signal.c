@@ -5,6 +5,7 @@
 #include "../lib.h"
 #include "../boot/page_table.h"
 #include "signal_user.h"
+#include "../../libc/src/syscalls.h"
 
 char *signal_names[] = {
 	"Unknown signal: 0\n",
@@ -164,7 +165,7 @@ int syscall_ece391_set_handler(int sig, int handlerp, int c) {
 	sa.handler = (void (*)(int))handlerp;
 	sigemptyset(&(sa.mask));
 	sigaddset(&(sa.mask), sig);
-	sa.flags = 0;
+	sa.flags = SA_ECE391SIGNO;
 	return syscall_sigaction(sig, (int)&sa, 0);
 }
 
@@ -185,6 +186,7 @@ void signal_init() {
 
 void signal_exec(task_t *proc, int sig) {
 	task_sigact_t *sa;
+	int ret;
 
 	sa = proc->sigacts + sig;
 
@@ -211,14 +213,39 @@ void signal_exec(task_t *proc, int sig) {
 	} else {
 		task_user_pushl(&(proc->regs.esp), proc->regs.eip);
 	}
-	task_user_pushs(&(proc->regs.esp), (uint8_t *)&(proc->regs), 32); // Only the 8 GPRs
+	// Workaround ECE391 expecting EAX at arg1 + 7
+	proc->regs.esp_k = proc->regs.eax;
+	task_user_pushs(&(proc->regs.esp), (uint8_t *)&(proc->regs), 36); // Only the 8 GPRs
 	task_user_pushl(&(proc->regs.esp), proc->regs.eflags);
 	// Push original mask
 	task_user_pushl(&(proc->regs.esp), proc->signal_mask);
 	proc->signal_mask = sa->mask & (~(SIGKILL | SIGSTOP));
 	// Push stack frame for handler
-	task_user_pushl(&(proc->regs.esp), (uint32_t)signal_user_ret_addr);
-	if (task_user_pushl(&(proc->regs.esp), sig) != 0) {
+	if (sa->flags & SA_ECE391SIGNO) {
+		switch(sig) {
+			case SIGFPE:
+				task_user_pushl(&(proc->regs.esp), 0);
+				break;
+			case SIGSEGV:
+				task_user_pushl(&(proc->regs.esp), 1);
+				break;
+			case SIGTERM:
+				task_user_pushl(&(proc->regs.esp), 2);
+				break;
+			case SIGALRM:
+				task_user_pushl(&(proc->regs.esp), 3);
+				break;
+			case SIGUSR1:
+				task_user_pushl(&(proc->regs.esp), 4);
+				break;
+			default:
+				task_user_pushl(&(proc->regs.esp), sig);
+		}
+	} else {
+		task_user_pushl(&(proc->regs.esp), sig);
+	}
+	ret = task_user_pushl(&(proc->regs.esp), (uint32_t)signal_user_ret_addr);
+	if (ret != 0) {
 		// Stack overflow... BAD!
 		signal_handler_terminate(proc, SIGSEGV);
 		return; // This line should not hit
@@ -285,8 +312,11 @@ void signal_handler_ignore(task_t *proc, int sig) {
 void signal_handler_terminate(task_t *proc, int sig) {
 	// Print to stdout
 	syscall_write(1, (int)signal_names[sig], strlen(signal_names[sig]));
-	// Halt process
-	syscall__exit(256, 0, 0);
+
+	// Let process execute _exit
+	proc->regs.eax = SYSCALL__EXIT;
+	proc->regs.ebx = 256; // Return code: 256
+	proc->regs.eip = (uint32_t) signal_user_make_syscall_addr;
 }
 
 void signal_handler_stop(task_t *proc, int sig) {

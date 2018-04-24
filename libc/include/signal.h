@@ -75,6 +75,8 @@ typedef uint32_t sigset_t;
 #define SA_NODEFER		0x10
 /// Reset to default action after executing the signal handler
 #define SA_RESETHAND	0x20
+/// Send signal number to handler in ECE391 format
+#define SA_ECE391SIGNO	0x40
 
 /**
  *	Signal Handling behavior descriptor

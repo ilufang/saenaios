@@ -47,27 +47,4 @@ struct sys_mount_opts {
 	const char *opts;
 } __attribute__((__packed__));
 
-/**
- *	Execute syscall linkage wrapper (used for testing)
- *
- *	@param command: the command to execute
- */
-int mp3_execute(unsigned char* command);
-
-
-/**
- *	Halt syscall linkage wrapper (used for testing)
- *
- *	@return the return value from the halted process
- */
-int mp3_halt(unsigned char status);
-
-int mp3_open(unsigned char* fname);
-
-int mp3_close(int fd);
-
-int mp3_read(int fd, unsigned char* buf, int numbyte);
-
-int mp3_write(int fd, unsigned char* buf, int numbyte);
-
 #endif

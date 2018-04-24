@@ -19,17 +19,14 @@ extern uint32_t signal_user_base;
 /// Size in bytes of the code page
 extern size_t signal_user_length;
 
-/**
- *	Return from signal handler.
- *
- *	This function performs register restoration so that code suspended by the
- *	signal can resume normal operation. This function is loaded and called by
- *	`signal.c` and should NOT be called anywhere.
- */
-extern void signal_user_ret();
 /// Offset of `signal_user_ret` from start of this code page
 extern size_t signal_user_ret_offset;
 /// Address of `signal_user_ret` when viewed from user-space
 #define signal_user_ret_addr ((void *) PROC_USR_BASE + signal_user_ret_offset)
+
+/// Offset of `signal_user_ret` from start of this code page
+extern size_t signal_user_make_syscall_offset;
+/// Address of `signal_user_ret` when viewed from user-space
+#define signal_user_make_syscall_addr ((void *) PROC_USR_BASE + signal_user_make_syscall_offset)
 
 #endif

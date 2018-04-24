@@ -1,8 +1,8 @@
 .globl signal_user_base
 .globl signal_user_length
 
-.globl signal_user_ret
 .globl signal_user_ret_offset
+.globl signal_user_make_syscall_offset
 .globl task_kernel_process_offset
 .globl syscall_ece391_execute_magic
 
@@ -23,8 +23,14 @@ signal_user_ret:
 	addl	$4, %esp // Teardown original mask
 	// Restore previous execution status
 	popfl
+	addl	$4, %esp // Teardown magic
+	movl	12(%esp), %eax // Get ESP_K (ECE391 workaround)
+	movl	%eax, 28(%esp) // Set to EAX
 	popal
 	ret
+
+signal_user_make_syscall:
+	int		$0x80
 
 task_kernel_process:
 	movl	$15, %eax // MAKE_INITD
@@ -77,8 +83,9 @@ signal_user_length:
 
 signal_user_ret_offset:
 	.long	signal_user_ret - signal_user_base
+signal_user_make_syscall_offset:
+	.long	signal_user_make_syscall - signal_user_base
 task_kernel_process_offset:
 	.long	task_kernel_process - signal_user_base
-
 syscall_ece391_execute_magic:
 	.long  	syscall_ece391_execute_magic_start - signal_user_base

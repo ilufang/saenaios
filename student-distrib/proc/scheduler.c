@@ -16,29 +16,29 @@ void scheduler_event() {
 
 	scheduler_iterator ++;
 	while (1) {
-		if (task_list[scheduler_iterator].signals &
-			~(task_list[scheduler_iterator].signal_mask) ) {
-			break;
+		switch(task_list[scheduler_iterator].status) {
+			case TASK_ST_RUNNING:
+				break;
+			case TASK_ST_SLEEP:
+				if (task_list[scheduler_iterator].signals &
+					~(task_list[scheduler_iterator].signal_mask) ) {
+					break;
+				}
+				// Fall thru
+			default:
+				++sanity;
+				++scheduler_iterator;
+				if (scheduler_iterator >= TASK_MAX_PROC) {
+					scheduler_iterator = 0;
+				}
+				if (sanity > TASK_MAX_PROC) {
+					printf("[CRITICAL] NO POSSIBLE PROCESS TO EXECUTE!");
+					while (1);
+				}
+				continue;
 		}
-		if (task_list[scheduler_iterator].status != TASK_ST_RUNNING) {
-			++sanity;
-			++scheduler_iterator;
-			if (scheduler_iterator >= TASK_MAX_PROC) {
-				scheduler_iterator = 0;
-			}
-			if (sanity > TASK_MAX_PROC) {
-				printf("[CRITICAL] NO POSSIBLE PROCESS TO EXECUTE!");
-				while (1);
-			}
-		} else {
-			break;
-		}
+		break;
 	}
-	// don't tell there's only one process running!
-/*	if (prev == scheduler_iterator){
-		// well no need to switch then
-		return;
-	}*/
 
 	// A different running task! switch to it!
 	if (prev == (pid_t)-1) {
