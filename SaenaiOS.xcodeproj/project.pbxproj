@@ -67,6 +67,34 @@
 			passBuildSettingsInEnvironment = 1;
 			productName = dep;
 		};
+		2006B8D72092BECC00A2F1F2 /* docs-kernel */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "";
+			buildConfigurationList = 2006B8D82092BECC00A2F1F2 /* Build configuration list for PBXLegacyTarget "docs-kernel" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/local/bin/doxygen;
+			buildWorkingDirectory = "$(PROJECT_DIR)/student-distrib";
+			dependencies = (
+			);
+			name = "docs-kernel";
+			passBuildSettingsInEnvironment = 1;
+			productName = docs;
+		};
+		2006B8DB2092BF1C00A2F1F2 /* docs-libc */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "";
+			buildConfigurationList = 2006B8DC2092BF1C00A2F1F2 /* Build configuration list for PBXLegacyTarget "docs-libc" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/local/bin/doxygen;
+			buildWorkingDirectory = "$(PROJECT_DIR)/libc";
+			dependencies = (
+			);
+			name = "docs-libc";
+			passBuildSettingsInEnvironment = 1;
+			productName = "docs-libc";
+		};
 		20B5541F2092AEED0014764E /* bootimg */ = {
 			isa = PBXLegacyTarget;
 			buildArgumentsString = "";
@@ -96,6 +124,12 @@
 					2006B8CA2092B55800A2F1F2 = {
 						CreatedOnToolsVersion = 9.3;
 					};
+					2006B8D72092BECC00A2F1F2 = {
+						CreatedOnToolsVersion = 9.3;
+					};
+					2006B8DB2092BF1C00A2F1F2 = {
+						CreatedOnToolsVersion = 9.3;
+					};
 					20B5541F2092AEED0014764E = {
 						CreatedOnToolsVersion = 9.3;
 					};
@@ -115,6 +149,8 @@
 				20B5541F2092AEED0014764E /* bootimg */,
 				2006B8C42092B3C000A2F1F2 /* clean */,
 				2006B8CA2092B55800A2F1F2 /* dep */,
+				2006B8D72092BECC00A2F1F2 /* docs-kernel */,
+				2006B8DB2092BF1C00A2F1F2 /* docs-libc */,
 			);
 		};
 /* End PBXProject section */
@@ -152,6 +188,30 @@
 			name = Debug;
 		};
 		2006B8CD2092B55800A2F1F2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		2006B8D92092BECC00A2F1F2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		2006B8DA2092BECC00A2F1F2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		2006B8DD2092BF1C00A2F1F2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		2006B8DE2092BF1C00A2F1F2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 			};
@@ -200,6 +260,24 @@
 			buildConfigurations = (
 				2006B8CC2092B55800A2F1F2 /* Debug */,
 				2006B8CD2092B55800A2F1F2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2006B8D82092BECC00A2F1F2 /* Build configuration list for PBXLegacyTarget "docs-kernel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2006B8D92092BECC00A2F1F2 /* Debug */,
+				2006B8DA2092BECC00A2F1F2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2006B8DC2092BF1C00A2F1F2 /* Build configuration list for PBXLegacyTarget "docs-libc" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2006B8DD2092BF1C00A2F1F2 /* Debug */,
+				2006B8DE2092BF1C00A2F1F2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
