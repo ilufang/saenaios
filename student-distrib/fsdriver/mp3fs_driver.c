@@ -55,7 +55,7 @@ int32_t read_dentry_by_index (uint32_t index, mp3fs_dentry_t* dentry){
     // total num of dentry
     int32_t dentry_count = boot_ptr->dir_count;
     // check for invalid dentry index
-    if(index >= dentry_count || index < 0){
+    if(index >= (uint32_t)dentry_count){
         return -1;
     }
     mp3fs_dentry_t* dentry_arr = (mp3fs_dentry_t *)(boot_ptr->direntries);
@@ -75,7 +75,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
     // size of target file
     uint32_t target_file_len = (uint32_t)(target_inode->length);
     // check for invalid inode idx
-    if(ind_count <= inode || inode < 0){
+    if((uint32_t)ind_count <= inode){
         return -1;
     }
     // check if end of file is reached or passed
@@ -92,7 +92,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
     // index of current data block
     uint32_t block_idx = offset / BLOCK_SIZE;
     // check for invalid data block
-    if(block_idx >= dblock_count){
+    if(block_idx >= (uint32_t)dblock_count){
         return -1;
     }
     // size to copy in current data block

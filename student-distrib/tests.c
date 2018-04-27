@@ -262,7 +262,7 @@ extern int do_syscall(int num, int b, int c, int d);
  *	@return 0xac if data matched, 0xbad if it does not
  */
 int test_syscall_handler(int a, int b, int c) {
-	if (a == 42 && b == -391 && c == 0xecebcafe) {
+	if (a == 42 && b == -391 && c == (int)0xecebcafe) {
 		return 0xac;
 	}
 	printf("Syscall passed in bad values\n");
