@@ -76,6 +76,18 @@ int page_dir_add_4MB_entry(uint32_t virtual_addr, uint32_t real_addr, int flags)
 int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags);
 
 /**
+ *	Private version of adding page table entry with only basic sanity check
+ *
+ *	@param start_addr: start address of the 4KB space that the page
+ *						table entry is referring to
+ *	@param real_addr: physical memory that is referring to, must be a allocated one
+ *	@param flags: flags of the page table entry
+ *	@return: 0 on success, negative value for errors
+ *	@note now only used for tty video memory mapping
+ */
+int _page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags);
+
+/**
  *	Free a 4MB in the page directory
  *
  *	@param virtual_addr: virtual address to be freed
@@ -85,6 +97,15 @@ int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags);
 int page_dir_delete_entry(uint32_t virtual_addr);
 
 /**
+ *	Private version of deleting page table entry with only basic sanity check
+ *
+ *	@param virtual_addr: virtual address to be freed
+ *	@return: 0 on success, negative value for errors
+ *	@note now only used for tty video memory mapping
+ */
+int _page_tab_delete_entry(uint32_t virtual_addr);
+
+/**
  *	Free a 4KB page entry to the page table
  *
  *	@param virtual_addr: virtual address to be freed
@@ -92,6 +113,7 @@ int page_dir_delete_entry(uint32_t virtual_addr);
  *	@note Will be rejected if want to free a kernel entry
  */
 int page_tab_delete_entry(uint32_t virtual_addr);
+
 /**
  *
  *	Flush tlb for changing process
