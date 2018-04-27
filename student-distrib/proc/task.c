@@ -4,6 +4,7 @@
 #include "elf.h"
 #include "signal.h"
 #include "scheduler.h"
+#include "../../libc/include/sys/wait.h"
 
 task_t task_list[TASK_MAX_PROC];
 pid_t task_pid_allocator;
@@ -250,7 +251,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	fd = syscall_open(0xbfc00000, O_RDONLY, 0);
 	if (fd < 0) {
 		page_alloc_free_4MB(ptent_stack.vaddr);
-		syscall__exit(-1,0,0);
+		syscall__exit(WEXITSTATUS(-1),0,0);
 		return fd;
 	}
 
@@ -259,14 +260,14 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	if (ret != 0) {
 		// Something very bad happened. Squash this process
-		syscall__exit(-1,0,0); // 1 for unsuccessful exit
+		syscall__exit(WEXITSTATUS(-1),0,0); // -1 for unsuccessful exit
 		return -ENOEXEC; // This line should not hit though
 	}
 
 	// Initialize signal handlers
 	for (i = 0; i < SIG_MAX; i++) {
 		proc->sigacts[i].handler = SIG_DFL;
-		proc->sigacts[i].flags = 0;
+		proc->sigacts[i].flags = SA_RESTART;
 		sigemptyset(&(proc->sigacts[i].mask));
 		sigaddset(&(proc->sigacts[i].mask), i);
 	}
@@ -301,9 +302,22 @@ int syscall__exit(int status, int b, int c) {
 	}
 
 	if (parent->status == TASK_ST_SLEEP || parent->status == TASK_ST_RUNNING) {
-		// Parent is alive, notify parent
-		proc->status = TASK_ST_ZOMBIE;
-		syscall_kill(proc->parent, SIGCHLD, 0);
+		// Parent is alive
+		if (parent->sigacts[SIGCHLD].flags & SA_NOCLDWAIT) {
+			// Do not notify parent
+			scheduler_page_clear(proc->pages);
+			task_release(proc);
+			// Restart parent `wait` in case this is the last child
+			syscall_kill(parent->pid, SIGCHLD, 0);
+		} else {
+			proc->status = TASK_ST_ZOMBIE;
+			if (WIFSIGNALED(status)) {
+				proc->exit_status = status;
+			} else {
+				proc->exit_status = WEXITSTATUS(status) | WIFEXITED(-1);
+			}
+			syscall_kill(proc->parent, SIGCHLD, 0);
+		}
 	} else {
 		// Otherwise, just release the process
 		scheduler_page_clear(proc->pages);
@@ -315,25 +329,46 @@ int syscall__exit(int status, int b, int c) {
 	return 0; // This line should not hit
 }
 
-int syscall_wait(int statusp, int b, int c) {
+int syscall_waitpid(int cpid, int statusp, int options) {
 	pid_t pid;
 	int i, found_child;
 	task_sigact_t sa;
 	sigset_t ss;
+	int *status;
 
+	if (!statusp) {
+		return -EFAULT;
+	}
+	
+	status = (int *) statusp;
+	
 	pid = task_current_pid();
 
 	found_child = 0;
 	for (i = 0; i < TASK_MAX_PROC; i++) {
-		if (task_list[i].parent == pid) {
+		if (task_list[i].pid == cpid) {
+			if (task_list[i].parent != cpid) {
+				return -ECHILD;
+			}
+			found_child = 1;
+			break;
+		}
+		if (cpid < 0 && task_list[i].parent == pid) {
 			switch (task_list[i].status) {
 				case TASK_ST_ZOMBIE:
-				if (statusp) {
-					*(int *)statusp = task_list[i].regs.eax;
-				}
-				return task_list[i].pid;
-				case TASK_ST_RUNNING:
+					// Notify parent of dead child
+					*status = task_list[i].exit_status;
+					task_release(task_list + i);
+					return task_list[i].pid;
 				case TASK_ST_SLEEP:
+					if ((options & WUNTRACED) && task_list[i].exit_status) {
+						// Notify parent of slept child
+						*status = task_list[i].exit_status;
+						task_list[i].exit_status = 0;
+						return task_list[i].pid;
+					}
+					// Fall thru
+				case TASK_ST_RUNNING:
 					found_child = 1;
 					break;
 			}
@@ -343,12 +378,18 @@ int syscall_wait(int statusp, int b, int c) {
 		// No child process found
 		return -ECHILD;
 	}
-	// Child process found, but non are terminated. Put parent to sleep
+	// Child process found, but non are terminated.
+	if (options & WNOHANG) {
+		return -ECHILD;
+	}
+	// Put parent to sleep
 	sa.handler = SIG_IGN;
 	sigemptyset(&(sa.mask));
 	sa.flags = SA_RESTART;
 	syscall_sigaction(SIGCHLD, (int)&sa, 0);
 	sigemptyset(&ss);
+	task_list[pid].regs.eax = -EINTR;
+	task_list[pid].exit_status = SYSCALL_WAITPID | WIFSYSCALL(-1);
 	syscall_sigsuspend((int) &ss, NULL, 0);
 	return 0; // Should not hit
 }
@@ -358,7 +399,8 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	char *argv[2] = {NULL, NULL};
 	int i;
 	int child_pid;
-	task_t* child_proc;
+	task_t *child_proc, *proc;
+	task_sigact_t sa;
 	sigset_t ss;
 	uint32_t *kheap;
 
@@ -411,15 +453,21 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	child_proc->regs.edx = 0;
 	child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
 
-	// set parent to wait / sleep
+	// Put parent to sleep
+	sa.handler = SIG_391CHLD;
+	sigemptyset(&(sa.mask));
+	sa.flags = SA_RESTART;
+	syscall_sigaction(SIGCHLD, (int)&sa, 0);
 	sigemptyset(&ss);
+	proc = task_list + task_current_pid();
+	proc->regs.eax = -EINTR;
+	proc->exit_status = 1 | WIFSYSCALL(-1);
 	syscall_sigsuspend((int) &ss, NULL, 0);
-
 	return 0;
 }
 
 int syscall_ece391_halt(int a, int b, int c) {
-	return syscall__exit(0, 0, 0);
+	return syscall__exit(WEXITSTATUS(a), 0, 0);
 }
 
 int syscall_ece391_getargs(int bufp, int nbytes, int c) {

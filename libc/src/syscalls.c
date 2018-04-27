@@ -5,6 +5,7 @@
 #include "../include/sys/stat.h"
 #include "../include/errno.h"
 #include "../include/signal.h"
+#include "../include/sys/wait.h"
 
 #include "../include/sys/mount.h"
 
@@ -65,11 +66,15 @@ int execve(const char *path, char *const argv[], char *const envp[]) {
 }
 
 void _exit(int status) {
-	do_syscall(SYSCALL__EXIT, status, 0, 0);
+	do_syscall(SYSCALL__EXIT, (uint8_t)status, 0, 0);
 }
 
 pid_t wait(int *status) {
-	return do_syscall(SYSCALL_WAIT, (int)status, 0, 0);
+	return waitpid(-1, status, 0);
+}
+
+pid_t waitpid(pid_t pid, int *status, int options) {
+	return do_syscall(SYSCALL_WAITPID, (int)pid, (int)status, options);
 }
 
 int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact) {
