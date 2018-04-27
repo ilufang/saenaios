@@ -4,4 +4,4 @@ Makefile.dep
 bootimg
 mp3.img
 docs/
-xcuserdata/
+*.xcodeproj
