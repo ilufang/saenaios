@@ -44,6 +44,7 @@
 
 #define SIG_DFL		((void (*)(int)) 0) ///< Preset 'Default' handler
 #define SIG_IGN		((void (*)(int)) 1)	///< Preset 'Ignore' handler
+#define SIG_391CHLD	((void (*)(int)) 2)	///< 391 SIGCHLD handler (Do not use)
 
 /// Signal set
 typedef uint32_t sigset_t;

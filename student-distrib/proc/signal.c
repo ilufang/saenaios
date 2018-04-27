@@ -6,6 +6,7 @@
 #include "../boot/page_table.h"
 #include "signal_user.h"
 #include "../../libc/src/syscalls.h"
+#include "../../libc/include/sys/wait.h"
 
 char *signal_names[] = {
 	"Unknown signal: 0\n",
@@ -194,6 +195,13 @@ void signal_exec(task_t *proc, int sig) {
 		case ((int)SIG_DFL):
 			signal_exec_default(proc, sig);
 			return;
+		case ((int)SIG_391CHLD):
+			if (sig == SIGCHLD) {
+				signal_handler_child(proc);
+				return;
+			}
+			// If not, probably very bad (abuse)
+			// Fall thru
 		case ((int)SIG_IGN):
 			signal_handler_ignore(proc, sig);
 			return;
@@ -257,8 +265,6 @@ void signal_exec(task_t *proc, int sig) {
 void signal_exec_default(task_t *proc, int sig) {
 	switch(sig) {
 		case SIGCHLD:
-			signal_handler_child(proc);
-			break;
 		case SIGURG:
 		case SIGCONT:
 		case SIGIO:
@@ -289,9 +295,18 @@ void signal_handler_child(task_t *proc) {
 	for (i = 0; i < TASK_MAX_PROC; i++) {
 		if (task_list[i].parent == proc->pid &&
 			task_list[i].status == TASK_ST_ZOMBIE) {
-			if (proc->status == TASK_ST_SLEEP) {
-				// Only send child info if the parent is awaiting for that
-				proc->regs.eax = task_list[i].regs.eax;
+			if (proc->status == TASK_ST_SLEEP && WIFSYSCALL(proc->exit_status)&&
+				WBLOCKSYSNO(proc->exit_status) == 1) {
+				// Only send child info if the parent is ece391_execute
+				if (WIFSIGNALED(task_list[i].exit_status)) {
+					proc->regs.eax = 256;
+				} else if (WIFEXITED(task_list[i].exit_status)) {
+					// Sign extend
+					proc->regs.eax = (int8_t)WEXITSTATUS(task_list[i].exit_status);
+				} else {
+					// This is probably bad
+					proc->regs.eax = task_list[i].exit_status;
+				}
 			}
 			task_release(task_list + i);
 			break;
@@ -315,10 +330,11 @@ void signal_handler_terminate(task_t *proc, int sig) {
 
 	// Let process execute _exit
 	proc->regs.eax = SYSCALL__EXIT;
-	proc->regs.ebx = 256; // Return code: 256
+	proc->regs.ebx = sig | WIFSIGNALED(-1);
 	proc->regs.eip = (uint32_t) signal_user_make_syscall_addr;
 }
 
 void signal_handler_stop(task_t *proc, int sig) {
 	proc->status = TASK_ST_SLEEP;
+	proc->exit_status = sig | WIFSTOPPED(-1);
 }
