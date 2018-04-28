@@ -532,6 +532,7 @@ void launch_tests() {
 	//TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
 	TEST_OUTPUT("paging test",paging_test());
+	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 
 	// IDT tests
 	//TEST_OUTPUT("idt_test", idt_test());
@@ -562,9 +563,7 @@ void launch_tests() {
 
 	// TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
 
-	fs_test();
+	// fs_test();
 
 	// TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
-
-	// TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }

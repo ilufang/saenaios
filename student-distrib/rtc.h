@@ -14,10 +14,13 @@
 #include "lib.h"
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
+#include "proc/scheduler.h"
 
-typedef struct rtc_file {	
+typedef struct rtc_file {
 	char rtc_status;
 	int rtc_freq;
+	pid_t rtc_pid;
+	volatile int rtc_sleep;
 } rtc_file_t;
 
 /**
