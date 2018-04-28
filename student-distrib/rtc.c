@@ -63,14 +63,15 @@ void rtc_handler(){
 	/* sends eoi */
     rtc_count_prev = rtc_count;
 	rtc_count++;
+
     if ((rtc_count != rtc_count_prev) &&
         (rtc_count & (rtc_file_table[rtc_openfile].rtc_freq-1)) == 0) {
         
         syscall_kill(rtc_pid_waiting[rtc_openfile], SIGIO, 0);
         rtc_pid_waiting[rtc_openfile] = 0;
         rtc_file_table[rtc_openfile].rtc_sleep = 0;
-        
-            }
+
+        }
 	send_eoi(RTC_IRQ_NUM);
 	// rtc_read();
 	// test_interrupts();
@@ -153,6 +154,8 @@ ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
     
     task_sigact_t sa;
     sigset_t ss;
+    pid_t cur_pid = task_current_pid();
+    
 /*
     int v_rtc_status;
     int v_rtc_freq;
@@ -165,12 +168,12 @@ ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
         
         // set process to sleep until SIGIO
         
-        rtc_pid_waiting[rtc_openfile] = task_current_pid();
+        rtc_pid_waiting[rtc_openfile] = cur_pid;
         
         sa.handler = SIG_IGN;
         sigemptyset(&(sa.mask)); // unmask
         
-        // sa.flags = SA_RESTART;
+        sa.flags = SA_RESTART;
 
         syscall_sigaction(SIGIO, (int)&sa, 0);
         rtc_file_table[rtc_openfile].rtc_sleep = 1;
