@@ -391,3 +391,63 @@ int syscall_lstat(int path, int stat, int c){
 	//TODO
 	return -ENOSYS;
 }
+
+int syscall_chmod(int fd, int mode, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_chown(int fd, int uid, int gid) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_link(int path1p, int path2p, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_unlink(int pathp, int b, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_symlink(int path1p, int path2p, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_readlink(int pathp, int bufp, int bufsize) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_truncate(int fd, int length, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_rename(int oldpathp, int newpathp, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_getcwd(int bufp, int size, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_chdir(int fd, int b, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_mkdir(int pathp, int mode, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_rmdir(int pathp, int b, int c) {
+	//TODO
+	return -ENOSYS;
+}

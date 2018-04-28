@@ -130,6 +130,13 @@ int execve(const char *path, char *const argv[], char *const envp[]);
 void _exit(int status);
 
 /**
+ *	Get current process ID
+ *
+ *	@return the current pid
+ */
+pid_t getpid();
+
+/**
  *	Change permission of file
  *
  *	@param path: path to the file
@@ -200,7 +207,7 @@ int symlink(const char *path1, const char *path2);
  *	@param count: the maximum number of bytes to read
  *	@return the number of bytes read, or -1 on failure. Set errno.
  */
-ssize_t readlink(const char *restrict path, char *restrict buf, size_t bufsize);
+ssize_t readlink(const char *path, char *buf, size_t bufsize);
 
 /**
  *	Truncate or extend a file from a file descriptor to a specified length
@@ -221,20 +228,30 @@ int ftruncate(int fd, off_t length);
 int truncate(const char *path, off_t length);
 
 /**
+ *	Move file
+ *
+ *	@param oldpath: file to move
+ *	@param newpath: new name/location of file
+ *	@return 0 on success, or -1 on failure. Set errno
+ */
+int rename(const char *oldpath, const char *newpath);
+
+/**
+ *	Get current working directory
+ *
+ *	@param buf: the buffer to read cwd into
+ *	@param size: the max size of the buffer
+ *	@return buf on success, or NULL on failure. Set errno
+ */
+char *getcwd(char *buf, size_t size);
+
+/**
  *	Change current working directory
  *
  *	@param path: path to the new working directory
  *	@return 0 on success, or -1 on failure. Set errno
  */
 int chdir(const char *path);
-
-/**
- *	Change current working directory from descriptor
- *
- *	@param fd: file descriptor of the new working directory
- *	@return 0 on success, or -1 on failure. Set errno
- */
-int fchdir(int fd);
 
 /**
  *	Create new directory

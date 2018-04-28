@@ -456,35 +456,137 @@ int syscall_getdents(int fd, int bufaddr, int);
  *
  *	@param path: char string of the path
  *	@param stat_in: pointer to a user allocated stat structure
- *	@param c: placeholder
- *
  *	@return 0 for success, negative value for errors
  */
-int syscall_stat(int path, int stat_in, int c);
+int syscall_stat(int path, int stat_in, int);
 
 /**
  *	System call handler for `fstat`: get file status
  *
  *	@param fd: fd of the file, of course, a valid one
  *	@param stat_in: pointer to a user allocated stat structure
- *	@param c: placeholder
- *
  *	@return 0 for success, negative value for errors
  */
-int syscall_fstat(int fd, int stat_in, int c);
+int syscall_fstat(int fd, int stat_in, int);
 
 /**
  *	System call handler for `lstat`: get file status
  *
  *	@param path: char string of the path
  *	@param stat: pointer to a user allocated stat structure
- *	@param c: placeholder
- *
  *	@return 0 for success, negative value for errors
  *
  *	@note not implemented yet
  */
-int syscall_lstat(int path, int stat, int c);
+int syscall_lstat(int path, int stat, int);
+
+/**
+ *	System call handler for `chmod`: Change permission of file
+ *
+ *	@param fd: the file descriptor
+ *	@param mode: the new mode
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_chmod(int fd, int mode, int);
+
+/**
+ *	System call handler for `chown`: Change owner of file
+ *
+ *	@param fd: the file descriptor
+ *	@param uid: the new owner user ID
+ *	@param gid: the new owner group ID
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_chown(int fd, int uid, int gid);
+
+/**
+ *	System call handler for `link`: Create new hard link
+ *
+ *	@param path1p: address of path to the file to create link to (source)
+ *	@param path2p: address of path the link (destination)
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_link(int path1p, int path2p, int);
+
+/**
+ *	System call handler for `unlink`: Delete file (remove directory entry)
+ *
+ *	@param pathp: address of the path to the file to unlink
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_unlink(int pathp, int, int);
+
+/**
+ *	System call handler for `symlink`: Create symbolic link to file
+ *
+ *	@param path1p: address of path to the file to create link to (source)
+ *	@param path2p: address of path the link (destination)
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_symlink(int path1p, int path2p, int);
+
+/**
+ *	System call handler for `readlink`: Read the contents of symbolic link
+ *
+ *	@param pathp: address of path to the symlink file
+ *	@param bufp: address of the buffer to read into
+ *	@param count: the maximum number of bytes to read
+ *	@return the number of bytes read, or the negative of an errno on failure.
+ */
+int syscall_readlink(int pathp, int bufp, int bufsize);
+
+/**
+ *	System call handler for `truncate`: Truncate or extend a file to a specified
+ *	length
+ *
+ *	@param fd: the file descriptor
+ *	@param length: the new length of the file
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_truncate(int fd, int length, int);
+
+/**
+ *	Move file
+ *
+ *	@param oldpathp: address of path to file to move
+ *	@param newpathp: address of new name/location of file
+ *	@return 0 on success, or the negative of an errno on failure
+ */
+int syscall_rename(int oldpathp, int newpathp, int);
+
+/**
+ *	Get current working directory
+ *
+ *	@param bufp: the buffer to read cwd into
+ *	@param size: the max size of the buffer
+ *	@return 0 on success, or the negative of an errno on failure
+ */
+int syscall_getcwd(int bufp, int size, int);
+
+/**
+ *	System call handler for `chdir`: Change current working directory
+ *
+ *	@param pathp: address of path to the new working directory
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_chdir(int fd, int, int);
+
+/**
+ *	System call handler for `mkdir`: Create new directory
+ *
+ *	@param pathp: address of path to the new directory
+ *	@param mode: permission bits of the new directory file
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_mkdir(int pathp, int mode, int);
+
+/**
+ *	Remove directory
+ *
+ *	@param pathp: path to the directory to be removed
+ *	@return 0 on success, or -1 on failure. Set errno
+ */
+int syscall_rmdir(int pathp, int, int);
 
 // For consistent include order
 #include "fstab.h"
