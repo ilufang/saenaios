@@ -108,7 +108,7 @@ int _page_alloc_add_refer_4MB(int addr){
 
 int _page_alloc_add_refer_4KB(int addr){
 	// check if the physical address is in the manyoushu 4MB
-	if (GET_DIR_INDEX(addr)!=MANYOUSHU_PAGE_START_ADDR){
+	if (GET_MEM_MAP_INDEX(addr)!=GET_MEM_MAP_INDEX(MANYOUSHU_PAGE_START_ADDR)){
 		return -EINVAL;
 	}
 	// check if the physical address is really allocated
@@ -161,8 +161,7 @@ int page_alloc_4KB(int* physical_addr){
 
 int page_alloc_free_4MB(int physical_addr){
 	// never free a kernel page or a manyoushu page
-	if ((physical_addr < MANYOUSHU_PAGE_START_ADDR) ||
-		(physical_addr > (MANYOUSHU_PAGE_START_ADDR + PAGE_4MB))){
+	if (physical_addr < (MANYOUSHU_PAGE_START_ADDR + PAGE_4MB)){
 		return -EINVAL;
 	}
 	// check if the physical page is really in use
@@ -176,8 +175,8 @@ int page_alloc_free_4MB(int physical_addr){
 
 int page_alloc_free_4KB(int physical_addr){
 	// the physical address should be in the manyoushu page
-	if ((physical_addr > MANYOUSHU_PAGE_START_ADDR)||
-		(physical_addr < MANYOUSHU_PAGE_START_ADDR + PAGE_4MB)){
+	if ((physical_addr < MANYOUSHU_PAGE_START_ADDR)||
+		(physical_addr > (MANYOUSHU_PAGE_START_ADDR + PAGE_4MB))){
 		return -EINVAL;
 	}
 	// check if the physical 4KB page is really in use
@@ -248,8 +247,10 @@ void page_phys_mem_map_init(){
 	page_phys_mem_map[0].count = 1;
 	page_phys_mem_map[1].count = 1;
 	page_phys_mem_map[2].count = 1;
+	page_phys_mem_map[3].count = 1;
+	page_phys_mem_map[3].pages = manyoushu_mem_table;
 
-	manyoushu_mem_table[0xb8].count = 1;
+	//manyoushu_mem_table[0xb8].count = 1; 	//WTF AM I THINKING
 }
 
 void page_kernel_mem_map_init(){
@@ -356,7 +357,10 @@ int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags){
 	}
 
 	// if want to map to a physical memory that hasn't been allocated
-	if (manyoushu_mem_table[GET_MANYOU_INDEX(real_addr)].count <= 0){
+	if (page_phys_mem_map[GET_MEM_MAP_INDEX(real_addr)].count<=0){
+		return -EINVAL;
+	}
+	if ((GET_MEM_MAP_INDEX(real_addr) == GET_MEM_MAP_INDEX(MANYOUSHU_PAGE_START_ADDR))&&(manyoushu_mem_table[GET_MANYOU_INDEX(real_addr)].count<=0)){
 		return -EINVAL;
 	}
 
