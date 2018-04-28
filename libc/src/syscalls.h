@@ -28,6 +28,7 @@
 #define SYSCALL_MOUNT		20
 #define SYSCALL_UMOUNT		21
 #define SYSCALL_GETDENTS	22
+
 #define SYSCALL_FORK		23
 #define SYSCALL__EXIT		24
 #define SYSCALL_EXECVE		25
@@ -40,6 +41,20 @@
 #define SYSCALL_FSTAT		32
 #define SYSCALL_LSTAT		33
 #define SYSCALL_GETPID		34
+
+#define SYSCALL_LSEEK		35
+#define SYSCALL_CHMOD		36
+#define SYSCALL_CHOWN		37
+#define SYSCALL_LINK		38
+#define SYSCALL_UNLINK		39
+#define SYSCALL_SYMLINK		40
+#define SYSCALL_READLINK	41
+#define SYSCALL_TRUNCATE	42
+#define SYSCALL_RENAME		44
+#define SYSCALL_GETCWD		45
+#define SYSCALL_CHDIR		46
+#define SYSCALL_MKDIR		47
+#define SYSCALL_RMDIR		48
 
 struct sys_mount_opts {
 	const char *source;

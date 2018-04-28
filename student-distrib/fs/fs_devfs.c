@@ -201,6 +201,9 @@ int devfs_register_driver(const char* name, file_operations_t *ops){
 	inode = &(devfs_table[i].inode);
 	inode->file_type = FTYPE_DEVICE;
 	inode->f_op = ops;
+	inode->uid = 0;
+	inode->gid = 0;
+	inode->perm = 0777; // All granted for now
 
 	return 0;
 }

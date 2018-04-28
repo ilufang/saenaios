@@ -42,6 +42,9 @@ void task_create_kernel_pid() {
 	tss.esp0 = init_task->ks_esp = (uint32_t)(kstack+1);
 	task_pid_allocator = 0;
 
+	init_task->uid = 0; // root
+	init_task->gid = 0; // root
+
 	// initialize kernel stack page
 	for (i=0; i<512; ++i){
 		kstack[i].pid = -1;
@@ -50,6 +53,7 @@ void task_create_kernel_pid() {
 	// kick start
 	init_task->pid = 0;
 	init_task->status = TASK_ST_RUNNING;
+
 	kstack[0].pid = 0;
 
 	// now iret to the kernel process

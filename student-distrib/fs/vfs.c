@@ -31,6 +31,7 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	int i, avail_fd = -1;
 	inode_t *inode;
 	file_t *file;
+	int perm_mask = 0;
 
 	proc = task_list + task_current_pid();
 
@@ -50,6 +51,19 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	}
 
 	if (!(inode = file_lookup(path))){
+		return -errno;
+	}
+
+	if (mode & O_RDONLY) {
+		perm_mask |= 4; // Read bit
+	}
+	if (mode & O_WRONLY) {
+		perm_mask |= 2; // Write bit
+	}
+	errno = -file_permission(inode, proc->uid, proc->gid, perm_mask);
+	if (errno != 0) {
+		// Permission denied
+		(*inode->sb->s_op->free_inode)(inode);
 		return -errno;
 	}
 
@@ -122,13 +136,17 @@ int syscall_read(int fd, int bufaddr, int count) {
 	file_t *file;
 
 	if (!bufaddr) {
-		return -EINVAL;
+		return -EFAULT;
 	}
 
 	proc = task_list + task_current_pid();
 
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
+		return -EBADF;
+	}
+	if (!(file->mode & O_RDONLY)) {
+		// Not opened for reading
 		return -EBADF;
 	}
 	if (!file->f_op->read) {
@@ -151,13 +169,17 @@ int syscall_write(int fd, int bufaddr, int count) {
 	file_t *file;
 
 	if (!bufaddr) {
-		return -EINVAL;
+		return -EFAULT;
 	}
 
 	proc = task_list + task_current_pid();
 
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
+		return -EBADF;
+	}
+	if (!(file->mode & O_WRONLY)) {
+		// Not opened for writing
 		return -EBADF;
 	}
 	if (!file->f_op->write) {
@@ -205,9 +227,8 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	struct dirent *dent;
 	int ret;
 
-
 	if (!bufaddr) {
-		return -EINVAL;
+		return -EFAULT;
 	}
 
 	proc = task_list + task_current_pid();
@@ -220,7 +241,6 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 	if (!file->f_op->readdir) {
 		return -ENOSYS;
 	}
-	// TODO: no permission check
 	dent = (struct dirent *)bufaddr;
 	if (dent->index == DIRENT_INDEX_AUTO) {
 		// Workaround ece391_read auto dir listing
@@ -237,7 +257,11 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 file_t *vfs_open_file(inode_t *inode, int mode) {
 	int i, ret;
 
-	if (!inode || !(mode & (O_RDONLY | O_WRONLY))) {
+	if (!inode) {
+		errno = EFAULT;
+		return NULL;
+	}
+	if (!(mode & (O_RDONLY | O_WRONLY))) {
 		errno = EINVAL;
 		return NULL;
 	}
@@ -268,7 +292,7 @@ file_t *vfs_open_file(inode_t *inode, int mode) {
 
 int vfs_close_file(file_t *file) {
 	if (!file || !file->inode) {
-		return -EINVAL;
+		return -EFAULT;
 	}
 	file->open_count--;
 	if (file->open_count != 0) {

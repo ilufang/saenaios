@@ -142,8 +142,6 @@ typedef struct s_inode_operations {
 	 */
 	ino_t (*lookup)(struct s_inode *inode, const char *filename);
 
-	// int (*permission) (struct inode *, int, unsigned int);
-
 	/**
 	 *	Read symbolic link of inode
 	 *
@@ -277,12 +275,23 @@ typedef struct s_super_block {
  *	tell the device driver to free the inode when it finishes using the inode.
  */
 typedef struct s_inode {
-	uint32_t ino; ///< I-number
+	ino_t ino; ///< I-number
 	int file_type; ///< File type. See FTPYE_ macros
+	off_t size; ///< Size of file in bytes
 	int open_count; ///< Number of open files
+	int link_count; ///< Number of linked dentrys
+
 	super_block_t *sb; ///< Reference to super block
 	file_operations_t *f_op; ///< Default file operations driver
 	inode_operations_t *i_op; ///< I-node operations driver
+
+	int perm; ///< File permissions
+	uid_t uid; ///< Owner user ID
+	gid_t gid; ///< Owner group ID
+	time_t atime; ///< Last access date
+	time_t mtime; ///< Last modification date
+	time_t ctime; ///< Last creation date
+
 	int private_data; ///< Private data for drivers
 } inode_t;
 

@@ -61,6 +61,9 @@ typedef struct s_task {
 	sigset_t signals;	///< Pending signals
 	sigset_t signal_mask; ///< Deferred signals
 	uint32_t exit_status; ///< Status to report on `wait`
+
+	uid_t uid; ///< User ID of the process
+	gid_t gid; ///< Group ID of the process
 } task_t;
 
 /**
