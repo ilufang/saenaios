@@ -168,6 +168,16 @@ typedef struct s_inode_operations {
 	int (*readlink)(struct s_inode *inode, char buf[PATH_MAX_LEN + 1]);
 
 	/**
+	 *	Check for access permissions
+	 *
+	 *	@param inode: the inode of the file being accessed
+	 *	@param mask: access type. Bit map of `S_IR`, `S_IW` and `S_IX`
+	 *	@return 0 if access is granted, or the negative of an errno if access is
+	 *			denied (typically -EACCESS)
+	 */
+	int (*permission)(struct s_inode *inode, mode_t mask);
+	
+	/**
 	 *	Create regular file entry in directory
 	 *
 	 *	@param inode: the inode of the directory file to operate on
@@ -386,7 +396,7 @@ typedef struct s_inode {
 	file_operations_t *f_op; ///< Default file operations driver
 	inode_operations_t *i_op; ///< I-node operations driver
 
-	int perm; ///< File permissions
+	mode_t perm; ///< File permissions
 	uid_t uid; ///< Owner user ID
 	gid_t gid; ///< Owner group ID
 	time_t atime; ///< Last access date
@@ -647,30 +657,13 @@ int syscall_readlink(int pathp, int bufp, int bufsize);
 int syscall_truncate(int fd, int length, int);
 
 /**
- *	Move file
+ *	System call handler for `rename`: Move file
  *
  *	@param oldpathp: address of path to file to move
  *	@param newpathp: address of new name/location of file
  *	@return 0 on success, or the negative of an errno on failure
  */
 int syscall_rename(int oldpathp, int newpathp, int);
-
-/**
- *	Get current working directory
- *
- *	@param bufp: the buffer to read cwd into
- *	@param size: the max size of the buffer
- *	@return 0 on success, or the negative of an errno on failure
- */
-int syscall_getcwd(int bufp, int size, int);
-
-/**
- *	System call handler for `chdir`: Change current working directory
- *
- *	@param pathp: address of path to the new working directory
- *	@return 0 on success, or the negative of an errno on failure.
- */
-int syscall_chdir(int fd, int, int);
 
 /**
  *	System call handler for `mkdir`: Create new directory
@@ -682,7 +675,7 @@ int syscall_chdir(int fd, int, int);
 int syscall_mkdir(int pathp, int mode, int);
 
 /**
- *	Remove directory
+ *	System call handler for `rmdir`: Remove directory
  *
  *	@param pathp: path to the directory to be removed
  *	@return 0 on success, or -1 on failure. Set errno

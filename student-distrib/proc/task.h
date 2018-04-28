@@ -166,6 +166,23 @@ int syscall_ece391_halt(int, int, int);
 int syscall_ece391_getargs(int buf, int nbytes, int);
 
 /**
+ *	System call handler for `getcwd`: Get current working directory
+ *
+ *	@param bufp: the buffer to read cwd into
+ *	@param size: the max size of the buffer
+ *	@return 0 on success, or the negative of an errno on failure
+ */
+int syscall_getcwd(int bufp, int size, int);
+
+/**
+ *	System call handler for `chdir`: Change current working directory
+ *
+ *	@param pathp: address of path to the new working directory
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_chdir(int fd, int, int);
+
+/**
  *	Release a process from memory
  *
  *	This call will free up all system resources (memory pages, file descriptors)

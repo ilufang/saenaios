@@ -54,11 +54,11 @@ inode_t* file_lookup(pathname_t path);
  *	Check access permission for inode with given identity
  *
  *	@param inode: the inode to be accessed
- *	@param uid: user ID
- *	@param gid: group ID
+ *	@param uid: current user ID
+ *	@param gid: current group ID
  *	@param mask: the requested permissions (see masks in libc sys/stat.h)
  *	@return 0 if access granted, or the negative of an errno if access denied
  */
-int file_permission(inode_t *inode, uid_t uid, gid_t gid, int mask);
+int file_permission(inode_t *inode, uid_t uid, gid_t gid, mode_t mask);
 
 #endif

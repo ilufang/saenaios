@@ -38,6 +38,12 @@
 #define S_ISGID	02000
 /// on directories, restricted deletion flag
 #define S_ISVTX	01000
+/// read permission
+#define S_IR	04
+/// write permission
+#define S_IW	02
+/// execute permission
+#define S_IX	01
 
 /**
  *	Metadata of a file returned by `stat`

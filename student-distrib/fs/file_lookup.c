@@ -154,7 +154,11 @@ int file_find(nameidata_t* nd){
 	return 0;
 }
 
-int file_permission(inode_t *inode, uid_t uid, gid_t gid, int mask) {
+int file_permission(inode_t *inode, uid_t uid, gid_t gid, mode_t mask) {
+	if (inode->i_op->permission) {
+		// Use custom permission function if provided
+		return (*inode->i_op->permission)(inode, mask);
+	}
 	if (uid == 0) {
 		// Root is super!
 		return 0;
@@ -167,6 +171,6 @@ int file_permission(inode_t *inode, uid_t uid, gid_t gid, int mask) {
 	if (( (inode->perm & mask) | (~mask) ) == -1) {
 		return 0;
 	} else {
-		return -EPERM;
+		return -EACCES;
 	}
 }

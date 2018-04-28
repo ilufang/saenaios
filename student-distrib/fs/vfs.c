@@ -301,6 +301,9 @@ int vfs_close_file(file_t *file) {
 	}
 	// Close this file
 	(*file->f_op->release)(file->inode, file);
+	if (file->inode->sb->s_op->write_inode) {
+		(*file->inode->sb->s_op->write_inode)(file->inode);
+	}
 	(*file->inode->sb->s_op->free_inode)(file->inode);
 	file->inode = NULL;
 	file->mode = 0;
@@ -388,22 +391,54 @@ int syscall_fstat(int fd, int stat_in, int c){
 }
 
 int syscall_lstat(int path, int stat, int c){
-	//TODO
 	return -ENOSYS;
 }
 
 int syscall_chmod(int fd, int mode, int c) {
-	//TODO
-	return -ENOSYS;
+	task_t *proc;
+	file_t *file;
+	inode_t *inode;
+	
+	proc = task_list + task_current_pid();
+	
+	file = proc->files[fd];
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
+		return -EBADF;
+	}
+	inode = file->inode;
+	if (proc->uid != inode->uid && proc->uid != 0) {
+		// User is not owner and user is not root
+		return -EPERM;
+	}
+	// Perform chmod
+	inode->perm = mode;
+	return 0;
 }
 
 int syscall_chown(int fd, int uid, int gid) {
-	//TODO
-	return -ENOSYS;
+	task_t *proc;
+	file_t *file;
+	inode_t *inode;
+	
+	proc = task_list + task_current_pid();
+	
+	file = proc->files[fd];
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
+		return -EBADF;
+	}
+	inode = file->inode;
+	if (proc->uid != inode->uid && proc->uid != 0) {
+		// User is not owner and user is not root
+		return -EPERM;
+	}
+	// Perform chown
+	inode->uid = uid;
+	inode->gid = gid;
+	return 0;
 }
 
 int syscall_link(int path1p, int path2p, int c) {
-	//TODO
+	// TODO
 	return -ENOSYS;
 }
 
@@ -423,21 +458,30 @@ int syscall_readlink(int pathp, int bufp, int bufsize) {
 }
 
 int syscall_truncate(int fd, int length, int c) {
-	//TODO
-	return -ENOSYS;
+	task_t *proc;
+	file_t *file;
+	int orig_length, ret;
+	
+	proc = task_list + task_current_pid();
+	
+	file = proc->files[fd];
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
+		return -EBADF;
+	}
+	if (!file->inode->i_op->truncate) {
+		return -ENOSYS;
+	}
+	orig_length = file->inode->size;
+	file->inode->size = length;
+	ret = (*file->inode->i_op->truncate)(file->inode);
+	if (ret < 0) {
+		// Cancel truncate
+		file->inode->size = orig_length;
+	}
+	return ret;
 }
 
 int syscall_rename(int oldpathp, int newpathp, int c) {
-	//TODO
-	return -ENOSYS;
-}
-
-int syscall_getcwd(int bufp, int size, int c) {
-	//TODO
-	return -ENOSYS;
-}
-
-int syscall_chdir(int fd, int b, int c) {
 	//TODO
 	return -ENOSYS;
 }

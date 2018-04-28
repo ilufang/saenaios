@@ -507,6 +507,16 @@ int syscall_ece391_getargs(int bufp, int nbytes, int c) {
 	return 0;
 }
 
+int syscall_getcwd(int bufp, int size, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
+int syscall_chdir(int fd, int b, int c) {
+	//TODO
+	return -ENOSYS;
+}
+
 void task_release(task_t *proc) {
 	int i;
 	// Mark program as dead
