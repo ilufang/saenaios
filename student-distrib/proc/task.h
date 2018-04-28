@@ -38,6 +38,16 @@ typedef struct s_task_ptentry {
 } task_ptentry_t;
 
 /**
+ * 	A structure to store the data segment allocation info,
+ * 	used for brk, sbrk
+ */
+typedef struct s_heap_desc {
+	uint32_t 	count_total;		///< number of bytes spared for the task
+	uint32_t 	count_allocated;	///< number of byres process requested
+	void* 		prog_break;			///< pointer to the end of heap + 1
+} heap_desc_t;
+
+/**
  *	Structure for a process in the PID table
  *
  *	@todo Scheduler may want to insert saved state
@@ -55,7 +65,8 @@ typedef struct s_task {
 
 	task_ptentry_t pages[TASK_MAX_PAGE_MAPS]; ///< Mapped pages
 
-	uint32_t ks_esp;	///< Kernel Stack pointer
+	uint32_t 	ks_esp;	///< Kernel Stack pointer
+	struct s_heap_desc heap; 	///< heap descriptor
 
 	struct sigaction sigacts[SIG_MAX]; ///< Signal handlers
 	sigset_t signals;	///< Pending signals

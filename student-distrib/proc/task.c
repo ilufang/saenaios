@@ -148,7 +148,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	int fd, ret, i;
 	task_t *proc;
 	uint32_t *u_argv, *u_envp, argc, envc;
-	task_ptentry_t ptent_stack;
+	task_ptentry_t ptent_stack, ptent_heap;
 
 	// Sanity checks
 	if (!pathp) {
@@ -171,6 +171,15 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		// Page allocation failed. Probably ENOMEM
 		return -1;
 	}
+	// default heap start addr
+	ptent_heap.vaddr = 0xA0000000;
+	ptent_heap.paddr = 0;
+	ret = page_alloc_4MB((int *)&(ptent_heap.paddr));
+	if (ret != 0) {
+		// Page allocation failed. Probably ENOMEM
+		return -1;
+	}
+
 	ptent_stack.priv_flags = 0;
 	ptent_stack.pt_flags = PAGE_DIR_ENT_PRESENT;
 	ptent_stack.pt_flags |= PAGE_DIR_ENT_RDWR;
@@ -245,12 +254,28 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 						   ptent_stack.pt_flags);
 	memcpy(proc->pages+0, &ptent_stack, sizeof(task_ptentry_t));
 	proc->regs.esp -= 0x400000;
+
+	// map heap, it is allocated previously
+	ptent_heap.priv_flags = 0;
+	ptent_heap.pt_flags = PAGE_DIR_ENT_PRESENT;
+	ptent_heap.pt_flags |= PAGE_DIR_ENT_RDWR;
+	ptent_heap.pt_flags |= PAGE_DIR_ENT_USER;
+	ptent_heap.pt_flags |= PAGE_DIR_ENT_4MB;
+
+	page_dir_add_4MB_entry(ptent_heap.vaddr, ptent_heap.paddr,
+						   ptent_heap.pt_flags);
+	memcpy(proc->pages+1, &ptent_heap, sizeof(task_ptentry_t));
+	// edit heap data
+	proc->heap.count_total = 0x400000; 	// although we actually allocated 4MB
+	proc->heap.count_allocated = 0;		// user program is given 0 heap at first
+	proc->heap.prog_break = (void*)0xA0000000; // heap start addr
 	page_flush_tlb();
 
 	// Try to open ELF file for reading
 	fd = syscall_open(0xbfc00000, O_RDONLY, 0);
 	if (fd < 0) {
-		page_alloc_free_4MB(ptent_stack.vaddr);
+		page_alloc_free_4MB(ptent_stack.paddr);
+		page_alloc_free_4MB(ptent_heap.paddr);
 		syscall__exit(WEXITSTATUS(-1),0,0);
 		return fd;
 	}
@@ -341,9 +366,9 @@ int syscall_waitpid(int cpid, int statusp, int options) {
 	if (!statusp) {
 		return -EFAULT;
 	}
-	
+
 	status = (int *) statusp;
-	
+
 	pid = task_current_pid();
 
 	found_child = 0;
