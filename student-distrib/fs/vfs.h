@@ -148,18 +148,96 @@ typedef struct s_inode_operations {
 	 *	@param inode: current inode, must be a symbolic link
 	 *	@param buf: the buffer to read the linked path into, must be big enough
 	 *				to hold a path (PATH_MAX_LEN+1)
+	 *	@return the number of bytes read, or the negative of an errno on failure
 	 */
 	int (*readlink)(struct s_inode *inode, char buf[PATH_MAX_LEN + 1]);
 
-	// int (*create) (struct inode *,struct dentry *,int, struct nameidata *);
-	// int (*link) (struct dentry *,struct inode *,struct dentry *);
-	// int (*unlink) (struct inode *,struct dentry *);
-	// int (*symlink) (struct inode *,struct dentry *,const char *link);
-	// int (*mkdir) (struct inode *,struct dentry *,int);
-	// int (*rmdir) (struct inode *,struct dentry *);
+	/**
+	 *	Create regular file entry in directory
+	 *
+	 *	@param inode: the inode of the directory file to operate on
+	 *	@param filename: the name of the entry to be created
+	 *	@param mode: the permission of the newly-created file
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*create) (struct s_inode *inode, const char *filename, mode_t mode);
+	
+	/**
+	 *	Create entry in directory
+	 *
+	 *	@param fileno: i-number of file to create entry for
+	 *	@param inode: the inode of the directory file to operate on
+	 *	@param filename: the name of the entry to be created
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*link) (ino_t fileno, struct s_inode *inode, const char *filename);
+	
+	/**
+	 *	Remove entry in directory
+	 *
+	 *	The driver should also release an inode if its hard link is decreased to
+	 *	0 by this unlink call.
+	 *
+	 *	@param inode: the inode of the directory file to operate on
+	 *	@param filename: the name of file to be unlinked
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*unlink) (struct s_inode *inode, const char *filename);
+	
+	/**
+	 *	Create symlink entry in directory
+	 *
+	 *	This function might create new inodes for the symlink file if it chose
+	 *	to do so.
+	 *
+	 *	@param inode: the inode of the directory file to operate on
+	 *	@param filename: the name of the symlink
+	 *	@param link: the target of the symlink
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*symlink) (struct s_inode *inode, const char *filename,
+					const char *link);
+	
+	/**
+	 *	Create directory entry in directory
+	 *
+	 *	This function might create new inodes for the new directory file if it
+	 *	chose to do so.
+	 *
+	 *	@param inode: the inode of the directory file to operate on (parent)
+	 *	@param filename: the name of the entry to be created (child)
+	 *	@param mode: the permission of the newly-created directory file
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*mkdir)(struct s_inode *inode, const char *filename, mode_t mode);
+	
+	/**
+	 *	Remove directory entry in directory
+	 *
+	 *	This function should refuse to remove a directory if doing so will cause
+	 *	its children to be orphaned. A directory may only be removed if it is
+	 *	empty or the filesystem still maintains hard links to it elsewhere.
+	 *
+	 *	@param inode: the inode of the directory file to operate on (parent)
+	 *	@param filename: the name of the directory to be removed
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*rmdir) (struct s_inode *inode, const char *filename);
+	
 	// int (*mknod) (struct inode *,struct dentry *,int,dev_t);
 	// int (*rename) (struct inode *, struct dentry *, struct inode *, struct dentry *);
-	// void (*truncate) (struct inode *);
+	
+	/**
+	 *	Change file size
+	 *
+	 *	This function will extend or shrink the size of the file to the value
+	 *	specified by `size` in the inode.
+	 *
+	 *	@param inode: the inode to truncate
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*truncate) (struct s_inode *inode);
+	
 	// int (*setattr) (struct dentry *, struct iattr *);
 	// int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
 } inode_operations_t;
@@ -176,6 +254,10 @@ typedef struct s_super_operations {
 	 *
 	 *	Similar to the principle of `creat`. The driver owns the memory of the
 	 *	i-node, but the user must free it with `free_inode` after using it.
+	 *
+	 *	@note this function should be used by driver's internal logic only, like
+	 *		  the inode operations. The kernel will obtain inode only through
+	 *		  ino lookup through `open_inode` and inode operation functions
 	 *
 	 *	@param sb: the super block of the file system
 	 *	@return pointer to a new index node
@@ -241,6 +323,10 @@ typedef struct s_super_operations {
 	 *
 	 *	The driver also performs clean-up on the i-node structure. No further
 	 *	call to `free_inode` is necessary or allowed.
+	 *
+	 *	@note this function should be used by driver's internal logic only, like
+	 *		  the inode operations. The kernel will delete files using inode
+	 *		  operations, such as `unlink`
 	 *
 	 *	@param inode: the i-node to delete
 	 *	@return 0 on success, or the negative of an errno on failure
