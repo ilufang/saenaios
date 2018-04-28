@@ -190,8 +190,6 @@ void entry(unsigned long magic, unsigned long addr) {
 	syscall_mount((int)"devfs", (int)"/dev", (int)(&mount_opts));
 
 	// register drivers
-	terminal_out_driver_register();
-	keyboard_driver_register();
 	rtc_out_driver_register();
 
 

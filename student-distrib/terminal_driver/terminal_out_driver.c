@@ -1,15 +1,21 @@
 #include "terminal_out_driver.h"
 
-static int screen_x=0, screen_y=0;	//x,y position on the screen
-static int curser_x=0, curser_y=0;	//not useful for now
-//pointing to start address of video memory
-static char* video_mem = (char *)VIDEO;
-// scroll offset initialized to 0
-//static int screen_stroll_offset=0;
-// if last_newline is 1, then cannot backspace to last line
-static int last_newline = 0;
+#define VIDMEM_START 	0xB8000
+#define TTY_4KB 		0x1000
+
+static stdout_data_t stdout[MAX_STDOUT];
+
+static stdout_index = 0;
 
 static file_operations_t terminal_out_op;
+
+static uint8_t* video_mem;
+
+static int lscreen_x, lscreen_y;
+
+static int lcursor_x, lcursor_y;
+
+static int last_newline;
 
 // macro used to write a word to a port
 #define OUTW(port, val)                                             \
@@ -30,7 +36,7 @@ do {                                                                \
     );                                                              \
 } while (0)
 
-int terminal_out_driver_register(){
+/*int terminal_out_driver_register(){
 	// inflate the operation pointer table
 	terminal_out_op.open = & terminal_out_open;
 	terminal_out_op.release = & terminal_out_close;
@@ -39,7 +45,7 @@ int terminal_out_driver_register(){
 	terminal_out_op.readdir = NULL;
 
 	return (devfs_register_driver("stdout", &terminal_out_op));
-}
+}*/
 
 int terminal_out_open(inode_t* inode, file_t* file){
 	//no private data to be set for now
@@ -54,9 +60,61 @@ int terminal_out_close(inode_t* inode,file_t* file){
 	return 0; // does nothing for now
 }
 
+void* terminal_out_tty_init(){
+	if (stdout_index >= MAX_STDOUT){
+		errno = -ENOSPC;
+		return NULL;
+	}
+
+	// initialize a new stdout private data
+	stdout[stdout_index].screen_x = 0;
+	stdout[stdout_index].screen_y = 0;
+	stdout[stdout_index].cursor_x = 0;
+	stdout[stdout_index].cursor_y = 0;
+	stdout[stdout_index].newline = 1;
+
+	// allocate the video memory
+	stdout[stdout_index].vidmem.vaddr = VIDMEM_START + TTY_4KB * stdout_index;
+	stdout[stdout_index].vidmem.paddr = stdout[stdout_index].vidmem.vaddr
+	stdout[stdout_index].vidmem.pt_flags = PAGE_TAB_ENT_PRESENT | PAGE_TAB_ENT_RDWR | PAGE_TAB_ENT_SUPERVISOR | PAGE_TAB_ENT_GLOBAL;
+
+	if (!_page_tab_add_entry(stdout[stdout_index].vidmem.vaddr,
+		stdout[stdout_index].vidmem.paddr, stdout[stdout_index].vidmem.pt_flags)){
+		return -EFAULT;
+	}
+
+	stdout_index++;
+
+	return (void*)(&stdout[stdout_index-1]);
+}
+
+int terminal_out_tty_switch(void* fromp, void* top){
+	stdout_data_t* from = (stdout_data_t*)fromp;
+	stdout_data_t* to = (stdout_data_t*)top;
+	int i, ret;
+	uint32_t temp;
+	// switch physical memory
+	for (i=0;i<NUM_COLS*NUM_ROWS/2;++i){
+		temp = *((uint32_t*)from->vidmem + i);
+		*((uint32_t*)from->vidmem + i) = *((uint32_t*)to->vidmem + i);
+		*((uint32_t*)to->vidmem + i) = temp;
+	}
+	// switch page entries virtual memory mapping
+	_page_tab_delete_entry(from->vidmem.vaddr);
+	_page_tab_delete_entry(to->vidmem.vaddr);
+	temp = from->vidmem.vaddr;
+	from->vidmem.vaddr = to->vidmem.vaddr;
+	to->vidmem.vaddr = temp;
+	ret = _page_tab_add_entry(from->vidmem.vaddr,from->vidmem.paddr,from->pt_flags);
+	if (ret) return ret;
+	ret = _page_tab_add_entry(to->vidmem.vaddr,to->vidmem.paddr,to->pt_flags);
+	if (ret) return ret;
+	return 0;
+}
+
 void terminal_set_cursor(){
 	// calculate memory position for cursor position
-	int pos = screen_y * NUM_COLS + screen_x;
+	int pos = lscreen_y * NUM_COLS + lscreen_x;
  	// asm operation for setting cursor position
 	outb(0x0F,0x3D4);
 	outb((uint8_t) (pos & 0xFF), 0x3D5);
@@ -73,10 +131,10 @@ void terminal_out_clear(){
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
 	// set cursor to up left
-	screen_y = 0;
-	screen_x = 0;
-	curser_y = 0;
-	curser_x = 0;
+	lscreen_y = 0;
+	lscreen_x = 0;
+	lcurser_y = 0;
+	lcurser_x = 0;
 	last_newline = 1;
 
 	terminal_set_cursor();
@@ -86,7 +144,31 @@ ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count,off_t* offset
 	return (ssize_t)(terminal_out_write_(buf,(int)count));	// wrap for now
 }
 
-int terminal_out_write_(uint8_t* buf, int length){
+ssize_t tty_stdout(uint8_t* data, uint32_t size, void* private_data_ptr){
+	stdout_data_t* private_data = (stdout_data_t*)private_data_ptr;
+	ssize_t ret_value;
+	// get the private data to calibrate to the tty needed
+	lcursor_x = private_data -> curser_x;
+	lcursor_y = private_data -> curser_y;
+	lscreen_x = private_data -> screen_x;
+	lscreen_y = private_data -> screen_y;
+	video_mem = private_data -> vidmem;
+	last_newline = private_data -> newline;
+	// write
+	ret_value = terminal_out_write_(data, size);
+
+	// update back the private data
+	private_data -> curser_x = lcursor_x;
+	private_data -> curser_y = lcursor_y;
+	private_data -> screen_x = lscreen_x;
+	private_data -> screen_y = lscreen_y;
+	private_data -> vidmem = video_mem;
+	private_data -> newline = last_newline;
+
+	return ret_value;
+}
+
+int terminal_out_write_(uint8_t* buf, uint32_t length){
 	int i;
 	if (length == 1){
 		switch (buf[0]){
@@ -152,21 +234,21 @@ void terminal_out_putc(uint8_t c){
     } else {
     	// if printable
     	if (c >= ' ' && c<= '~'){
-    		temp_offset = (NUM_COLS * screen_y + screen_x) << 1;
-       		*(uint8_t *)(VIDEO + temp_offset) = c;
-       		*(uint8_t *)(VIDEO + temp_offset + 1) = ATTRIB;
-       		screen_x++;
-       		screen_y += screen_x/NUM_COLS;	// characters exceed line limit
-       		if (screen_x >= NUM_COLS){
+    		temp_offset = (NUM_COLS * lscreen_y + lscreen_x) << 1;
+       		*(uint8_t *)(video_mem + temp_offset) = c;
+       		*(uint8_t *)(video_mem + temp_offset + 1) = ATTRIB;
+       		lscreen_x++;
+       		lscreen_y += lscreen_x/NUM_COLS;	// characters exceed line limit
+       		if (lscreen_x >= NUM_COLS){
        			// line overflow could go backspace, and this is the
        			// only case
-       			screen_x %= NUM_COLS;
+       			lscreen_x %= NUM_COLS;
     			last_newline = 0;
     		}
-       		if (screen_y >= NUM_ROWS){
+       		if (lscreen_y >= NUM_ROWS){
        			// line overflow causing scroll down
        			terminal_out_scroll_down();
-       			screen_y = NUM_ROWS-1;
+       			lscreen_y = NUM_ROWS-1;
        		}
        		terminal_set_cursor();
        }else{
@@ -178,12 +260,12 @@ void terminal_out_putc(uint8_t c){
 
 void terminal_out_newline(){
 	last_newline = 1;	// not allowed to return to last line
-	screen_y++;
-    screen_x = 0;
-    if (screen_y >= NUM_ROWS){
+	lscreen_y++;
+    lscreen_x = 0;
+    if (lscreen_y >= NUM_ROWS){
     	// scroll down if exceeds
        	terminal_out_scroll_down();
-      	screen_y = NUM_ROWS-1;
+      	lscreen_y = NUM_ROWS-1;
     }
 	terminal_set_cursor();
 }
@@ -191,17 +273,17 @@ void terminal_out_newline(){
 void terminal_out_backspace(){
 	int temp_offset;
 
-	screen_x--;
+	lscreen_x--;
 	// return to previous line check
-	if (screen_x<0){
+	if (lscreen_x<0){
 		if (!last_newline){
 			screen_y --;
-			screen_x = NUM_COLS - 1;
+			lscreen_x = NUM_COLS - 1;
 		}else{
-			screen_x = 0;
+			lscreen_x = 0;
 		}
 	}
-	temp_offset = (NUM_COLS * screen_y + screen_x) << 1;
+	temp_offset = (NUM_COLS * lscreen_y + lscreen_x) << 1;
 	// clear the backspaced character
     *(uint8_t *)(video_mem + temp_offset) = '\0';
     *(uint8_t *)(video_mem + temp_offset + 1) = ATTRIB;

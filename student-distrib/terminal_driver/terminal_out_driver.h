@@ -20,10 +20,26 @@
 #define NUM_ROWS    25				///< 25 rows on one screen
 #define ATTRIB      0x7				///< default attribute for characters on the screen
 
+#define MAX_STDOUT	4
 
 #define TERMINAL_OUT_LF  		10	///< number for control code to new line
 #define TERMINAL_OUT_BACKSPACE 	8	///< number for control code to backspace
 #define TERMINAL_OUT_FF 		12	///< number for control code to clear screen
+
+typedef struct s_stdout_data{
+	int screen_x, screen_y;
+	int cursor_x, cursor_y;
+	uint8_t* 	vidmem;
+	task_ptentry_t 	vidmem;			///< video memory mapping info
+	int 	newline;
+} stdout_data_t;
+
+/**
+ *	Function to write to stdout
+ */
+ssize_t tty_stdout(uint8_t* data, uint32_t size, void* private_data);
+
+
 /**
  *	Perform newline
  *
