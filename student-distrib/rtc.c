@@ -7,16 +7,20 @@
 #include "errno.h"
 
 #include "proc/scheduler.h"
+#include "proc/task.h"
+#include "proc/signal.h"
 
 static volatile int rtc_count_prev = 0;
 static volatile int rtc_count = 1;
 static int rtc_openfile = -1;
+volatile int previous_enter = -1;
 
 #define RTC_MAX_FREQ 	1024	/* max user frequency is 1024 Hz */
 #define RTC_IS_OPEN 	0x01	/* means rtc is opened in a file */
 #define RTC_MAX_OPEN 	256		/* max open file of rtc */
 
 static rtc_file_t rtc_file_table[RTC_MAX_OPEN];
+pid_t rtc_pid_waiting[RTC_MAX_OPEN];
 static file_operations_t rtc_out_op;
 
 int rtc_out_driver_register() {
@@ -30,8 +34,12 @@ int rtc_out_driver_register() {
 	rtc_out_op.readdir = NULL;
 
 	for (i = 0; i < RTC_MAX_OPEN; i++) {
+        rtc_file_table[i].rtc_pid = 0;
 		rtc_file_table[i].rtc_status = 0;
 		rtc_file_table[i].rtc_freq = 0;
+        rtc_file_table[i].rtc_sleep = -1;
+        rtc_pid_waiting[i] = -1;
+        // rtc_pid_waiting[RTC_MAX_OPEN] = -1;
 	}
 
 	return (devfs_register_driver("rtc", &rtc_out_op));
@@ -53,7 +61,16 @@ void rtc_init(){
 
 void rtc_handler(){
 	/* sends eoi */
+    rtc_count_prev = rtc_count;
 	rtc_count++;
+    if ((rtc_count != rtc_count_prev) &&
+        (rtc_count & (rtc_file_table[rtc_openfile].rtc_freq-1)) == 0) {
+        
+        syscall_kill(rtc_pid_waiting[rtc_openfile], SIGIO, 0);
+        rtc_pid_waiting[rtc_openfile] = 0;
+        rtc_file_table[rtc_openfile].rtc_sleep = 0;
+        
+            }
 	send_eoi(RTC_IRQ_NUM);
 	// rtc_read();
 	// test_interrupts();
@@ -67,6 +84,8 @@ void rtc_handler(){
 
 void test_rtc_handler() {
 	rtc_count++;
+    
+    
 	send_eoi(RTC_IRQ_NUM);
 	// test_interrupts();
 	outb(REG_C, RTC_PORT);
@@ -125,20 +144,50 @@ int rtc_close(inode_t* inode, file_t* file) {
 }
 
 ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
+    
+    // Now have to call write before calling read
+    
+    if (rtc_file_table[rtc_openfile].rtc_status == 0) {
+        return -EINVAL;
+    }
+    
+    task_sigact_t sa;
+    sigset_t ss;
+/*
+    int v_rtc_status;
+    int v_rtc_freq;
+    v_rtc_status = rtc_file_table[*buf].rtc_status;
+    v_rtc_freq = rtc_file_table[*buf].rtc_freq;
+*/
+    // Code in Keyboard, needs to be change, TODO
+    
+    if (rtc_file_table[rtc_openfile].rtc_sleep < 0) {
+        
+        // set process to sleep until SIGIO
+        
+        rtc_pid_waiting[rtc_openfile] = task_current_pid();
+        
+        sa.handler = SIG_IGN;
+        sigemptyset(&(sa.mask)); // unmask
+        
+        // sa.flags = SA_RESTART;
 
-	int v_rtc_status;
-	int v_rtc_freq;
-	v_rtc_status = rtc_file_table[rtc_openfile].rtc_status;
-	v_rtc_freq = rtc_file_table[rtc_openfile].rtc_freq;
+        syscall_sigaction(SIGIO, (int)&sa, 0);
+        rtc_file_table[rtc_openfile].rtc_sleep = 1;
+        sigemptyset(&ss);
+        syscall_sigsuspend((int)&ss, NULL, 0);
+        return 0;
+        
+    }
+    
+    if (rtc_file_table[rtc_openfile].rtc_sleep == 0) {
+        rtc_file_table[rtc_openfile].rtc_sleep = -1;
+        return 0;
+    } 
 
-	if (v_rtc_status == 0 || v_rtc_freq == 0)
-		return 0;
-	while(1) {
-		if (rtc_count != rtc_count_prev && (rtc_count & (v_rtc_freq-1)) == 0) {
-			rtc_count_prev = rtc_count;
-			return 0;
-		}
-	}
+    else {
+        return 0;
+    }
 
 }
 
