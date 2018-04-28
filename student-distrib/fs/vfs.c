@@ -451,3 +451,19 @@ int syscall_rmdir(int pathp, int b, int c) {
 	//TODO
 	return -ENOSYS;
 }
+
+int syscall_ioctl(int fd, int cmd, int arg) {
+	task_t *proc;
+	file_t *file;
+	
+	proc = task_list + task_current_pid();
+	
+	file = proc->files[fd];
+	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
+		return -EBADF;
+	}
+	if (!file->f_op->ioctl) {
+		return -ENOSYS;
+	}
+	return (*file->f_op->ioctl)(file, cmd, arg);
+}

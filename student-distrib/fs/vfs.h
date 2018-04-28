@@ -124,6 +124,21 @@ typedef struct s_file_operations {
 	 *			Specifically, -ENOENT when iteration has finished
 	 */
 	int (*readdir)(struct s_file *file, struct dirent *dirent);
+	
+	/**
+	 *	IO Control driver-specific commands
+	 *
+	 *	This call should be applicable only to device files, which may need
+	 *	additional custom commands. However the VFS currently does not strictly
+	 *	enforce file to be of device type. If this function is not applicable,
+	 *	simply leave it NULL and VFS will return `-ENOSYS` to the caller.
+	 *
+	 *	@param file: the file the command is sent to
+	 *	@param cmd: the command
+	 *	@param args: payload arguments
+	 *	@return 0 on success, or the negative of an errno on failure.
+	 */
+	int (*ioctl)(struct s_file *file, int cmd, int args);
 } file_operations_t;
 
 /**
@@ -673,6 +688,15 @@ int syscall_mkdir(int pathp, int mode, int);
  *	@return 0 on success, or -1 on failure. Set errno
  */
 int syscall_rmdir(int pathp, int, int);
+
+/**
+ *	System call handler for `ioctl`: Control device
+ *
+ *	@param fd: the file to send commands to
+ *	@param cmd: the command
+ *	@param arg: the argument
+ */
+int syscall_ioctl(int fd, int cmd, int arg);
 
 // For consistent include order
 #include "fstab.h"

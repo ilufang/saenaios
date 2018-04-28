@@ -55,6 +55,7 @@
 #define SYSCALL_CHDIR		46
 #define SYSCALL_MKDIR		47
 #define SYSCALL_RMDIR		48
+#define SYSCALL_IOCTL		49
 
 struct sys_mount_opts {
 	const char *source;

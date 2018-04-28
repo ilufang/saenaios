@@ -446,3 +446,13 @@ int rmdir(const char *path) {
 	}
 	return ret;
 }
+
+int ioctl(int fd, int cmd, int arg) {
+	int ret;
+	ret = do_syscall(SYSCALL_IOCTL, fd, cmd, arg);
+	if (ret < 0) {
+		errno = -ret;
+		return -1;
+	}
+	return ret;
+}

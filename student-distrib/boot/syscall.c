@@ -102,5 +102,6 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_CHDIR, syscall_chdir);
 	syscall_register(SYSCALL_MKDIR, syscall_mkdir);
 	syscall_register(SYSCALL_RMDIR, syscall_rmdir);
+	syscall_register(SYSCALL_IOCTL, syscall_ioctl);
 	
 }
