@@ -141,6 +141,10 @@ void* kmalloc(size_t size) {
 				temp2->status = 1;
 				break;
 			}
+            else {
+                errno = ENOBUFS;
+                return NULL;
+            }
 		}
 		temp2->size = temp->size - num_slab;
 		temp2->prev = temp->prev;
