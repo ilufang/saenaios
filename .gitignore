@@ -3,6 +3,7 @@
 Makefile.dep
 bootimg
 mp3.img
+filesys_img
 docs/
 *.xcodeproj
 build-*/

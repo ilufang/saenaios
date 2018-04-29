@@ -29,7 +29,7 @@ int elf_load(int fd)  {
 	elf_eheader_t eh;
 	elf_pheader_t ph;
 	task_t *proc;
-	int i, ret, idx, idx0;
+	int i, j, ret, idx, idx0;
 	uint32_t addr, align_off, brk = 0;
 	task_ptentry_t *ptent;
 	stat_t file_stat;
@@ -71,6 +71,7 @@ int elf_load(int fd)  {
 		ph.vaddr = 0x08048000;
 		syscall_fstat(fd, (int)(&file_stat), 0);
 		ph.filesz = (uint32_t)file_stat.st_size;
+		ph.memsz = ph.filesz;
 		ph.flags = 7; // rwx all granted
 		ph.align = 0x1000; // 4kb aligned
 	}
@@ -180,8 +181,8 @@ int elf_load(int fd)  {
 		}
 		if (!(ph.flags & 2)) {
 				// Page is readonly
-			for (i = idx0 ; i < idx; i++) {
-				ptent = proc->pages + i;
+			for (j = idx0 ; j < idx; j++) {
+				ptent = proc->pages + j;
 				ptent->pt_flags &= ~PAGE_DIR_ENT_RDWR;
 				if (ptent->pt_flags & PAGE_DIR_ENT_4MB) {
 					// Reload 4MB page table entry
