@@ -502,27 +502,27 @@ int brk_test(){
 	// test start
 
 	// this should return current
-	if (syscall_sbrk(0,0,0) != 0xA0000000){
+	if ((uint32_t) syscall_sbrk(0,0,0) != 0xA0000000){
 		printf("sbrk check current program break fail\n");
 		return FAIL;
 	}
 	// this should increment program break by 4KB
-	if (syscall_sbrk(0x1000, 0, 0) != (0xA0000000)){
+	if ((uint32_t) syscall_sbrk(0x1000, 0, 0) != (0xA0000000)){
 		printf("sbrk increase 4KB program break fail\n");
 		return FAIL;
 	}
 	// decrement program break back to original
-	if (syscall_sbrk(-0x1000, 0, 0) != (0xA0000000 + 0x1000)){
+	if ((uint32_t) syscall_sbrk(-0x1000, 0, 0) != (0xA0000000 + 0x1000)){
 		printf("sbrk decrease 4KB program break fail\n");
 		return FAIL;
 	}
 	// this should increase program break by 4MB
-	if (syscall_sbrk(0x400000, 0, 0) != (0xA0000000)){
+	if ((uint32_t) syscall_sbrk(0x400000, 0, 0) != (0xA0000000)){
 		printf("sbrk increase 4MB program break fail\n");
 		return FAIL;
 	}
 	// this should decrease program break by 2MB
-	if (syscall_sbrk(-0x200000, 0, 0) != (0xA0000000 + 0x400000)){
+	if ((uint32_t) syscall_sbrk(-0x200000, 0, 0) != (0xA0000000 + 0x400000)){
 		printf("sbrk decrease 2MB program break fail\n");
 		return FAIL;
 	}
