@@ -126,7 +126,7 @@ void* kmalloc(size_t size) {
 		temp->next = NULL;
 		temp->info->status = 1;
 
-		if (temp = free_list) {
+		if (temp == free_list) {
 			free_list = NULL;
 		}
 
@@ -204,7 +204,7 @@ int free(void* ptr) {
 			//TODO
 			temp->size += link->size;
 			temp->info->size = temp->size;
-			memset(info->start_addr,0, info->size*SLAB_SIZE);
+			memset((char *) info->start_addr,0, info->size*SLAB_SIZE);
 
 		} else if (temp->info->start_addr + offset == info->start_addr){
 			info->status = 0;
@@ -214,7 +214,7 @@ int free(void* ptr) {
 		} else {
 			temp->size += link->size;
 			temp->info->size = temp->size;
-			memset(info->start_addr,0, info->size*SLAB_SIZE);
+			memset((char *) info->start_addr,0, info->size*SLAB_SIZE);
 		}
 	} else {
 		info->status = 0;
