@@ -77,6 +77,18 @@ pid_t waitpid(pid_t pid, int *status, int options) {
 	return do_syscall(SYSCALL_WAITPID, (int)pid, (int)status, options);
 }
 
+sig_t signal(int sig, sig_t handler) {
+	int ret;
+	struct sigaction act, oldact;
+	sigemptyset(&act.mask);
+	act.flags = SA_RESTART;
+	ret = sigaction(sig, &act, &oldact);
+	if (ret < 0) {
+		return SIG_ERR;
+	}
+	return oldact.handler;
+}
+
 int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact) {
 	return do_syscall(SYSCALL_SIGACTION, sig, (int) act, (int) oldact);
 }

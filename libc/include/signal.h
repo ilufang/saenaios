@@ -42,6 +42,7 @@
 #define SIGUSR2		31	///< User defined signal 2
 #define SIG_MAX		32	///< Total number of signals
 
+#define SIG_ERR		((void (*)(int)) -1) ///< Error
 #define SIG_DFL		((void (*)(int)) 0) ///< Preset 'Default' handler
 #define SIG_IGN		((void (*)(int)) 1)	///< Preset 'Ignore' handler
 #define SIG_391CHLD	((void (*)(int)) 2)	///< 391 SIGCHLD handler (Do not use)
@@ -80,6 +81,13 @@ typedef uint32_t sigset_t;
 #define SA_ECE391SIGNO	0x40
 
 /**
+ * Signal handler
+ *
+ *	@param sig: the signal number
+ */
+typedef void (*sig_t)(int sig);
+
+/**
  *	Signal Handling behavior descriptor
  */
 struct sigaction {
@@ -88,12 +96,21 @@ struct sigaction {
 	 *
 	 *	@param sig: the signal number
 	 */
-	void (*handler)(int sig);
+	sig_t handler;
 	/// Flags. See `SA_*` macro definitions
 	uint32_t flags;
 	/// Bitmap of signals to be masked during execution of the handler
 	sigset_t mask;
 };
+
+/**
+ *	Set signal handler
+ *
+ *	@param sig: the signal to set
+ *	@param handler: the handler to process `sig`
+ *	@return the previously-installed handler, or SIG_ERR on failure. Set errno
+ */
+sig_t signal(int sig, sig_t handler);
 
 /**
  *	Get or set signal handler
@@ -102,7 +119,7 @@ struct sigaction {
  *	@param act: the new handler. Will be installed if not NULL
  *	@param oldact: buffer to read current handler into. Will be populated if not
  *		   NULL.
- *	@return 0 on success, or the negative of an errno on failure.
+ *	@return 0 on success, or the -1 on failure. Set errno
  */
 int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);
 
@@ -112,7 +129,7 @@ int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);
  *	@param how: action to be performed. See `SIG_*` macro definitions
  *	@param set: new signal set
  *	@param oldset: buffer to read current signal set into
- *	@return 0 on success, or the negative of an errno on failure
+ *	@return 0 on success, or -1 on failure. Set errno
  */
 int sigprocmask(int how, sigset_t *set, sigset_t *oldset);
 
@@ -129,7 +146,7 @@ int sigsuspend(sigset_t *sigset);
  *
  *	@param pid: the pid of the recipient process
  *	@param sig: the signal to send
- *	@return 0 on success, or the negative of an errno on failure
+ *	@return 0 on success, or -1 on failure. Set errno
  */
 int kill(pid_t pid, int sig);
 
