@@ -93,6 +93,14 @@ int kill(pid_t pid, int sig) {
 	return do_syscall(SYSCALL_KILL, pid, sig, 0);
 }
 
+int brk(void* addr) {
+	return do_syscall(SYSCALL_BRK, (int)addr, 0, 0);
+}
+
+void* sbrk(int increment) {
+	return (void*)do_syscall(SYSCALL_SBRK, increment, 0, 0);
+}
+
 #define LIBC_MAX_OPEN_DIR	64
 
 static DIR libc_dir_list[LIBC_MAX_OPEN_DIR];

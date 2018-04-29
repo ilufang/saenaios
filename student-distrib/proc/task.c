@@ -6,6 +6,8 @@
 #include "scheduler.h"
 #include "../../libc/include/sys/wait.h"
 
+#define __4MB 0x400000
+
 task_t task_list[TASK_MAX_PROC];
 pid_t task_pid_allocator;
 
@@ -171,6 +173,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		// Page allocation failed. Probably ENOMEM
 		return -1;
 	}
+
 	ptent_stack.priv_flags = 0;
 	ptent_stack.pt_flags = PAGE_DIR_ENT_PRESENT;
 	ptent_stack.pt_flags |= PAGE_DIR_ENT_RDWR;
@@ -245,12 +248,17 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 						   ptent_stack.pt_flags);
 	memcpy(proc->pages+0, &ptent_stack, sizeof(task_ptentry_t));
 	proc->regs.esp -= 0x400000;
+
+	// edit heap start data, need to be determined, suggest to align the start to 4MB	TODO
+	proc->heap.start = 0xA0000000;		// TODO
+	proc->heap.prog_break = proc->heap.start; // TODO could be changed in elf load
+
 	page_flush_tlb();
 
 	// Try to open ELF file for reading
 	fd = syscall_open(0xbfc00000, O_RDONLY, 0);
 	if (fd < 0) {
-		page_alloc_free_4MB(ptent_stack.vaddr);
+		page_alloc_free_4MB(ptent_stack.paddr);
 		syscall__exit(WEXITSTATUS(-1),0,0);
 		return fd;
 	}
@@ -339,9 +347,9 @@ int syscall_waitpid(int cpid, int statusp, int options) {
 	if (!statusp) {
 		return -EFAULT;
 	}
-	
+
 	status = (int *) statusp;
-	
+
 	pid = task_current_pid();
 
 	found_child = 0;
@@ -694,4 +702,115 @@ int task_make_initd(int a, int b, int c) {
 		printf("Cannot open stdout %d\n", ret);
 	}
 	return 0;
+}
+
+int syscall_brk(int paddr, int b, int c){
+	int i;
+	uint32_t ret_alloc;
+	// extend to this address, note the -1
+	// since it is the address 1 B after the end of uninitialized data segment
+	uint32_t t_addr = (uint32_t)paddr - 1;
+	// align to the start of that 4MB
+	uint32_t aligned_t_addr = ((uint32_t)t_addr / __4MB) * __4MB;
+	uint32_t temp_aligned;
+	task_ptentry_t new_ptentry;
+	task_t* proc = task_list + task_current_pid();
+	//task_t* proc = task_list;				// FOR TEST
+
+	// if a deallocate request:
+	if ((uint32_t)paddr < proc->heap.prog_break){
+		// if this is less than start, well
+		if ((uint32_t)paddr < proc->heap.start){
+			// f**k you
+			errno = EINVAL;
+			return -1;
+		}
+		while((proc->heap.prog_break - aligned_t_addr) > __4MB){
+			// deallocate 4MB pages, find that in process pages
+			temp_aligned = ((proc->heap.prog_break - 1)/__4MB)*__4MB;
+			for (i=0;i<TASK_MAX_PAGE_MAPS;++i){
+				if (proc->pages[i].vaddr == temp_aligned){
+					break;
+				}
+			}
+			if (i>TASK_MAX_PAGE_MAPS){
+				// very bad thing happened
+				// TODO
+				return -1;
+			}
+			// delete this 4MB page in phys, page dir, proc pages
+			page_dir_delete_entry(proc->pages[i].vaddr);
+			page_alloc_free_4MB(proc->pages[i].paddr);
+			proc->pages[i].pt_flags &= ~(PAGE_DIR_ENT_PRESENT);
+			// edit heap data
+			proc->heap.prog_break = proc->pages[i].vaddr;
+		}
+		proc->heap.prog_break = (uint32_t)paddr;
+		return 0;
+	}
+
+	// if an allocate request:
+	while(aligned_t_addr > (proc->heap.prog_break - 1)){
+		// there is some 4MB pages to be allocated
+		ret_alloc = 0;
+		// allocating new page failed
+		if (page_alloc_4MB((int*)(&ret_alloc))){
+			// well we keep the allocated ones
+			errno = ENOMEM;
+			return -1;
+		}
+		// well I guess allocation went well, then add into proc pages and page table
+		new_ptentry.vaddr = ((proc->heap.prog_break -1 + __4MB) / __4MB) * __4MB;
+		new_ptentry.paddr = ret_alloc;
+		new_ptentry.pt_flags = PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER | PAGE_DIR_ENT_4MB;
+		new_ptentry.priv_flags = 0;
+		// add that in pages of process
+		for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
+			if (proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT) continue;
+			// else found a empty spot
+			memcpy(&proc->pages[i], &new_ptentry, sizeof(task_ptentry_t));
+			break;
+		}
+		// check for loop fail
+	 	if (i>=TASK_MAX_PAGE_MAPS){
+	 		// guess no space left in pages ha, remember to deallocate
+	 		page_alloc_free_4MB(ret_alloc);
+	 		errno = ENOMEM;
+	 		return -1;
+	 	}
+	 	// well everything went well
+		page_dir_add_4MB_entry(new_ptentry.vaddr, new_ptentry.paddr, new_ptentry.pt_flags);
+		// update every data
+		// add to the start of new 4MB page
+		proc->heap.prog_break = new_ptentry.vaddr + __4MB;
+	}
+	// now there's something less than 4MB left
+	proc->heap.prog_break = (uint32_t)paddr;
+	return 0;
+}
+
+/*void syscall_brk_abort(void* prev_prog_break){
+	task_t* proc = task_list + task_current_pid();
+	// deallocate 4MB pages from previous breakpoint to current pb
+	while ((proc->heap.prog_break - prev_prog_break)/(__4MB)){
+		page_alloc_free_4MB(prev_prog_break + __4MB);
+		page_dir_delete_entry()
+		prev_prog_break += __4MB;
+	}
+}*/
+
+int syscall_sbrk(int increment, int b, int c){
+	task_t* proc = task_list + task_current_pid();
+	//task_t* proc = task_list;				// FOR TEST
+	uint32_t prev_prog_break = proc->heap.prog_break;
+	// extend by increment amount
+	if (increment == 0){
+		// well I guess caller want to see current prog_break
+		return (int)prev_prog_break;
+	}
+	if (syscall_brk((int)(proc->heap.prog_break + increment), 0, 0)){
+		// fail, but errno should already be set
+		return -1;
+	}
+	return (int)prev_prog_break;
 }

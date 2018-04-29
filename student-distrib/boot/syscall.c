@@ -81,6 +81,8 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_EXECVE, syscall_execve);
 	syscall_register(SYSCALL_WAITPID, syscall_waitpid);
 	syscall_register(SYSCALL_GETPID, syscall_getpid);
+	syscall_register(SYSCALL_BRK, syscall_brk);
+	syscall_register(SYSCALL_SBRK, syscall_sbrk);
 
 	// Signals
 	syscall_register(SYSCALL_KILL, syscall_kill);

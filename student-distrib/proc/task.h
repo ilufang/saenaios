@@ -27,6 +27,8 @@
 
 #define TASK_PTENT_CPONWR	0x1		///< Current page is copy-on-write
 
+#define TASK_MAX_HEAP		0x2800000	///< max heap size a process is allowed to allocate
+
 /**
  *	A mapped memory page in a process's mapped page table
  */
@@ -36,6 +38,15 @@ typedef struct s_task_ptentry {
 	uint16_t pt_flags; ///< Flags passed to `page_dir_add_*_entry`
 	uint16_t priv_flags; ///< Private flags
 } task_ptentry_t;
+
+/**
+ * 	A structure to store the data segment allocation info,
+ * 	used for brk, sbrk
+ */
+typedef struct s_heap_desc {
+	uint32_t 	start;				///< virtual address of last allocated 4MB
+	uint32_t 	prog_break;			///< pointer to the end of heap + 1
+} heap_desc_t;
 
 /**
  *	Structure for a process in the PID table
@@ -55,7 +66,8 @@ typedef struct s_task {
 
 	task_ptentry_t pages[TASK_MAX_PAGE_MAPS]; ///< Mapped pages
 
-	uint32_t ks_esp;	///< Kernel Stack pointer
+	uint32_t 	ks_esp;	///< Kernel Stack pointer
+	struct s_heap_desc heap; 	///< heap descriptor
 
 	struct sigaction sigacts[SIG_MAX]; ///< Signal handlers
 	sigset_t signals;	///< Pending signals
@@ -134,6 +146,32 @@ int syscall__exit(int status, int, int);
  *	@param options: bit map of option flags
  */
 int syscall_waitpid(int pid, int statusp, int options);
+
+/**
+ *	syscall to extend end of process' data segment to the
+ *	specified program break
+ *
+ *  program break is the first location after the end of the uninitialized data segment
+ *
+ *	@param paddr: address of the expected program break;
+ *	@param b: placeholder
+ *	@param c: placeholder
+ *	@return 0 on success, -1 on error, specific error number stored in errno
+ *	@note test passed on non-4MB-aligned start, now 64MB at max, limited by pages number in task_t
+ */
+int syscall_brk(int paddr, int b, int c);
+
+/**
+ *	syscall to extend program break by a given amount
+ *
+ *	@param increment: amount of change to the program break, could be negative value
+ *	@param b: placeholder
+ *	@param c: placeholder
+ *	@return the address of previous program break, (void*)-1 on error,
+ *		specific error number stored in errno
+ *	@note test passed on non-4MB-aligned start, now 64MB at max, limited by pages number in task_t
+ */
+int syscall_sbrk(int increment, int b, int c);
 
 /**
  *	ECE391 (`system` style) execute wrapper

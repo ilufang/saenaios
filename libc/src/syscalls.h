@@ -40,6 +40,8 @@
 #define SYSCALL_FSTAT		32
 #define SYSCALL_LSTAT		33
 #define SYSCALL_GETPID		34
+#define SYSCALL_BRK			35
+#define SYSCALL_SBRK		36
 
 struct sys_mount_opts {
 	const char *source;
