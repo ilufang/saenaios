@@ -50,10 +50,6 @@ typedef struct s_heap_desc {
 
 /**
  *	Structure for a process in the PID table
- *
- *	@todo Scheduler may want to insert saved state
- *	@todo Fork and Execve may want to insert memory map
- *	@todo VFS security may want to insert identity information
  */
 typedef struct s_task {
 	uint8_t status;		///< Current status of this task
@@ -90,9 +86,7 @@ extern task_t task_list[TASK_MAX_PROC];
 pid_t task_current_pid();
 
 /**
- *	TEMPORARY: initialize pid 0 for kernel code
- *
- *	@todo Will be removed later
+ *	Initialize first process
  */
 void task_create_kernel_pid();
 

@@ -249,10 +249,6 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	memcpy(proc->pages+0, &ptent_stack, sizeof(task_ptentry_t));
 	proc->regs.esp -= 0x400000;
 
-	// edit heap start data, need to be determined, suggest to align the start to 4MB	TODO
-	proc->heap.start = 0xA0000000;		// TODO
-	proc->heap.prog_break = proc->heap.start; // TODO could be changed in elf load
-
 	page_flush_tlb();
 
 	// Try to open ELF file for reading
@@ -733,9 +729,9 @@ int syscall_brk(int paddr, int b, int c){
 					break;
 				}
 			}
-			if (i>TASK_MAX_PAGE_MAPS){
+			if (i > TASK_MAX_PAGE_MAPS){
 				// very bad thing happened
-				// TODO
+				printf("Page missing!");
 				return -1;
 			}
 			// delete this 4MB page in phys, page dir, proc pages

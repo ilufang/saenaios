@@ -30,7 +30,7 @@ int elf_load(int fd)  {
 	elf_pheader_t ph;
 	task_t *proc;
 	int i, ret, idx, idx0;
-	uint32_t addr, align_off;
+	uint32_t addr, align_off, brk = 0;
 	task_ptentry_t *ptent;
 	stat_t file_stat;
 	proc = task_list + task_current_pid();
@@ -70,7 +70,7 @@ int elf_load(int fd)  {
 		ph.offset = 0;
 		ph.vaddr = 0x08048000;
 		syscall_fstat(fd, (int)(&file_stat), 0);
-		ph.filesz = (uint32_t)file_stat.st_size; // TODO get file size
+		ph.filesz = (uint32_t)file_stat.st_size;
 		ph.flags = 7; // rwx all granted
 		ph.align = 0x1000; // 4kb aligned
 	}
@@ -110,7 +110,7 @@ int elf_load(int fd)  {
 		}
 		idx0 = idx;
 		for (addr = ph.vaddr - align_off;
-			 addr < ph.vaddr+ph.filesz;
+			 addr < ph.vaddr+ph.memsz;
 			 addr += ph.align) {
 			if (idx == TASK_MAX_PAGE_MAPS) {
 				// No more pages may be allocated for this process
@@ -154,8 +154,28 @@ int elf_load(int fd)  {
 		if (ret < 0) {
 			return ret;
 		}
-		ret = syscall_read(fd, ph.vaddr, ph.filesz);
-		if (ret != (int)ph.filesz) {
+		if (ph.memsz < ph.filesz) {
+			// Copy partial file into memory
+			ret = syscall_read(fd, ph.vaddr, ph.memsz);
+			if (ret >= 0) {
+				ret -= ph.memsz;
+			} else {
+				return ret;
+			}
+		} else {
+			// Copy full file into memory
+			ret = syscall_read(fd, ph.vaddr, ph.filesz);
+			if (ret >= 0) {
+				ret -= ph.filesz;
+			} else {
+				return ret;
+			}
+			if (ph.memsz > ph.filesz) {
+				// fill the rest with zeros
+				memset((uint8_t *)(ph.vaddr+ph.filesz), 0, ph.memsz-ph.filesz);
+			}
+		}
+		if (ret != 0) {
 			return -EIO;
 		}
 		if (!(ph.flags & 2)) {
@@ -186,8 +206,11 @@ int elf_load(int fd)  {
 				}
 			}
 		}
+		if (ph.vaddr + ph.memsz > brk) {
+			brk = ph.vaddr + ph.memsz;
+		}
 	}
 	page_flush_tlb();
-
+	proc->heap.start = proc->heap.prog_break = brk;
 	return 0;
 }
