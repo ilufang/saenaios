@@ -5,3 +5,4 @@ bootimg
 mp3.img
 docs/
 *.xcodeproj
+build-*/
