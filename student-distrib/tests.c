@@ -140,7 +140,7 @@ int paging_test(){
 		printf("tlb flush failed\n");
 		return FAIL;
 	}*/
-	return PASS; // If execution hits this, BAD!
+	return PASS;
 }
 
 /**
@@ -488,6 +488,154 @@ cleanup:
 	return ret;
 }
 
+int brk_test(){
+	// mock up a virtual task to run
+	task_t* proc = task_list;
+	int i;
+	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
+		proc->pages[i].pt_flags = 0;
+	}
+
+	proc->heap.start = 0xA0000000;
+	proc->heap.prog_break = 0xA0000000;
+
+	// test start
+
+	// this should return current
+	if (syscall_sbrk(0,0,0) != 0xA0000000){
+		printf("sbrk check current program break fail\n");
+		return FAIL;
+	}
+	// this should increment program break by 4KB
+	if (syscall_sbrk(0x1000, 0, 0) != (0xA0000000)){
+		printf("sbrk increase 4KB program break fail\n");
+		return FAIL;
+	}
+	// decrement program break back to original
+	if (syscall_sbrk(-0x1000, 0, 0) != (0xA0000000 + 0x1000)){
+		printf("sbrk decrease 4KB program break fail\n");
+		return FAIL;
+	}
+	// this should increase program break by 4MB
+	if (syscall_sbrk(0x400000, 0, 0) != (0xA0000000)){
+		printf("sbrk increase 4MB program break fail\n");
+		return FAIL;
+	}
+	// this should decrease program break by 2MB
+	if (syscall_sbrk(-0x200000, 0, 0) != (0xA0000000 + 0x400000)){
+		printf("sbrk decrease 2MB program break fail\n");
+		return FAIL;
+	}
+	// error intended
+	if (syscall_sbrk(-0x400000, 0, 0) != (-1)){
+		printf("sbrk decrease over bound error fail\n");
+		return FAIL;
+	}
+
+	// allocate over 4MB bound
+	syscall_sbrk(0x400000, 0, 0);
+	if (task_list->heap.prog_break != (0xA0000000 + 0x400000 + 0x200000)){
+		printf("allocate over 4MB bound failed\n");
+		return FAIL;
+	}
+
+	// decrease at 4MB bound
+	syscall_sbrk(-0x200000, 0, 0);
+	if (task_list->heap.prog_break != (0xA0000000 + 0x400000)){
+		printf("allocate back to 4MB bound failed\n");
+		return FAIL;
+	}
+
+	// allocated to 10MB
+	syscall_sbrk(0x600000, 0, 0);
+	if (task_list->heap.prog_break != (0xA0000000 + 0x400000 + 0x600000)){
+		printf("allocate to to 10MB failed\n");
+		return FAIL;
+	}
+
+	// decrease to 0
+	syscall_sbrk(-0xa00000, 0, 0);
+	if (task_list->heap.prog_break != (0xA0000000)){
+		printf("allocate back to 0 failed\n");
+		return FAIL;
+	}
+
+	// this should increase program break by 40MB
+	syscall_sbrk(0x2800000, 0, 0);
+	if ( task_list->heap.prog_break != (0xA0000000 + 0x2800000)){
+		printf("sbrk increase to 40MB program break fail\n");
+		return FAIL;
+	}
+	// error intended to trigger ENOMEN, by increasing 1GB
+	if (syscall_sbrk(0x40000000, 0, 0) != (-1)){
+		printf("sbrk trigger ENOMEM fail\n");
+		return FAIL;
+	}
+	if ( task_list->heap.prog_break != (0xA0000000 + 0x4000000)){
+		printf("sbrk trigger ENOMEM and retain fail\n");
+		return FAIL;
+	}
+
+	// all right all right clear all
+	syscall_sbrk(-0x4000000, 0, 0);
+	if ( task_list->heap.prog_break != (0xA0000000)){
+		printf("sbrk clear all fail\n");
+		return FAIL;
+	}
+
+	// now let's try the case which the start address is not aligned to 4MB boundary
+	proc->heap.start = 0xA0001000;
+	proc->heap.prog_break = 0xA0001000;
+	// doesn't across boundary
+	syscall_sbrk(0x2000, 0, 0);
+	if ( task_list->heap.prog_break != (0xA0001000 + 0x2000)){
+		printf("sbrk non aligned start failed\n");
+		return FAIL;
+	}
+	// across boundary
+	syscall_sbrk(0x400000, 0, 0);
+	if ( task_list->heap.prog_break != (0xA0001000 + 0x2000 + 0x400000)){
+		printf("sbrk non aligned start failed\n");
+		return FAIL;
+	}
+	// decrease that doesn't across boundary
+	syscall_sbrk(-0x1000, 0, 0);
+	if ( task_list->heap.prog_break != (0xA0001000 + 0x1000 + 0x400000)){
+		printf("sbrk non aligned start decrease failed\n");
+		return FAIL;
+	}
+	// decrease across boundary
+	syscall_sbrk(-(0x400000+0x500), 0, 0);
+	if ( task_list->heap.prog_break != (0xA0001000 + 0x1000 - 0x500)){
+		printf("sbrk non aligned start decrease failed\n");
+		return FAIL;
+	}
+	// decrease to 0
+	syscall_sbrk(-(0x1000-0x500), 0, 0);
+	if ( task_list->heap.prog_break != (0xA0001000)){
+		printf("sbrk non aligned start decrease failed\n");
+		return FAIL;
+	}
+	// increase 10MB
+	syscall_sbrk(0x600000, 0, 0);
+	if ( task_list->heap.prog_break != (0xA0001000 + 0x600000)){
+		printf("sbrk non aligned start increase failed\n");
+		return FAIL;
+	}
+	// decrease over start
+	if (syscall_sbrk(-0x800000, 0, 0) != (-1)){
+		printf("sbrk non aligned start decrease fault failed\n");
+		return FAIL;
+	}
+	// decrease 10MB
+	syscall_sbrk(-0x600000, 0, 0);
+	if ( task_list->heap.prog_break != (0xA0001000)){
+		printf("sbrk non aligned start decrease failed\n");
+		return FAIL;
+	}
+	return PASS;
+}
+
 /* Checkpoint 3 tests */
 
 /**
@@ -531,7 +679,8 @@ void launch_tests() {
 
 	//TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
-	TEST_OUTPUT("paging test",paging_test());
+	//TEST_OUTPUT("paging test",paging_test()); 	DO NOT RUN THIS TEST!
+	TEST_OUTPUT("brk test", brk_test());
 
 	// IDT tests
 	//TEST_OUTPUT("idt_test", idt_test());

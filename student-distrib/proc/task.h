@@ -27,6 +27,8 @@
 
 #define TASK_PTENT_CPONWR	0x1		///< Current page is copy-on-write
 
+#define TASK_MAX_HEAP		0x2800000	///< max heap size a process is allowed to allocate
+
 /**
  *	A mapped memory page in a process's mapped page table
  */
@@ -42,9 +44,8 @@ typedef struct s_task_ptentry {
  * 	used for brk, sbrk
  */
 typedef struct s_heap_desc {
-	uint32_t 	count_total;		///< number of bytes spared for the task
-	uint32_t 	count_allocated;	///< number of byres process requested
-	void* 		prog_break;			///< pointer to the end of heap + 1
+	uint32_t 	start;				///< virtual address of last allocated 4MB
+	uint32_t 	prog_break;			///< pointer to the end of heap + 1
 } heap_desc_t;
 
 /**
@@ -145,6 +146,32 @@ int syscall__exit(int status, int, int);
  *	@param options: bit map of option flags
  */
 int syscall_waitpid(int pid, int statusp, int options);
+
+/**
+ *	syscall to extend end of process' data segment to the
+ *	specified program break
+ *
+ *  program break is the first location after the end of the uninitialized data segment
+ *
+ *	@param paddr: address of the expected program break;
+ *	@param b: placeholder
+ *	@param c: placeholder
+ *	@return 0 on success, -1 on error, specific error number stored in errno
+ *	@note test passed on non-4MB-aligned start, now 64MB at max, limited by pages number in task_t
+ */
+int syscall_brk(int paddr, int b, int c);
+
+/**
+ *	syscall to extend program break by a given amount
+ *
+ *	@param increment: amount of change to the program break, could be negative value
+ *	@param b: placeholder
+ *	@param c: placeholder
+ *	@return the address of previous program break, (void*)-1 on error,
+ *		specific error number stored in errno
+ *	@note test passed on non-4MB-aligned start, now 64MB at max, limited by pages number in task_t
+ */
+int syscall_sbrk(int increment, int b, int c);
 
 /**
  *	ECE391 (`system` style) execute wrapper
