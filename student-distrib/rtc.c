@@ -35,7 +35,7 @@ int rtc_out_driver_register() {
 	rtc_out_op.readdir = NULL;
 
 	for (i = 0; i < RTC_MAX_OPEN; i++) {
-        rtc_file_table[i].rtc_pid = 0;
+        rtc_file_table[i].rtc_pid = -1;
 		rtc_file_table[i].rtc_status = 0;
 		rtc_file_table[i].rtc_freq = 0;
         rtc_file_table[i].rtc_sleep = -1;
@@ -151,6 +151,9 @@ int rtc_open(inode_t* inode, file_t* file) {
 	rtc_file_table[rtc_openfile].rtc_status |= RTC_IS_OPEN;
 	rtc_file_table[rtc_openfile].rtc_freq = 512;
 	rtc_file_table[rtc_openfile].rtc_pid = task_current_pid();
+	rtc_file_table[rtc_openfile].rtc_sleep = -1;
+	rtc_file_table[rtc_openfile].timer.it_interval = 0;
+	rtc_file_table[rtc_openfile].timer.it_value = 0;
 	file->private_data = rtc_openfile;
 	rtc_count = 1;
 
@@ -163,10 +166,16 @@ int rtc_close(inode_t* inode, file_t* file) {
 	// rtc_status = 0;
 	// rtc_freq = 0;
 	// rtc_count = 1;
-	rtc_file_table[rtc_openfile].rtc_status &= ~RTC_IS_OPEN;
-	rtc_file_table[rtc_openfile].rtc_freq = 0;
+	int i;
+	i = file->private_data;
+	rtc_file_table[i].rtc_status &= ~RTC_IS_OPEN;
+	rtc_file_table[i].rtc_freq = 0;
+	rtc_file_table[i].rtc_pid = -1;
+	rtc_file_table[i].rtc_sleep = -1;
+	rtc_file_table[i].timer.it_interval = 0;
+	rtc_file_table[i].timer.it_value = 0;
 	rtc_count = 1;
-	rtc_openfile--;
+	// rtc_openfile--;
 	return 0;
 }
 
