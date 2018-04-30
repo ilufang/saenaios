@@ -162,8 +162,11 @@ int rtc_close(inode_t* inode, file_t* file) {
 ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
     
     // Now have to call write before calling read
-    
-    if (rtc_file_table[rtc_openfile].rtc_status == 0) {
+    int i;
+
+    i = file->private_data;
+
+    if (rtc_file_table[i].rtc_status == 0) {
         return -EINVAL;
     }
     
@@ -179,11 +182,11 @@ ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
 */
     // Code in Keyboard, needs to be change, TODO
     
-    if (rtc_file_table[rtc_openfile].rtc_sleep < 0) {
+    if (rtc_file_table[i].rtc_sleep < 0) {
         
         // set process to sleep until SIGIO
         
-        rtc_pid_waiting[rtc_openfile] = cur_pid;
+        rtc_pid_waiting[i] = cur_pid;
         
         sa.handler = SIG_IGN;
         sigemptyset(&(sa.mask)); // unmask
@@ -191,15 +194,15 @@ ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
         sa.flags = SA_RESTART;
 
         syscall_sigaction(SIGIO, (int)&sa, 0);
-        rtc_file_table[rtc_openfile].rtc_sleep = 1;
+        rtc_file_table[i].rtc_sleep = 1;
         sigemptyset(&ss);
         syscall_sigsuspend((int)&ss, NULL, 0);
         return 0;
         
     }
     
-    if (rtc_file_table[rtc_openfile].rtc_sleep == 0) {
-        rtc_file_table[rtc_openfile].rtc_sleep = -1;
+    if (rtc_file_table[i].rtc_sleep == 0) {
+        rtc_file_table[i].rtc_sleep = -1;
         return 0;
     } 
 
@@ -210,6 +213,8 @@ ssize_t rtc_read(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
 }
 
 ssize_t rtc_write(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
+
+	int i = file->private_data;
 
 	if (buf == NULL || count < 4) {
 		return -EINVAL;
@@ -225,7 +230,7 @@ ssize_t rtc_write(file_t* file, uint8_t* buf, size_t count, off_t* offset) {
 	if (is_power_of_two(freq) == -1)
 		return -EINVAL;
 	/* set rtc_freq */
-	rtc_file_table[rtc_openfile].rtc_freq = RTC_MAX_FREQ / freq;
+	rtc_file_table[i].rtc_freq = RTC_MAX_FREQ / freq;
 
 	return 0;
 
