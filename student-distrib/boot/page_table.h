@@ -9,7 +9,7 @@
 #include "../lib.h"
 #include "../errno.h"
 
-#define MAX_DYNAMIC_4MB_PAGE 63
+#define MAX_DYNAMIC_4MB_PAGE 63 ///< Maximum of 4MB pages
 
 /**
  * 	Initialize page, initialize physical memory map, and turn on paging
@@ -72,8 +72,8 @@ int page_dir_add_4MB_entry(uint32_t virtual_addr, uint32_t real_addr, int flags)
 /**
  *	Add a 4KB page entry in the page table
  *
- *	@param start_addr: start address of the 4KB space that the page
- *						table entry is referring to
+ *	@param virtual_addr: start address of the 4KB space that the page
+ *						 table entry is referring to
  *	@param real_addr: physical memory that is referring to, must be a allocated one
  *	@param flags: flags of the page table entry
  *	@return: 0 on success, negative value for errors
@@ -84,8 +84,8 @@ int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags);
 /**
  *	Private version of adding page table entry with only basic sanity check
  *
- *	@param start_addr: start address of the 4KB space that the page
- *						table entry is referring to
+ *	@param virtual_addr: start address of the 4KB space that the page
+ *						 table entry is referring to
  *	@param real_addr: physical memory that is referring to, must be a allocated one
  *	@param flags: flags of the page table entry
  *	@return: 0 on success, negative value for errors
@@ -154,7 +154,7 @@ int _page_alloc_get_4KB();
  *
  *	private function to add reference count to a 4MB page
  *
- *	@oaram addr: the physical address to add reference
+ *	@param addr: the physical address to add reference
  *	@return 0 for success, negative value for error
  */
 int _page_alloc_add_refer_4MB(int addr);
@@ -163,7 +163,7 @@ int _page_alloc_add_refer_4MB(int addr);
  *
  *	private function to add reference count to a 4KB page
  *
- *	@oaram addr: the physical address to add reference
+ *	@param addr: the physical address to add reference
  *	@return 0 for success, negative value for error
  */
 int _page_alloc_add_refer_4KB(int addr);
@@ -241,7 +241,7 @@ typedef struct s_page_table{
 typedef struct s_page_4MB_descriptor{
 	uint32_t				flags;	///< private flags for physical memory administration
 	int 					count;	///< use count or reference count
-	struct s_page_4KB_descriptor* 	pages;
+	struct s_page_4KB_descriptor* 	pages; ///<  The pages
 } page_4MB_descriptor_t;
 
 /**
