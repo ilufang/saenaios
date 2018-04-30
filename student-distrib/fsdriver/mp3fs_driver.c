@@ -140,6 +140,7 @@ int mp3fs_installfs(int32_t bootblock_start_addr){
                             PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
                             PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
     }
+    // pinpoint install position of mp3fs
     if (!((bootblock_start_addr > 0x400000) && (bootblock_start_addr < 0x800000))){
         return -EINVAL;
     }
@@ -179,6 +180,7 @@ void mp3fs_brutal_magic(){
     int i;
     for (i=0; i<boot_ptr->dir_count; ++i){
         if (strncmp(mp3fs_dentry_start_ptr[i].filename, "rtc", 3)==0){
+            // a designated magic number
             mp3fs_dentry_start_ptr[i].inode_num = 64;
             break;
         }

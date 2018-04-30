@@ -194,7 +194,7 @@ void tty_send_input(uint8_t* data, uint32_t size){
 			// for clear screen, go to stdout, but don't go to buffer
 			temp_buf[i] = data[i];
 			print_size ++;
-		}else if (data[i] >= 32 && data[i] <= 126){
+		}else if (data[i] >= 32 && data[i] <= 126){ // filter out unprintable chars
 			// printable characters go in
 			temp_buf[i] = data[i];
 			print_size ++;
