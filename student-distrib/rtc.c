@@ -68,7 +68,7 @@ void rtc_handler(){
     rtc_count_prev = rtc_count;
     // Update count and alrm timer
     for(iter = 0; iter < rtc_openfile+1; iter++) {
-	    if (rtc_count % RTC_MAX_FREQ == 0) {
+	    if (rtc_count != rtc_count_prev && rtc_count % RTC_MAX_FREQ == 0) {
 	    	if (rtc_file_table[iter].timer.it_value < 0) {
 	    		rtc_file_table[iter].timer.it_value = 0;
 	    		rtc_file_table[iter].timer.it_interval = 0;
