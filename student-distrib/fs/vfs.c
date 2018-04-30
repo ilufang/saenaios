@@ -57,11 +57,11 @@ int syscall_open(int pathaddr, int flags, int mode) {
 		return -errno;
 	}
 
-	errno = -(*file->f_op->open)(inode, file);
+	/*errno = -(*file->f_op->open)(inode, file);
 	if (errno != 0) {
 		vfs_close_file(file);
 		return -errno;
-	}
+	}*/
 	proc->files[avail_fd] = file;
 	return avail_fd;
 }

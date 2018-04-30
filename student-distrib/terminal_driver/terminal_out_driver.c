@@ -49,7 +49,6 @@ int terminal_out_driver_register(){
 
 int terminal_out_open(inode_t* inode, file_t* file){
 	//no private data to be set for now
-	terminal_set_cursor();
 	//cannot return to last line
 	last_newline = 1;
 
@@ -114,16 +113,16 @@ int terminal_out_tty_switch(void* fromp, void* top){
 	ret = _page_tab_add_entry(to->vidmem.vaddr,to->vidmem.paddr,to->vidmem.pt_flags);
 	if (ret) return ret;
 
-	// update cursor
-	lscreen_x = to->screen_x;
-	lscreen_y = to->screen_y;
-	terminal_set_cursor();
+	terminal_set_cursor(top);
 	return 0;
 }
 
-void terminal_set_cursor(){
+void terminal_set_cursor(void* data){
+	stdout_data_t* stdout = (stdout_data_t*)data;
+	int x = stdout->screen_x;
+	int y = stdout->screen_y;
 	// calculate memory position for cursor position
-	int pos = lscreen_y * NUM_COLS + lscreen_x;
+	int pos = y * NUM_COLS + x;
  	// asm operation for setting cursor position
 	outb(0x0F,0x3D4);
 	outb((uint8_t) (pos & 0xFF), 0x3D5);
@@ -197,7 +196,6 @@ int terminal_out_write_(uint8_t* buf, uint32_t length){
 			terminal_out_putc(buf[i]);
 		}
 	}
-	terminal_set_cursor();
 	return length;	// note for now
 }
 

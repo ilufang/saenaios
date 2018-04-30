@@ -98,6 +98,15 @@ int _tty_switch(tty_t* from, tty_t* to){
 	return terminal_out_tty_switch(from->output_private_data, to->output_private_data);
 }
 
+void tty_attach(task_t* proc){
+	proc->tty = get_current_tty();
+	tty_list[proc->tty].fg_proc = proc->pid;
+}
+
+void tty_detach(task_t* proc){
+	tty_list[proc->tty].fg_proc = proc->parent;
+}
+
 uint8_t get_current_tty(){
 	int i;
 
@@ -116,7 +125,7 @@ void tty_send_input(uint8_t* data, uint32_t size){
 	uint32_t print_size = 0;
 	tty_buf_t* op_buf = &(cur_tty->buf);
 	uint32_t keyboard_pid_waiting = cur_tty->input_pid_waiting;
-	// buffer handle 	TODO
+	// buffer handle
 	for (i=0; i<size; ++i){
 		if (op_buf->index == op_buf->end){
 			// reaching the end of the buffer, abort
@@ -143,6 +152,10 @@ void tty_send_input(uint8_t* data, uint32_t size){
 				op_buf->flags |= TTY_BUF_ENTER;
 			}
 		}
+		// note if this is a ctrl c request
+/*		if (data[i] == 3){
+			//
+		}*/
 	}
 	// special case for the last enter
 	if ((op_buf->index == op_buf->end) && (i<size) && (data[i] == '\n')){
@@ -155,9 +168,10 @@ void tty_send_input(uint8_t* data, uint32_t size){
 		keyboard_pid_waiting = 0;
 		op_buf->flags |= TTY_BUF_ENTER;
 	}
-	// if echo flag is on then call write 	TODO
+	// if echo flag is on then call write
 	if (!(cur_tty->flags & TTY_FG_ECHO)){
 		tty_stdout(temp_buf, print_size, cur_tty->output_private_data);
+		terminal_set_cursor(cur_tty->output_private_data);
 	}
 }
 
@@ -214,8 +228,13 @@ ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset)
 }
 
 ssize_t tty_write(struct s_file *file, uint8_t *buf, size_t count, off_t *offset){
+	ssize_t ret;
 	// write something to stdout
 	task_t* proc = task_list + task_current_pid();
 	// write to tty that the process belongs to
-	return tty_stdout(buf, count, tty_list[proc->tty].output_private_data);
+	ret = tty_stdout(buf, count, tty_list[proc->tty].output_private_data);
+	if (cur_tty == (&tty_list[proc->tty])){
+		terminal_set_cursor(cur_tty->output_private_data);
+	}
+	return ret;
 }

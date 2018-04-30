@@ -167,7 +167,7 @@ int terminal_out_driver_register();
  *	set cursor position according to current position on the screen
  *	@note this is a private function!
  */
-void terminal_set_cursor();
+extern void terminal_set_cursor(void* data);
 
 void* terminal_out_tty_init();
 

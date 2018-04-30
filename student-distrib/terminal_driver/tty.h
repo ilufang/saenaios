@@ -34,6 +34,7 @@ typedef struct s_tty{
 	uint32_t 		indev_flag; 	///< flag and feature for input
 	uint32_t 		outdev_flag; 	///< flag and feature for output
 	uint32_t		flags; 			///< flags and attributes for tty
+	uint32_t 		fg_proc;		///< process pid currently running at foreground of this tty
 
 	struct s_tty_buffer	buf; 			///< tty buffer
 
@@ -72,6 +73,9 @@ int _single_tty_init(int index);
  */
 void tty_send_input(uint8_t* data, uint32_t size);
 
+void tty_attach(task_t* proc);
+
+void tty_detach(task_t* proc);
 
 ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset);
 

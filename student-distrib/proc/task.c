@@ -273,7 +273,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		sigaddset(&(proc->sigacts[i].mask), i);
 	}
 
-	proc->tty = get_current_tty();
+	tty_attach(proc);
 
 	proc->status = TASK_ST_RUNNING;
 
@@ -305,6 +305,8 @@ int syscall__exit(int status, int b, int c) {
 			syscall_close(i, 0, 0);
 		}
 	}
+
+	tty_detach(proc);
 
 	if (parent->status == TASK_ST_SLEEP || parent->status == TASK_ST_RUNNING) {
 		// Parent is alive
