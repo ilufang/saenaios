@@ -85,6 +85,13 @@ int syscall_ece391_vidmap(int start_addr_in, int b, int c){
 	uint8_t** start_addr = (uint8_t**)start_addr_in;
 	task_t* proc = task_list + task_current_pid();
 
+	if (task_access_memory((uint32_t)start_addr_in)){
+		return -1;
+	}
+/*	if ((uint32_t)start_addr_in < 0x8000000){
+		// if not in user address space
+		return -1;
+	}*/
 	// add it in process pages
 	int i;
 	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){

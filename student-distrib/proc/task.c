@@ -587,6 +587,8 @@ int task_access_memory(uint32_t addr) {
 
 	proc = task_list + task_current_pid();
 	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
+		if (!(proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT))
+			break;
 		if (addr < proc->pages[i].vaddr)
 			continue;
 		if (proc->pages[i].pt_flags & PAGE_DIR_ENT_4MB) {
