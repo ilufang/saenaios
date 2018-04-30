@@ -48,6 +48,9 @@ typedef struct s_tty{
 	int (*tty_out_open)(struct s_tty* tty); ///< open output driver*/
 } tty_t;
 
+/// Current active TTY
+extern tty_t* cur_tty;
+
 // not implemented
 /*typedef struct s_tty_in_driver{
 	char	name[TTY_DRIVER_NAME_LENGTH];
