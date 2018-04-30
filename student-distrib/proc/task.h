@@ -46,6 +46,7 @@ typedef struct s_task_ptentry {
  */
 typedef struct s_task {
 	uint8_t status;		///< Current status of this task
+	uint8_t tty; 		///< Attached tty number
 	pid_t pid;			///< current process id
 	pid_t parent;		///< parent process id
 

@@ -4,6 +4,7 @@
 #include "elf.h"
 #include "signal.h"
 #include "scheduler.h"
+#include "../terminal_driver/tty.h"
 
 task_t task_list[TASK_MAX_PROC];
 pid_t task_pid_allocator;
@@ -270,6 +271,8 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		sigemptyset(&(proc->sigacts[i].mask));
 		sigaddset(&(proc->sigacts[i].mask), i);
 	}
+
+	proc->tty = get_current_tty();
 
 	proc->status = TASK_ST_RUNNING;
 

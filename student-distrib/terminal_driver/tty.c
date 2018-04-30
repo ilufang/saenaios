@@ -1,15 +1,45 @@
 #include "tty.h"
-
-static tty_t tty_list[TTY_NUMBER];[]
-
-static int vidmem_index = 0;
+#include "../lib.h"
+static tty_t tty_list[TTY_NUMBER];
 
 static file_operations_t tty_f_op;
 
+static char shell_cmdline[6] = "shell";
+static char* argv_placeholder = NULL;
+
+static tty_t* cur_tty;
+static uint8_t temp_buf[TTY_BUF_LENGTH];
+
+//static uint32_t keyboard_pid_waiting = 0;
+
 int tty_init(){
 	int i; //iterator
-	int ret;
 
+	// set the f**king libc
+	_set_tty_start_();
+
+	// initialize all terminals to sleep
+	for (i=0; i<TTY_NUMBER; ++i){
+		tty_list[i].tty_status = TTY_SLEEP | TTY_BACKGROUND;
+		// initialize flags, 0 for now
+		tty_list[i].indev_flag = 0;
+		tty_list[i].outdev_flag = 0;
+		tty_list[i].flags = 0;
+		tty_list[i].input_pid_waiting = 0;
+
+		// initialize buffer
+		tty_list[i].buf.index = 0;
+		tty_list[i].buf.end = TTY_BUF_LENGTH - 1;
+		tty_list[i].buf.flags = 0;
+	}
+	// initialize the first tty
+	tty_list[0].tty_status = TTY_ACTIVE | TTY_FOREGROUND;
+	tty_list[0].output_private_data = terminal_out_tty_init();
+	cur_tty = &tty_list[0];
+	return 0;
+}
+
+int tty_driver_register(){
 	tty_f_op.open = &tty_open;
 	tty_f_op.release = &tty_close;
 	tty_f_op.read = &tty_read;
@@ -17,39 +47,32 @@ int tty_init(){
 	tty_f_op.llseek = NULL;
 	tty_f_op.readdir = NULL;
 	// register tty driver
-	ret = devfs_register_driver("tty", &tty_f_op);
-	if (ret) return ret;
-	// initialize all terminals to sleep
-	for (i=0; i<TTY_NUMBER; ++i){
-		tty_list[i].tty_status = TTY_SLEEP;
-	}
-	// initialize the first tty
-	tty_list[0].tty_status = TTY_ACTIVE | TTY_FOREGROUND;
-
-	// open stdin & stdout
-	tty_list[0].output_private_data = terminal_out_tty_init();
-
-	return 0;
+	return devfs_register_driver("tty", &tty_f_op);
 }
 
 int tty_switch(int to_index){
-	int from_index = _get_current_tty();
+	int from_index = get_current_tty();
 	if (tty_list[to_index].tty_status == TTY_SLEEP){
-		_tty_init(to_index);
+		_single_tty_init(to_index);
+		// create new process of fork
+		int child_pid = syscall_fork(0,0,0);
+		if (child_pid < 0){
+			//error condition
+			return child_pid;
+		}
+		task_t* child_proc = task_list + child_pid;
+		child_proc->regs.eax = SYSCALL_EXECVE;
+		child_proc->regs.ebx = (uint32_t)shell_cmdline;
+		child_proc->regs.ecx = (uint32_t)argv_placeholder;
+		child_proc->regs.edx = 0;
+		child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
 	}
-	_tty_switch(tty_list[from_index],tty_list[to_index]);
+	if (from_index == to_index) return 0;
+	return  _tty_switch(&tty_list[from_index],&tty_list[to_index]);
 }
 
 int _single_tty_init(int index){
-	// initialize flags, 0 for now
-	tty->indev_flag = 0;
-	tty->outdev_flag = 0;
-	tty->flags = 0;
-
-	// initialize buffer
-	tty->buf.index = 0;
-	tty->buf.end = TTY_BUF_LENGTH - 1;
-
+	tty_t* tty = &tty_list[index];
 	// default input is stdin, default output is stdout
 	// stdin is universal, so no private data for it
 	tty->input_private_data = NULL;
@@ -60,28 +83,82 @@ int _single_tty_init(int index){
 		return -errno;
 	}
 
-	tty_status |= TTY_ACTIVE;
+	tty->tty_status |= TTY_ACTIVE;
+	return 0;
 }
 
 int _tty_switch(tty_t* from, tty_t* to){
 	// change tty structure status
-	from -> status &= ~TTY_FOREGROUND;
-	to -> status |= TTY_FOREGROUND;
+	from->tty_status &= ~TTY_FOREGROUND;
+	to->tty_status |= TTY_FOREGROUND;
+
+	cur_tty = to;
 
 	// switch private data, let terminal out driver handle it
-	return terminal_out_tty_switch(from->output_private_data, to->input_private_data);
+	return terminal_out_tty_switch(from->output_private_data, to->output_private_data);
 }
 
-int _get_current_tty(){
+uint8_t get_current_tty(){
 	int i;
 
 	for (i=0; i<TTY_NUMBER; ++i){
 		if (tty_list[i].tty_status & TTY_FOREGROUND){
-			// found the foreground tty
 			return i;
 		}
 	}
-	return -1;	// very bad thing happened
+
+	return -1;	// very bad thing happened 	TODO
+}
+
+void tty_send_input(uint8_t* data, uint32_t size){
+	// input is always sent to the current foreground tty
+	int i;
+	uint32_t print_size = 0;
+	tty_buf_t* op_buf = &(cur_tty->buf);
+	uint32_t keyboard_pid_waiting = cur_tty->input_pid_waiting;
+	// buffer handle 	TODO
+	for (i=0; i<size; ++i){
+		if (op_buf->index == op_buf->end){
+			// reaching the end of the buffer, abort
+			// note that the last char of the buffer has not yet been written
+			break;
+		}
+
+		// special case for backspace, put into temp_buf but delete in tty buffer
+		if (data[i] == '\b'){
+			// don't backspace over the start
+			if (((op_buf->index + TTY_BUF_LENGTH - 1)%TTY_BUF_LENGTH) != op_buf->end){
+				op_buf->index = (op_buf->index + TTY_BUF_LENGTH - 1)%TTY_BUF_LENGTH;
+				temp_buf[i] = data[i];
+				print_size ++;
+			}
+		}else{
+			temp_buf[i] = data[i];
+			print_size ++;
+			op_buf->buf[op_buf->index] = data[i];
+			op_buf->index = (op_buf->index + 1) % TTY_BUF_LENGTH;
+			if (temp_buf[i] == '\n' && keyboard_pid_waiting){
+				syscall_kill(keyboard_pid_waiting, SIGIO, 0);
+				keyboard_pid_waiting = 0;
+				op_buf->flags |= TTY_BUF_ENTER;
+			}
+		}
+	}
+	// special case for the last enter
+	if ((op_buf->index == op_buf->end) && (i<size) && (data[i] == '\n')){
+		op_buf->buf[op_buf->index] = '\n';
+		op_buf->flags |= TTY_BUF_ENTER;
+		// we don't increment index this case to block further input, but we add i
+		temp_buf[i] = '\n'; 	// temp buffer used for stdout
+		print_size++;
+		syscall_kill(keyboard_pid_waiting, SIGIO, 0);
+		keyboard_pid_waiting = 0;
+		op_buf->flags |= TTY_BUF_ENTER;
+	}
+	// if echo flag is on then call write 	TODO
+	if (!(cur_tty->flags & TTY_FG_ECHO)){
+		tty_stdout(temp_buf, print_size, cur_tty->output_private_data);
+	}
 }
 
 int tty_open(struct s_inode *inode, struct s_file *file){
@@ -96,9 +173,49 @@ int tty_close(struct s_inode *inode, struct s_file *file){
 
 ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset){
 	// blocking read from tty buffer
+	task_sigact_t sa;
+	sigset_t ss;
+	tty_buf_t* op_buf = &(tty_list[(task_list + task_current_pid())->tty].buf);
+	int i;
+	uint32_t copy_start = (op_buf->end + 1) % TTY_BUF_LENGTH;
+
+	if (!(op_buf->flags &  TTY_BUF_ENTER)){
+		// No enter in buffer, set process to sleep until SIGIO
+		tty_list[(task_list + task_current_pid())->tty].input_pid_waiting = task_current_pid();
+		sa.handler = SIG_IGN;
+		sigemptyset(&(sa.mask));
+		sa.flags = SA_RESTART;
+		syscall_sigaction(SIGIO, (int)&sa, 0);
+		sigemptyset(&ss);
+		syscall_sigsuspend((int) &ss, NULL, 0);
+		return 0; // Should not hit
+	}
+
+	// copy until hit enter, with enter
+	for (i=0; i<count; ++i){
+		if (copy_start == op_buf->index) break;
+		buf[i] = op_buf->buf[copy_start];
+		copy_start = (copy_start + 1)%TTY_BUF_LENGTH;
+		if (buf[i] == '\n') break;
+	}
+	op_buf->flags -= TTY_BUF_ENTER;
+	// check for the last char
+	if ((copy_start == op_buf->index) && op_buf->buf[copy_start] == '\n' && i<count){
+		buf[i] = op_buf->buf[copy_start];
+		// end remains the same, but the index reset to the one after end
+		op_buf->index = (op_buf->index + 1)%TTY_BUF_LENGTH;
+		++i;
+	}else{
+		// end enlarged to the copy start
+		op_buf->end = (copy_start + TTY_BUF_LENGTH - 1) % TTY_BUF_LENGTH;
+	}
+
+	return i;
 }
 
-ssize_t (*write)(struct s_file *file, uint8_t *buf, size_t count, off_t *offset){
+ssize_t tty_write(struct s_file *file, uint8_t *buf, size_t count, off_t *offset){
 	// write something to stdout
-	return tty_stdout(buf, count, tty_list[_get_current_tty].output_private_data);
+	task_t* proc = task_list + task_current_pid();
+	// write to tty that the process belongs to
+	return tty_stdout(buf, count, tty_list[proc->tty].output_private_data);
 }

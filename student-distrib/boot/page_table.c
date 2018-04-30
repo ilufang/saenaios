@@ -428,7 +428,7 @@ int page_tab_delete_entry(uint32_t virtual_addr){
 	}
 }
 
-int page_tab_delete_entry(uint32_t virtual_addr){
+int _page_tab_delete_entry(uint32_t virtual_addr){
 	// check valid page dir entry just for ... redundancy
 	if (!(page_directory.page_directory_entry[GET_DIR_INDEX(virtual_addr)] & PAGE_DIR_ENT_PRESENT)){
 		return -EINVAL;

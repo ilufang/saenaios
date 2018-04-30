@@ -13,6 +13,7 @@
 #include "../lib.h"
 #include "../fs/vfs.h"
 #include "../fs/fs_devfs.h"
+#include "../proc/task.h"
 
 #define VIDEO       0xB8000			///< video memory address start
 #define VIDEO_MEM_SIZE	0x1000		///< video memory size
@@ -26,11 +27,16 @@
 #define TERMINAL_OUT_BACKSPACE 	8	///< number for control code to backspace
 #define TERMINAL_OUT_FF 		12	///< number for control code to clear screen
 
+typedef struct s_vid_page{
+	uint32_t vaddr; ///< Virtual address visible to the process
+	uint32_t paddr; ///< Physical address to write into the page table
+	uint32_t pt_flags; ///< Flags passed to `page_dir_add_*_entry`
+} vid_page_t;
+
 typedef struct s_stdout_data{
 	int screen_x, screen_y;
 	int cursor_x, cursor_y;
-	uint8_t* 	vidmem;
-	task_ptentry_t 	vidmem;			///< video memory mapping info
+	struct s_vid_page 	vidmem;			///< video memory mapping info
 	int 	newline;
 } stdout_data_t;
 
@@ -132,7 +138,7 @@ int terminal_out_close(inode_t* inode,file_t* file);
  *	@param length: size of buffer
  * 	@return number of bytes successfully written
  */
-int terminal_out_write_(uint8_t* buf, int length);
+int terminal_out_write_(uint8_t* buf, uint32_t length);
 
 /**
  *	write for terminal out driver
@@ -162,5 +168,9 @@ int terminal_out_driver_register();
  *	@note this is a private function!
  */
 void terminal_set_cursor();
+
+void* terminal_out_tty_init();
+
+int terminal_out_tty_switch(void* fromp, void* top);
 
 #endif

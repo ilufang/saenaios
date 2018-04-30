@@ -19,6 +19,7 @@
 #define FTYPE_SYMLINK	'l'	///< File type: symbolic link
 #define FTYPE_DEVICE	'p'	///< File type: special device file
 
+#define MP3FS_IDENTIFIER 0xecebcafe
 // Forward declarations
 struct s_file;
 struct s_inode;

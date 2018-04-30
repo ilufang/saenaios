@@ -195,6 +195,8 @@ super_block_t* mp3fs_get_sb(struct s_file_system *fs, int flags,
     // get root dentry's (i.e. root dir) inode number
     mp3fs_sb.root = mp3fs_dentry_start_ptr->inode_num;
 
+    mp3fs_sb.private_data = MP3FS_IDENTIFIER;
+
     // initialize file table
     // of course brutal force table
     for (i=0;i<MP3FS_MAX_FILE_NUM;++i){

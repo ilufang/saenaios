@@ -5,15 +5,15 @@
 
 static stdout_data_t stdout[MAX_STDOUT];
 
-static stdout_index = 0;
+static int stdout_index = 0;
 
 static file_operations_t terminal_out_op;
 
-static uint8_t* video_mem;
+static uint8_t* video_mem = (uint8_t*)VIDMEM_START;
 
-static int lscreen_x, lscreen_y;
+static int lscreen_x = 0, lscreen_y = 0;
 
-static int lcursor_x, lcursor_y;
+static int lcursor_x = 0, lcursor_y = 0;
 
 static int last_newline;
 
@@ -36,7 +36,7 @@ do {                                                                \
     );                                                              \
 } while (0)
 
-/*int terminal_out_driver_register(){
+int terminal_out_driver_register(){
 	// inflate the operation pointer table
 	terminal_out_op.open = & terminal_out_open;
 	terminal_out_op.release = & terminal_out_close;
@@ -45,7 +45,7 @@ do {                                                                \
 	terminal_out_op.readdir = NULL;
 
 	return (devfs_register_driver("stdout", &terminal_out_op));
-}*/
+}
 
 int terminal_out_open(inode_t* inode, file_t* file){
 	//no private data to be set for now
@@ -75,13 +75,17 @@ void* terminal_out_tty_init(){
 
 	// allocate the video memory
 	stdout[stdout_index].vidmem.vaddr = VIDMEM_START + TTY_4KB * stdout_index;
-	stdout[stdout_index].vidmem.paddr = stdout[stdout_index].vidmem.vaddr
+	stdout[stdout_index].vidmem.paddr = stdout[stdout_index].vidmem.vaddr;
 	stdout[stdout_index].vidmem.pt_flags = PAGE_TAB_ENT_PRESENT | PAGE_TAB_ENT_RDWR | PAGE_TAB_ENT_SUPERVISOR | PAGE_TAB_ENT_GLOBAL;
 
-	if (!_page_tab_add_entry(stdout[stdout_index].vidmem.vaddr,
+	if (_page_tab_add_entry(stdout[stdout_index].vidmem.vaddr,
 		stdout[stdout_index].vidmem.paddr, stdout[stdout_index].vidmem.pt_flags)){
-		return -EFAULT;
+		errno = EFAULT;
+		return NULL;
 	}
+
+	video_mem = (uint8_t*)stdout[stdout_index].vidmem.vaddr;
+	terminal_out_clear();
 
 	stdout_index++;
 
@@ -95,20 +99,25 @@ int terminal_out_tty_switch(void* fromp, void* top){
 	uint32_t temp;
 	// switch physical memory
 	for (i=0;i<NUM_COLS*NUM_ROWS/2;++i){
-		temp = *((uint32_t*)from->vidmem + i);
-		*((uint32_t*)from->vidmem + i) = *((uint32_t*)to->vidmem + i);
-		*((uint32_t*)to->vidmem + i) = temp;
+		temp = *((uint32_t*)from->vidmem.vaddr + i);
+		*((uint32_t*)from->vidmem.vaddr + i) = *((uint32_t*)to->vidmem.vaddr + i);
+		*((uint32_t*)to->vidmem.vaddr + i) = temp;
 	}
 	// switch page entries virtual memory mapping
 	_page_tab_delete_entry(from->vidmem.vaddr);
 	_page_tab_delete_entry(to->vidmem.vaddr);
-	temp = from->vidmem.vaddr;
-	from->vidmem.vaddr = to->vidmem.vaddr;
-	to->vidmem.vaddr = temp;
-	ret = _page_tab_add_entry(from->vidmem.vaddr,from->vidmem.paddr,from->pt_flags);
+	temp = from->vidmem.paddr;
+	from->vidmem.paddr = to->vidmem.paddr;
+	to->vidmem.paddr = temp;
+	ret = _page_tab_add_entry(from->vidmem.vaddr,from->vidmem.paddr,from->vidmem.pt_flags);
 	if (ret) return ret;
-	ret = _page_tab_add_entry(to->vidmem.vaddr,to->vidmem.paddr,to->pt_flags);
+	ret = _page_tab_add_entry(to->vidmem.vaddr,to->vidmem.paddr,to->vidmem.pt_flags);
 	if (ret) return ret;
+
+	// update cursor
+	lscreen_x = to->screen_x;
+	lscreen_y = to->screen_y;
+	terminal_set_cursor();
 	return 0;
 }
 
@@ -133,11 +142,9 @@ void terminal_out_clear(){
 	// set cursor to up left
 	lscreen_y = 0;
 	lscreen_x = 0;
-	lcurser_y = 0;
-	lcurser_x = 0;
+	lcursor_y = 0;
+	lcursor_x = 0;
 	last_newline = 1;
-
-	terminal_set_cursor();
 }
 
 ssize_t terminal_out_write(file_t* file, uint8_t* buf,size_t count,off_t* offset){
@@ -148,21 +155,20 @@ ssize_t tty_stdout(uint8_t* data, uint32_t size, void* private_data_ptr){
 	stdout_data_t* private_data = (stdout_data_t*)private_data_ptr;
 	ssize_t ret_value;
 	// get the private data to calibrate to the tty needed
-	lcursor_x = private_data -> curser_x;
-	lcursor_y = private_data -> curser_y;
+	lcursor_x = private_data -> cursor_x;
+	lcursor_y = private_data -> cursor_y;
 	lscreen_x = private_data -> screen_x;
 	lscreen_y = private_data -> screen_y;
-	video_mem = private_data -> vidmem;
+	video_mem = (uint8_t*)private_data -> vidmem.vaddr;
 	last_newline = private_data -> newline;
 	// write
 	ret_value = terminal_out_write_(data, size);
 
 	// update back the private data
-	private_data -> curser_x = lcursor_x;
-	private_data -> curser_y = lcursor_y;
+	private_data -> cursor_x = lcursor_x;
+	private_data -> cursor_y = lcursor_y;
 	private_data -> screen_x = lscreen_x;
 	private_data -> screen_y = lscreen_y;
-	private_data -> vidmem = video_mem;
 	private_data -> newline = last_newline;
 
 	return ret_value;
@@ -191,6 +197,7 @@ int terminal_out_write_(uint8_t* buf, uint32_t length){
 			terminal_out_putc(buf[i]);
 		}
 	}
+	terminal_set_cursor();
 	return length;	// note for now
 }
 
@@ -250,7 +257,6 @@ void terminal_out_putc(uint8_t c){
        			terminal_out_scroll_down();
        			lscreen_y = NUM_ROWS-1;
        		}
-       		terminal_set_cursor();
        }else{
        		terminal_out_putc('.');
        }
@@ -267,7 +273,6 @@ void terminal_out_newline(){
        	terminal_out_scroll_down();
       	lscreen_y = NUM_ROWS-1;
     }
-	terminal_set_cursor();
 }
 
 void terminal_out_backspace(){
@@ -277,7 +282,7 @@ void terminal_out_backspace(){
 	// return to previous line check
 	if (lscreen_x<0){
 		if (!last_newline){
-			screen_y --;
+			lscreen_y --;
 			lscreen_x = NUM_COLS - 1;
 		}else{
 			lscreen_x = 0;
@@ -287,7 +292,6 @@ void terminal_out_backspace(){
 	// clear the backspaced character
     *(uint8_t *)(video_mem + temp_offset) = '\0';
     *(uint8_t *)(video_mem + temp_offset + 1) = ATTRIB;
-	terminal_set_cursor();
 }
 
 void terminal_out_scroll_down(){
@@ -305,5 +309,4 @@ void terminal_out_scroll_down(){
 		*(uint8_t*)(video_mem + NUM_COLS*(NUM_ROWS-1)*2 + j*2) = '\0';
 		*(uint8_t*)(video_mem + NUM_COLS*(NUM_ROWS-1)*2 + j*2 +1) = ATTRIB;
 	}
-	terminal_set_cursor();
 }

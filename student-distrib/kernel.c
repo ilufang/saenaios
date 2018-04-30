@@ -10,6 +10,7 @@
 #include "rtc.h"
 #include "debug.h"
 #include "terminal_driver/terminal_out_driver.h"
+#include "terminal_driver/tty.h"
 #include "tests.h"
 
 #include "fsdriver/mp3fs_driver.h"
@@ -161,6 +162,10 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Initialize Paging */
 	page_ece391_init();
 
+	// init tty
+	tty_init();
+	terminal_out_clear();
+
 	/* Init the PIC */
 	i8259_init();
 
@@ -175,7 +180,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
-	printf("Enabling Interrupts\n");
+	//printf("Enabling Interrupts\n");
 	sti();
 
 	// install device driver fs
@@ -191,7 +196,9 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	// register drivers
 	rtc_out_driver_register();
-
+	keyboard_driver_register();
+	terminal_out_driver_register();
+	tty_driver_register();
 
 #ifdef RUN_TESTS
 	/* Run tests */
