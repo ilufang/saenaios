@@ -117,7 +117,8 @@ void tty_attach(task_t* proc){
 	proc->tty = get_current_tty();
 	tty_list[proc->tty].fg_proc = proc->pid;
 	// if differs, means different tty
-	if (proc->files[1]->private_data != proc->tty){
+	if ((proc->files[1]->private_data != proc->tty)
+		&& (proc->pid == cur_tty->root_proc)){
 		syscall_close(0,0,0);
 		syscall_close(1,0,0);
 		syscall_open((int)"/dev/stdin", O_RDONLY, 0);
@@ -149,6 +150,13 @@ void tty_send_input(uint8_t* data, uint32_t size){
 	uint32_t keyboard_pid_waiting = cur_tty->input_pid_waiting;
 	// buffer handle
 	for (i=0; i<size; ++i){
+		// accept Ctrl C even if overflowed
+		if (data[i] == 3){
+			// send signal to end that process
+			syscall_kill(cur_tty->fg_proc, SIGTERM, 0);
+			cur_tty->fg_proc = (task_list + cur_tty->fg_proc)->parent;
+			continue;
+		}
 		if (op_buf->index == op_buf->end){
 			// reaching the end of the buffer, abort
 			// note that the last char of the buffer has not yet been written
@@ -163,17 +171,12 @@ void tty_send_input(uint8_t* data, uint32_t size){
 				temp_buf[i] = data[i];
 				print_size ++;
 			}
-		}else if (data[i] == 3){
-			// send signal to end that process
-			syscall_kill(cur_tty->fg_proc, SIGTERM, 0);
-			cur_tty->fg_proc = (task_list + cur_tty->fg_proc)->parent;
 		}else{
 			temp_buf[i] = data[i];
 			print_size ++;
 			op_buf->buf[op_buf->index] = data[i];
 			op_buf->index = (op_buf->index + 1) % TTY_BUF_LENGTH;
 			if (temp_buf[i] == '\n' ){
-				op_buf->flags |= TTY_BUF_ENTER;
 				if (keyboard_pid_waiting){
 					syscall_kill(keyboard_pid_waiting, SIGIO, 0);
 					cur_tty->input_pid_waiting = 0;
@@ -192,7 +195,6 @@ void tty_send_input(uint8_t* data, uint32_t size){
 		syscall_kill(keyboard_pid_waiting, SIGIO, 0);
 		cur_tty->input_pid_waiting = 0;
 		keyboard_pid_waiting = 0;
-		op_buf->flags |= TTY_BUF_ENTER;
 	}
 	// if echo flag is on then call write
 	if (!(cur_tty->flags & TTY_FG_ECHO)){
@@ -221,6 +223,14 @@ ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset)
 	int i;
 	uint32_t copy_start = (op_buf->end + 1) % TTY_BUF_LENGTH;
 
+	// check for enter in the buffer
+	for (i = (op_buf->end + 1)%TTY_BUF_LENGTH; i != op_buf->index; i=(i+1)%TTY_BUF_LENGTH){
+		if (op_buf->buf[i]=='\n'){
+			op_buf->flags |= TTY_BUF_ENTER;
+			break;
+		}
+	}
+
 	if (!(op_buf->flags &  TTY_BUF_ENTER)){
 		// No enter in buffer, set process to sleep until SIGIO
 		tty_list[(task_list + task_current_pid())->tty].input_pid_waiting = task_current_pid();
@@ -240,21 +250,19 @@ ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset)
 		copy_start = (copy_start + 1)%TTY_BUF_LENGTH;
 		if (buf[i] == '\n') break;
 	}
-	op_buf->flags -= TTY_BUF_ENTER;
-	/*// check for the last char
-	if ((copy_start == op_buf->index) && op_buf->buf[copy_start] == '\n' && i<count){
+	op_buf->flags = op_buf->flags &  (~TTY_BUF_ENTER);
+	// special case for overflowed buffer
+	if (op_buf->index == op_buf->end){
 		buf[i] = op_buf->buf[copy_start];
-		// end remains the same, but the index reset to the one after end
-		op_buf->index = (op_buf->index + 1)%TTY_BUF_LENGTH;
-		++i;
-	}else{
-		// end enlarged to the copy start
-		op_buf->end = (copy_start + TTY_BUF_LENGTH - 1) % TTY_BUF_LENGTH;
-	}*/
+		// hold the end still, move the index to one after
+		op_buf->index = (op_buf->end + 1) % TTY_BUF_LENGTH;
+		return (i+1);
+	}
+
 	// guaranteed to have enter
 	op_buf->end = (copy_start + TTY_BUF_LENGTH - 1) % TTY_BUF_LENGTH;
 
-	return i;
+	return (i+1);
 }
 
 ssize_t tty_write(file_t *file, uint8_t *buf, size_t count, off_t *offset){
