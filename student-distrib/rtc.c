@@ -67,14 +67,21 @@ void rtc_handler(){
 	int i; // iterator
     rtc_count_prev = rtc_count;
     // Update count and alrm timer
-    if (rtc_count % RTC_MAX_FREQ == 0) {
-    	if(rtc_file_table[rtc_openfile].timer.it_value-- == 0) {
-    		rtc_file_table[rtc_openfile].timer.it_value = rtc_file_table[rtc_openfile].timer.it_interval;
-    		rtc_file_table[rtc_openfile].timer.it_interval = 0;
-    		syscall_kill(rtc_file_table[rtc_openfile].rtc_pid, 
-    			SIGALRM, 0);
-    	}
-    }
+    for(i = 0; i < rtc_openfile+1; i++) {
+	    if (rtc_count % RTC_MAX_FREQ == 0) {
+	    	if (rtc_file_table[i].timer.it_value < 0) {
+	    		rtc_file_table[i].timer.it_value = 0;
+	    		rtc_file_table[i].timer.it_interval = 0;
+	    		break;
+	    	}
+	    	
+	    	if(rtc_file_table[i].timer.it_value-- == 0) {
+	    		rtc_file_table[i].timer.it_value = rtc_file_table[i].timer.it_interval;
+	    		rtc_file_table[i].timer.it_interval = 0;
+	    		syscall_kill(rtc_file_table[i].rtc_pid, SIGALRM, 0);
+	    	}
+	    }
+	}
 	rtc_count++;
 
     // if ((rtc_count != rtc_count_prev) &&
@@ -305,3 +312,8 @@ int setitimer(struct itimerval *value, struct itimerval *old_value) {
 	return 0;
 
 }
+
+int nanosleep(struct itimerval *requested, struct itimerval *remain) {
+
+}
+

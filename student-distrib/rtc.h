@@ -236,4 +236,6 @@ int getitimer(struct itimerval *value);
 
 int setitimer(struct itimerval *value, struct itimerval *old_value); 
 
+int nanosleep(struct itimerval *requested, struct itimerval *remain);
+
 #endif /* _RTC_H */
