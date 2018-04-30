@@ -35,7 +35,7 @@ typedef struct s_tty{
 	uint32_t 		outdev_flag; 	///< flag and feature for output
 	uint32_t		flags; 			///< flags and attributes for tty
 	uint32_t 		fg_proc;		///< process pid currently running at foreground of this tty
-
+	uint32_t 		root_proc;		///< first process born with this tty
 	struct s_tty_buffer	buf; 			///< tty buffer
 
 	uint32_t 		input_pid_waiting;
@@ -60,6 +60,8 @@ typedef struct s_tty_out_driver{
 } tty_out_driver_t;*/
 
 int tty_init();
+
+int _tty_start_shell();
 
 int tty_driver_register();
 

@@ -304,8 +304,6 @@ int syscall__exit(int status, int b, int c) {
 		}
 	}
 
-	tty_detach(proc);
-
 	if (parent->status == TASK_ST_SLEEP || parent->status == TASK_ST_RUNNING) {
 		// Parent is alive
 		if (parent->sigacts[SIGCHLD].flags & SA_NOCLDWAIT) {

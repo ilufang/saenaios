@@ -35,6 +35,9 @@ int tty_init(){
 	// initialize the first tty
 	tty_list[0].tty_status = TTY_ACTIVE | TTY_FOREGROUND;
 	tty_list[0].output_private_data = terminal_out_tty_init();
+	tty_list[0].fg_proc = 1; 		// NOTE HARDCODED
+	tty_list[0].root_proc = 1;		// NOTE HARDCODED
+
 	cur_tty = &tty_list[0];
 	return 0;
 }
@@ -54,21 +57,31 @@ int tty_switch(int to_index){
 	int from_index = get_current_tty();
 	if (tty_list[to_index].tty_status == TTY_SLEEP){
 		_single_tty_init(to_index);
-		// create new process of fork
-		int child_pid = syscall_fork(0,0,0);
-		if (child_pid < 0){
-			//error condition
-			return child_pid;
-		}
-		task_t* child_proc = task_list + child_pid;
-		child_proc->regs.eax = SYSCALL_EXECVE;
-		child_proc->regs.ebx = (uint32_t)shell_cmdline;
-		child_proc->regs.ecx = (uint32_t)argv_placeholder;
-		child_proc->regs.edx = 0;
-		child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
+		int child_pid = _tty_start_shell();
+		if (child_pid < 0)	return child_pid;
+
+		tty_list[to_index].fg_proc = child_pid;
+		tty_list[to_index].root_proc = child_pid;
 	}
 	if (from_index == to_index) return 0;
 	return  _tty_switch(&tty_list[from_index],&tty_list[to_index]);
+}
+
+int _tty_start_shell(){
+	// create new process of fork
+	int child_pid = syscall_fork(0,0,0);
+	if (child_pid < 0){
+		//error condition
+		return child_pid;
+	}
+	task_t* child_proc = task_list + child_pid;
+	child_proc->regs.eax = SYSCALL_EXECVE;
+	child_proc->regs.ebx = (uint32_t)shell_cmdline;
+	child_proc->regs.ecx = (uint32_t)argv_placeholder;
+	child_proc->regs.edx = 0;
+	child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
+
+	return child_pid;
 }
 
 int _single_tty_init(int index){
@@ -101,6 +114,13 @@ int _tty_switch(tty_t* from, tty_t* to){
 void tty_attach(task_t* proc){
 	proc->tty = get_current_tty();
 	tty_list[proc->tty].fg_proc = proc->pid;
+	// if differs, means different tty
+	if (proc->files[1]->private_data != proc->tty){
+		syscall_close(0,0,0);
+		syscall_close(1,0,0);
+		syscall_open((int)"/dev/stdin", O_RDONLY, 0);
+		syscall_open((int)"/dev/stdout", O_RDONLY, 0);
+	}
 }
 
 void tty_detach(task_t* proc){
@@ -141,6 +161,22 @@ void tty_send_input(uint8_t* data, uint32_t size){
 				temp_buf[i] = data[i];
 				print_size ++;
 			}
+		}else if (data[i] == 3){
+			// send signal to end that process
+			syscall_kill(cur_tty->fg_proc, SIGTERM, 0);
+			// if this is the root proc of this tty, then restart a shell
+			if (cur_tty->fg_proc == cur_tty->root_proc){
+				int new_proc = _tty_start_shell();
+				if (new_proc < 0) {
+					// TODO VERY BAD THING HAPPENED, should crash the system
+					return;
+				}
+				(task_list + new_proc)->files[1]->private_data = get_current_tty();
+				cur_tty->fg_proc = new_proc;
+				cur_tty->root_proc = new_proc;
+			}else{
+				cur_tty->fg_proc = (task_list + cur_tty->fg_proc)->parent;
+			}
 		}else{
 			temp_buf[i] = data[i];
 			print_size ++;
@@ -152,10 +188,6 @@ void tty_send_input(uint8_t* data, uint32_t size){
 				op_buf->flags |= TTY_BUF_ENTER;
 			}
 		}
-		// note if this is a ctrl c request
-/*		if (data[i] == 3){
-			//
-		}*/
 	}
 	// special case for the last enter
 	if ((op_buf->index == op_buf->end) && (i<size) && (data[i] == '\n')){
@@ -176,7 +208,9 @@ void tty_send_input(uint8_t* data, uint32_t size){
 }
 
 int tty_open(struct s_inode *inode, struct s_file *file){
-	// do nothing
+	// set the private data to the process's tty
+	task_t* proc = task_list + task_current_pid();
+	file->private_data = proc->tty;
 	return 0;
 }
 
@@ -227,13 +261,13 @@ ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset)
 	return i;
 }
 
-ssize_t tty_write(struct s_file *file, uint8_t *buf, size_t count, off_t *offset){
+ssize_t tty_write(file_t *file, uint8_t *buf, size_t count, off_t *offset){
 	ssize_t ret;
-	// write something to stdout
-	task_t* proc = task_list + task_current_pid();
+	// get tty number from file private data
+	int tty_index = file->private_data;
 	// write to tty that the process belongs to
-	ret = tty_stdout(buf, count, tty_list[proc->tty].output_private_data);
-	if (cur_tty == (&tty_list[proc->tty])){
+	ret = tty_stdout(buf, count, tty_list[tty_index].output_private_data);
+	if (cur_tty == (&tty_list[tty_index])){
 		terminal_set_cursor(cur_tty->output_private_data);
 	}
 	return ret;

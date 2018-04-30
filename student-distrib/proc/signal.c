@@ -326,7 +326,8 @@ void signal_handler_ignore(task_t *proc, int sig) {
 
 void signal_handler_terminate(task_t *proc, int sig) {
 	// Print to stdout
-	syscall_write(1, (int)signal_names[sig], strlen(signal_names[sig]));
+	//syscall_write(1, (int)signal_names[sig], strlen(signal_names[sig]));
+	(*(proc->files[1]->f_op->write))(proc->files[1],(uint8_t*)signal_names[sig],strlen(signal_names[sig]),0);
 
 	// Let process execute _exit
 	proc->regs.eax = SYSCALL__EXIT;
