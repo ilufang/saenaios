@@ -182,10 +182,13 @@ void tty_send_input(uint8_t* data, uint32_t size){
 			print_size ++;
 			op_buf->buf[op_buf->index] = data[i];
 			op_buf->index = (op_buf->index + 1) % TTY_BUF_LENGTH;
-			if (temp_buf[i] == '\n' && keyboard_pid_waiting){
-				syscall_kill(keyboard_pid_waiting, SIGIO, 0);
-				keyboard_pid_waiting = 0;
+			if (temp_buf[i] == '\n' ){
 				op_buf->flags |= TTY_BUF_ENTER;
+				if (keyboard_pid_waiting){
+					syscall_kill(keyboard_pid_waiting, SIGIO, 0);
+					cur_tty->input_pid_waiting = 0;
+					keyboard_pid_waiting = 0;
+				}
 			}
 		}
 	}
@@ -197,6 +200,7 @@ void tty_send_input(uint8_t* data, uint32_t size){
 		temp_buf[i] = '\n'; 	// temp buffer used for stdout
 		print_size++;
 		syscall_kill(keyboard_pid_waiting, SIGIO, 0);
+		cur_tty->input_pid_waiting = 0;
 		keyboard_pid_waiting = 0;
 		op_buf->flags |= TTY_BUF_ENTER;
 	}
@@ -247,7 +251,7 @@ ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset)
 		if (buf[i] == '\n') break;
 	}
 	op_buf->flags -= TTY_BUF_ENTER;
-	// check for the last char
+	/*// check for the last char
 	if ((copy_start == op_buf->index) && op_buf->buf[copy_start] == '\n' && i<count){
 		buf[i] = op_buf->buf[copy_start];
 		// end remains the same, but the index reset to the one after end
@@ -256,7 +260,9 @@ ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset)
 	}else{
 		// end enlarged to the copy start
 		op_buf->end = (copy_start + TTY_BUF_LENGTH - 1) % TTY_BUF_LENGTH;
-	}
+	}*/
+	// guaranteed to have enter
+	op_buf->end = (copy_start + TTY_BUF_LENGTH - 1) % TTY_BUF_LENGTH;
 
 	return i;
 }
