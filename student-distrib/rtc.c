@@ -64,6 +64,7 @@ void rtc_init(){
 
 void rtc_handler(){
 	/* sends eoi */
+	int i; // iterator
     rtc_count_prev = rtc_count;
     // Update count and alrm timer
     if (rtc_count % RTC_MAX_FREQ == 0) {
@@ -79,8 +80,8 @@ void rtc_handler(){
     if ((rtc_count != rtc_count_prev) &&
         (rtc_count & (rtc_file_table[rtc_openfile].rtc_freq-1)) == 0) {
         
-        syscall_kill(rtc_pid_waiting[rtc_openfile], SIGIO, 0);
-        rtc_pid_waiting[rtc_openfile] = 0;
+        syscall_kill(rtc_file_table[rtc_openfile].rtc_pid, SIGIO, 0);
+        // rtc_pid_waiting[rtc_openfile] = 0;
         rtc_file_table[rtc_openfile].rtc_sleep = 0;
 
         }
@@ -139,6 +140,7 @@ int rtc_open(inode_t* inode, file_t* file) {
 	rtc_file_table[rtc_openfile].rtc_status |= RTC_IS_OPEN;
 	rtc_file_table[rtc_openfile].rtc_freq = 512;
 	rtc_file_table[rtc_openfile].rtc_pid = task_current_pid();
+	file->private_data = rtc_openfile;
 	rtc_count = 1;
 
 	return 0;
