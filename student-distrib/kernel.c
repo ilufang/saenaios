@@ -8,6 +8,7 @@
 #include "i8259.h"
 #include "keyboard.h"
 #include "rtc.h"
+#include "pit.h"
 #include "debug.h"
 #include "terminal_driver/terminal_out_driver.h"
 #include "terminal_driver/tty.h"
@@ -173,6 +174,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * PIC, any other initialization stuff... */
 	keyboard_init();
 	rtc_init();
+	pit_init();
 
 	signal_init();
 
