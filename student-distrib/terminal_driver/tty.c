@@ -142,6 +142,11 @@ uint8_t get_current_tty(){
 	return -1;	// very bad thing happened 	TODO
 }
 
+void _tty_clear_buffer(tty_t* tty){
+	// clear the tty buffer
+	tty->buf.end = (tty->buf.index + TTY_BUF_LENGTH - 1) % TTY_BUF_LENGTH;
+}
+
 void tty_send_input(uint8_t* data, uint32_t size){
 	// input is always sent to the current foreground tty
 	int i;
@@ -155,6 +160,8 @@ void tty_send_input(uint8_t* data, uint32_t size){
 			// send signal to end that process
 			syscall_kill(cur_tty->fg_proc, SIGTERM, 0);
 			cur_tty->fg_proc = (task_list + cur_tty->fg_proc)->parent;
+			// clear buffer for the tty
+			_tty_clear_buffer(cur_tty);
 			continue;
 		}
 		if (op_buf->index == op_buf->end){
@@ -171,18 +178,26 @@ void tty_send_input(uint8_t* data, uint32_t size){
 				temp_buf[i] = data[i];
 				print_size ++;
 			}
-		}else{
+		}else if (data[i] == '\n' ){
 			temp_buf[i] = data[i];
 			print_size ++;
 			op_buf->buf[op_buf->index] = data[i];
 			op_buf->index = (op_buf->index + 1) % TTY_BUF_LENGTH;
-			if (temp_buf[i] == '\n' ){
-				if (keyboard_pid_waiting){
-					syscall_kill(keyboard_pid_waiting, SIGIO, 0);
-					cur_tty->input_pid_waiting = 0;
-					keyboard_pid_waiting = 0;
-				}
+			if (keyboard_pid_waiting){
+				syscall_kill(keyboard_pid_waiting, SIGIO, 0);
+				cur_tty->input_pid_waiting = 0;
+				keyboard_pid_waiting = 0;
 			}
+		}else if (data[i] == 12){
+			// for clear screen, go to stdout, but don't go to buffer
+			temp_buf[i] = data[i];
+			print_size ++;
+		}else if (data[i] >= 32 && data[i] <= 126){
+			// printable characters go in
+			temp_buf[i] = data[i];
+			print_size ++;
+			op_buf->buf[op_buf->index] = data[i];
+			op_buf->index = (op_buf->index + 1) % TTY_BUF_LENGTH;
 		}
 	}
 	// special case for the last enter
