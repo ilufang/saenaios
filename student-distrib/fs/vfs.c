@@ -190,7 +190,7 @@ int syscall_lseek(int fd, int offset, int whence) {
 			default:
 				return -ENOSYS;
 		}
-		if (file->pos < 0) {
+		if ((int)file->pos < 0) {
 			file->pos = 0;
 		}
 		return file->pos;

@@ -291,12 +291,10 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 int syscall__exit(int status, int b, int c) {
 	task_t *proc, *parent;
-	task_sigact_t *sa;
 	int i;
 
 	proc = task_list + task_current_pid();
 	parent = task_list + proc->parent;
-	sa = parent->sigacts + SIGCHLD;
 	proc->regs.eax = status;
 
 	// Close all fd

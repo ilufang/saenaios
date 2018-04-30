@@ -613,7 +613,7 @@ int keyboard_driver_register(){
 ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
 	task_sigact_t sa;
 	sigset_t ss;
-
+	
 	if (prev_enter < 0){
 		// No enter in buffer, set process to sleep until SIGIO
 		keyboard_pid_waiting = task_current_pid();
@@ -626,7 +626,7 @@ ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
 		return 0; // Should not hit
 	}
 
-	if (prev_enter < count) {
+	if (prev_enter < (int) count) {
 		// If the flushable part of internal buffer is smaller than the external
 		// buffer, only copy the length of the flushable part of internal buffer
 		count = prev_enter;

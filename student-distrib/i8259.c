@@ -51,7 +51,7 @@ void enable_irq(uint32_t irq_num) {
 	// uint32_t ms_mask = BIT_MASK;
 
 	/* the irq line is on master PIC */
-	if(0<=irq_num && irq_num<=SLAVE_OFFSET){
+	if(irq_num<=SLAVE_OFFSET){
 		/* clear the corresponding bit in the mask */
 		mask = mask << irq_num;
 		mask = ~mask;
@@ -78,7 +78,7 @@ void disable_irq(uint32_t irq_num) {
 	uint32_t mask = BIT_MASK;
 
 	/* the irq line is on master */
-	if(0<=irq_num && irq_num<=SLAVE_OFFSET){
+	if(irq_num<=SLAVE_OFFSET){
 		/* set the corresponding bit */
 		mask = mask << irq_num;
 		master_mask |= mask;
@@ -99,7 +99,7 @@ void disable_irq(uint32_t irq_num) {
 
 void send_eoi(uint32_t irq_num) {
 
-	if(0<=irq_num && irq_num<=7){
+	if(irq_num<=7){
 		outb(EOI|irq_num, MASTER_8259_PORT);
 	}
 	else{

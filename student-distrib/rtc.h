@@ -14,10 +14,19 @@
 #include "lib.h"
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
+#include "proc/scheduler.h"
 
-typedef struct rtc_file {	
+typedef struct itimerval {
+	int it_interval;
+	int it_value;
+} itimerval_t;
+
+typedef struct rtc_file {
 	char rtc_status;
 	int rtc_freq;
+	pid_t rtc_pid;
+	itimerval_t timer;
+	volatile int rtc_sleep;
 } rtc_file_t;
 
 /**
@@ -204,5 +213,27 @@ ssize_t rtc_write(file_t* file, uint8_t* buf, size_t count, off_t* offset);
  */
 
 int is_power_of_two(int freq);
+
+/**
+ * 	Check the current state of alarm timer of a process.
+ *
+ * 	@param value: Receive the state of the alarm timer.
+ */
+
+int getitimer(struct itimerval *value);
+
+/**
+ * 	Set process' alarm timer to a new state
+ *
+ *	@param value: The new state to set.
+ * 	@param old_value: The previous state of the timer.
+ *
+ * 	@note: 	If value->it_interval set to 0, the alarm will be disabled after
+ *			expiration. Otherwise, the alarm will start a new count from 
+ *			it_interval's value. it_value indicates the current count.
+ *
+ */
+
+int setitimer(struct itimerval *value, struct itimerval *old_value); 
 
 #endif /* _RTC_H */
