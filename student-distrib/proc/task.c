@@ -274,6 +274,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	}
 
 	tty_attach(proc);
+	proc->vidmap = 0; 	// f**king video map
 
 	proc->status = TASK_ST_RUNNING;
 

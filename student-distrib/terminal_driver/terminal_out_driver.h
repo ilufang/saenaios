@@ -22,6 +22,7 @@
 #define ATTRIB      0x7				///< default attribute for characters on the screen
 
 #define MAX_STDOUT	4
+#define MAX_VID_MAP_PAGE 16
 
 #define TERMINAL_OUT_LF  		10	///< number for control code to new line
 #define TERMINAL_OUT_BACKSPACE 	8	///< number for control code to backspace
@@ -172,5 +173,7 @@ extern void terminal_set_cursor(void* data);
 void* terminal_out_tty_init();
 
 int terminal_out_tty_switch(void* fromp, void* top);
+
+int syscall_ece391_vidmap(int start_addr, int b, int c);
 
 #endif

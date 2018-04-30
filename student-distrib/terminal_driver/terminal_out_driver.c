@@ -3,6 +3,8 @@
 #define VIDMEM_START 	0xB8000
 #define TTY_4KB 		0x1000
 
+#define VIDMAP_START 	0x8000000 + 0x300000 	// note brutal force here!
+
 static stdout_data_t stdout[MAX_STDOUT];
 
 static int stdout_index = 0;
@@ -59,6 +61,58 @@ int terminal_out_close(inode_t* inode,file_t* file){
 	return 0; // does nothing for now
 }
 
+void _vidmap_switch(uint32_t from, uint32_t to){
+	int i;
+	task_t* proc;
+	// also for the dam video map
+	for (i=0; i<TASK_MAX_PROC; ++i){
+		proc = task_list + i;
+		if (proc->status != 0){
+			if (proc->vidmap != 0){
+				if (proc->vidmap == from){
+					proc->vidmap = to;
+					proc->pages[proc->vidpage_index].paddr = proc->vidmap;
+				}else if (proc->vidmap == to){
+					proc->vidmap = from;
+					proc->pages[proc->vidpage_index].paddr = proc->vidmap;
+				}
+			}
+		}
+	}
+}
+
+int syscall_ece391_vidmap(int start_addr_in, int b, int c){
+	uint8_t** start_addr = (uint8_t**)start_addr_in;
+	task_t* proc = task_list + task_current_pid();
+
+	// add it in process pages
+	int i;
+	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
+		if (!(proc->pages[i].pt_flags & PAGE_TAB_ENT_PRESENT)){
+			proc->pages[i].vaddr = VIDMAP_START;
+			proc->pages[i].paddr = VIDMEM_START;
+			proc->pages[i].pt_flags =  PAGE_TAB_ENT_PRESENT|PAGE_TAB_ENT_RDWR|PAGE_TAB_ENT_USER;
+			break;
+		}
+	}
+	if (i >= TASK_MAX_PAGE_MAPS){
+		return -1;
+	}
+
+	_page_tab_delete_entry(VIDMAP_START);
+	if (_page_tab_add_entry(proc->pages[i].vaddr,
+			proc->pages[i].paddr,
+			proc->pages[i].pt_flags)){
+		*start_addr = NULL;
+		return -1;
+	}
+	*start_addr = (uint8_t*)VIDMAP_START;
+	proc->vidmap = VIDMEM_START;
+	proc->vidpage_index = i;
+
+	return 0;
+}
+
 void* terminal_out_tty_init(){
 	if (stdout_index >= MAX_STDOUT){
 		errno = -ENOSPC;
@@ -105,6 +159,9 @@ int terminal_out_tty_switch(void* fromp, void* top){
 	// switch page entries virtual memory mapping
 	_page_tab_delete_entry(from->vidmem.vaddr);
 	_page_tab_delete_entry(to->vidmem.vaddr);
+
+	_vidmap_switch(from->vidmem.paddr, to->vidmem.paddr);
+
 	temp = from->vidmem.paddr;
 	from->vidmem.paddr = to->vidmem.paddr;
 	to->vidmem.paddr = temp;
@@ -112,6 +169,7 @@ int terminal_out_tty_switch(void* fromp, void* top){
 	if (ret) return ret;
 	ret = _page_tab_add_entry(to->vidmem.vaddr,to->vidmem.paddr,to->vidmem.pt_flags);
 	if (ret) return ret;
+
 
 	terminal_set_cursor(top);
 	return 0;
