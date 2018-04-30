@@ -43,6 +43,8 @@ void task_create_kernel_pid() {
 	tss.esp0 = init_task->ks_esp = (uint32_t)(kstack+1);
 	task_pid_allocator = 0;
 
+	init_task->sigacts[SIGCHLD].flags = SA_NOCLDWAIT;
+	
 	// initialize kernel stack page
 	for (i=0; i<512; ++i){
 		kstack[i].pid = -1;
@@ -292,10 +294,24 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 int syscall__exit(int status, int b, int c) {
 	task_t *proc, *parent;
-	int i;
+	int i, new_proc;
 
 	proc = task_list + task_current_pid();
 	parent = task_list + proc->parent;
+
+	// Start a new shell if the terminal has nothing to run
+	if (cur_tty && proc->pid == cur_tty->root_proc){
+		new_proc = _tty_start_shell();
+		if (new_proc < 0) {
+			printf("Cannot create new shell\n");
+		} else {
+			printf("Creating new shell\n");
+			task_list[new_proc].files[1]->private_data = get_current_tty();
+			cur_tty->fg_proc = new_proc;
+			cur_tty->root_proc = new_proc;
+		}
+	}
+	
 	proc->regs.eax = status;
 
 	// Close all fd
@@ -312,7 +328,7 @@ int syscall__exit(int status, int b, int c) {
 			scheduler_page_clear(proc->pages);
 			task_release(proc);
 			// Restart parent `wait` in case this is the last child
-			syscall_kill(parent->pid, SIGCHLD, 0);
+			syscall_kill(parent->pid, SIGCONT, 0);
 		} else {
 			proc->status = TASK_ST_ZOMBIE;
 			if (WIFSIGNALED(status)) {
@@ -509,6 +525,7 @@ int syscall_ece391_getargs(int bufp, int nbytes, int c) {
 
 void task_release(task_t *proc) {
 	int i;
+
 	// Mark program as dead
 	proc->status = TASK_ST_DEAD;
 	// Release all pages

@@ -7,7 +7,7 @@ static file_operations_t tty_f_op;
 static char shell_cmdline[6] = "shell";
 static char* argv_placeholder = NULL;
 
-static tty_t* cur_tty;
+tty_t* cur_tty = NULL;
 static uint8_t temp_buf[TTY_BUF_LENGTH];
 
 //static uint32_t keyboard_pid_waiting = 0;
@@ -38,7 +38,6 @@ int tty_init(){
 	tty_list[0].fg_proc = 1; 		// NOTE HARDCODED
 	tty_list[0].root_proc = 1;		// NOTE HARDCODED
 
-	cur_tty = &tty_list[0];
 	return 0;
 }
 
@@ -112,6 +111,9 @@ int _tty_switch(tty_t* from, tty_t* to){
 }
 
 void tty_attach(task_t* proc){
+	if (!cur_tty) {
+		cur_tty = &tty_list[0];
+	}
 	proc->tty = get_current_tty();
 	tty_list[proc->tty].fg_proc = proc->pid;
 	// if differs, means different tty
@@ -164,19 +166,7 @@ void tty_send_input(uint8_t* data, uint32_t size){
 		}else if (data[i] == 3){
 			// send signal to end that process
 			syscall_kill(cur_tty->fg_proc, SIGTERM, 0);
-			// if this is the root proc of this tty, then restart a shell
-			if (cur_tty->fg_proc == cur_tty->root_proc){
-				int new_proc = _tty_start_shell();
-				if (new_proc < 0) {
-					// TODO VERY BAD THING HAPPENED, should crash the system
-					return;
-				}
-				(task_list + new_proc)->files[1]->private_data = get_current_tty();
-				cur_tty->fg_proc = new_proc;
-				cur_tty->root_proc = new_proc;
-			}else{
-				cur_tty->fg_proc = (task_list + cur_tty->fg_proc)->parent;
-			}
+			cur_tty->fg_proc = (task_list + cur_tty->fg_proc)->parent;
 		}else{
 			temp_buf[i] = data[i];
 			print_size ++;
