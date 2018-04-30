@@ -77,14 +77,25 @@ void rtc_handler(){
     }
 	rtc_count++;
 
-    if ((rtc_count != rtc_count_prev) &&
-        (rtc_count & (rtc_file_table[rtc_openfile].rtc_freq-1)) == 0) {
+    // if ((rtc_count != rtc_count_prev) &&
+    //     (rtc_count & (rtc_file_table[rtc_openfile].rtc_freq-1)) == 0) {
         
-        syscall_kill(rtc_file_table[rtc_openfile].rtc_pid, SIGIO, 0);
-        // rtc_pid_waiting[rtc_openfile] = 0;
-        rtc_file_table[rtc_openfile].rtc_sleep = 0;
+    //     syscall_kill(rtc_file_table[rtc_openfile].rtc_pid, SIGIO, 0);
+    //     // rtc_pid_waiting[rtc_openfile] = 0;
+    //     rtc_file_table[rtc_openfile].rtc_sleep = 0;
 
-        }
+    // }
+
+    if ((rtc_count != rtc_count_prev)) {
+    	for (i = 0; i < rtc_openfile+1; i++) {
+    		if (((rtc_count & (rtc_file_table[i].rtc_freq-1)) == 0) &&
+    			(rtc_file_table[i].rtc_sleep == 1)) {
+    			syscall_kill(rtc_file_table[i].rtc_pid, SIGIO, 0);
+    			rtc_file_table[i].rtc_sleep = 0;
+    		}
+    	}
+    }
+
 	send_eoi(RTC_IRQ_NUM);
 	// rtc_read();
 	// test_interrupts();
