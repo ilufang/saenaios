@@ -19,8 +19,14 @@
  */
 void page_ece391_init();
 
+/**
+ * 	Add flags to kernel memory descriptors
+ */
 void page_kernel_mem_map_init();
 
+/**
+ *	Initialize memory descriptors for kernel memory
+ */
 void page_phys_mem_map_init();
 
 /**
@@ -228,12 +234,19 @@ typedef struct s_page_table{
 	page_table_entry_t page_table_entry[1024]; ///< page table entry array, must be 1024
 } __attribute__((packed, aligned(4096))) page_table_t;
 
+
+/**
+ *	4MB physical memory descriptor
+ */
 typedef struct s_page_4MB_descriptor{
 	uint32_t				flags;	///< private flags for physical memory administration
 	int 					count;	///< use count or reference count
 	struct s_page_4KB_descriptor* 	pages;
 } page_4MB_descriptor_t;
 
+/**
+ *	4KB physical memory descriptor
+ */
 typedef struct s_page_4KB_descriptor{
 	uint32_t 	flags;		///< private flags for physical memory administration
 	int 		count;		///< use count or reference count

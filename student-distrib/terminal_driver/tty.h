@@ -109,17 +109,61 @@ void tty_send_input(uint8_t* data, uint32_t size);
 /**
  *	attach a process to tty
  *
+ * 	@note will create new stdin stdout file if new tty
  */
 void tty_attach(task_t* proc);
 
+/**
+ *	detach a process from its tty
+ *
+ *	@note not used
+ */
 void tty_detach(task_t* proc);
 
+/**
+ *	Read function for tty
+ *
+ *	@param file: the file to read
+ *	@param buf: the buffer to read into
+ *	@param count: maximum number of bytes, or size of buffer
+ *	@param offset: pointer to file pointer. This function must use this
+ *				   parameter, not the `pos` field in `file`. Although it
+ *				   will point to `pos` most of the time, VFS may specify
+ *				   a different value and must preserve `pos`, such as in
+ *				   `pread`
+ *	@return number of bytes read, or the negative of an errno on failure
+ */
 ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset);
 
+/**
+ *	Write function for tty
+ *
+ *	@param file: the file to write
+ *	@param buf: the data to write
+ *	@param count: the size of buffer
+ *	@param offset: see `offset` of `read`
+ *	@return number of bytes written, or the negative of an errno on failure
+ */
 ssize_t tty_write(struct s_file *file, uint8_t *buf, size_t count, off_t *offset);
 
+/**
+ *	Open function for tty
+ *
+ *	private data written for tty index
+ *
+ *	@param inode: the i-node the file is opened from
+ *	@param file: the newly-opened file
+ *	@return 0 on success, or the negative of an errno on failure
+ */
 int tty_open(struct s_inode *inode, struct s_file *file);
 
+/**
+ *	Release function for tty
+ *
+ *	@param inode: the i-node the file is opened from
+ *	@param file: the file to be closed
+ *	@return 0 on success, or the negative of an errno on failure
+ */
 int tty_close(struct s_inode *inode, struct s_file *file);
 
 /**
@@ -127,12 +171,21 @@ int tty_close(struct s_inode *inode, struct s_file *file);
  */
 uint8_t get_current_tty();
 
+/**
+ * 	external call to switch to another tty
+ *
+ * 	@param to_index: the index of the tty to switch to
+ *	@return 0 on success, negative error number on errors
+ */
 int tty_switch(int to_index);
 
+/**
+ *	private helper function to switch tty
+ *
+ *	@param from: the tty to be switched off
+ *	@param to: the tty to be switched on
+ *	@return 0 on success, negative error number on errors
+ */
 int _tty_switch(tty_t* from, tty_t* to);
-
-int tty_register(uint8_t number, tty_t* new);
-
-
 
 #endif
