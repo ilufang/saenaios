@@ -61,6 +61,7 @@ typedef struct s_task {
 	struct sigaction sigacts[SIG_MAX]; ///< Signal handlers
 	sigset_t signals;	///< Pending signals
 	sigset_t signal_mask; ///< Deferred signals
+	uint32_t exit_status; ///< Status to report on `wait`
 } task_t;
 
 /**
@@ -126,13 +127,14 @@ int syscall_execve(int pathp, int argvp, int envpp);
 int syscall__exit(int status, int, int);
 
 /**
- *	Wait for child process to terminate
+ *	Wait for child process to change status
  *
- *	@param statusp: pointer to int buffer for receiving return value
- *	@return the pid of the terminated process on success, or the negative of
- *			an errno on failure
+ *	@param pid: the pid to wait for, or -1 to wait for all child processes
+ *	@param statusp: pointer to an `int` buffer. The child's status will be
+ *					populated into this buffer
+ *	@param options: bit map of option flags
  */
-int syscall_wait(int statusp, int, int);
+int syscall_waitpid(int pid, int statusp, int options);
 
 /**
  *	ECE391 (`system` style) execute wrapper

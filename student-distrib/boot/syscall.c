@@ -79,7 +79,7 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_FORK, syscall_fork);
 	syscall_register(SYSCALL__EXIT, syscall__exit);
 	syscall_register(SYSCALL_EXECVE, syscall_execve);
-	syscall_register(SYSCALL_WAIT, syscall_wait);
+	syscall_register(SYSCALL_WAITPID, syscall_waitpid);
 	syscall_register(SYSCALL_GETPID, syscall_getpid);
 
 	// Signals
