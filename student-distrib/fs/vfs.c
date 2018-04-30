@@ -57,11 +57,11 @@ int syscall_open(int pathaddr, int flags, int mode) {
 		return -errno;
 	}
 
-	errno = -(*file->f_op->open)(inode, file);
+	/*errno = -(*file->f_op->open)(inode, file);
 	if (errno != 0) {
 		vfs_close_file(file);
 		return -errno;
-	}
+	}*/
 	proc->files[avail_fd] = file;
 	return avail_fd;
 }
@@ -99,6 +99,7 @@ int syscall_close(int fd, int b, int c) {
 int syscall_ece391_read(int fd, int bufaddr, int size) {
 	int ret;
 	struct dirent dent;
+	if (fd == 1) return -1;
 	ret = syscall_read(fd, bufaddr, size);
 	if (ret == -EISDIR) {
 		dent.index = DIRENT_INDEX_AUTO; // Workaround ece391_read auto dir listing
@@ -140,6 +141,7 @@ int syscall_read(int fd, int bufaddr, int count) {
 
 int syscall_ece391_write(int fd, int bufaddr, int count) {
 	int ret;
+	if (fd == 0) return -1;
 	ret = syscall_write(fd, bufaddr, count);
 	if (ret < 0)
 		return -1;
@@ -190,7 +192,7 @@ int syscall_lseek(int fd, int offset, int whence) {
 			default:
 				return -ENOSYS;
 		}
-		if (file->pos < 0) {
+		if ((int)file->pos < 0) {
 			file->pos = 0;
 		}
 		return file->pos;

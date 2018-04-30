@@ -155,7 +155,7 @@ int elf_load(int fd)  {
 			return ret;
 		}
 		ret = syscall_read(fd, ph.vaddr, ph.filesz);
-		if (ret != ph.filesz) {
+		if (ret != (int)ph.filesz) {
 			return -EIO;
 		}
 		if (!(ph.flags & 2)) {

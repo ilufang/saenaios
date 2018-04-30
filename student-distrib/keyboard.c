@@ -11,6 +11,12 @@
 #define PRESSED     1			///< key state pressed
 #define UNPRESSED   0			///< key state unpressed
 
+/*#define TERMINAL_ONE	104
+#define TERMINAL_TWO	105
+#define TERMINAL_THR	106
+#define TERMINAL_FUR 	107*/
+
+#define TERMINAL_OFFSET (-104)
 /**
  *	Keyboard modes corresponding to capslock and shift state
  */
@@ -280,6 +286,50 @@ uint8_t kbdctl[128] =
 	0,	/* All other keys are undefined */
 };
 
+/**
+ *	keycode lookup table for alt pressed
+ *	keycode reference: http://webpages.charter.net/danrollins/techhelp/0055.HTM
+ */
+uint8_t kbdalt[128] =
+{
+  0,  27,  120, 121, 122, 123, 124, 125, 126, 127, /* 9 */
+  128, 129, 130, 131, 14, /* Backspace */
+  165,     /* Tab */
+  16, 17, 18, 19, /* 19 */
+  20, 21, 22, 23, 24, 25, 26, 27, 28, /* Enter key */
+  0,      /* 29   - Control */
+  30, 31, 32, 33, 34, 35, 36, 37, 38, 39, /* 39 */
+  40, 41,   0,    /* Left shift */
+  43, 44, 45, 46, 47, 48, 49,      /* 49 */
+  50, 51, 52, 53,   0,        /* Right shift */
+	'*',
+  0,  /* Alt */
+  ' ',  /* Space bar */
+  0,  /* Caps lock */
+  104,  /* 59 - F1 key ... > */
+	105,   106,   107,   108,   109,   110,   111,   112,
+  113,  /* < ... F10 */
+  0,  /* 69 - Num lock*/
+  0,  /* Scroll Lock */
+  0,  /* Home key */
+  0,  /* Up Arrow */
+  0,  /* Page Up */
+	'-',
+  0,  /* Left Arrow */
+	0,
+  0,  /* Right Arrow */
+	'+',
+  0,  /* 79 - End key*/
+  0,  /* Down Arrow */
+  0,  /* Page Down */
+  0,  /* Insert Key */
+  0,  /* Delete Key */
+	0,   0,   0,
+  139,  /* F11 Key */
+  140,  /* F12 Key */
+  0,  /* All other keys are undefined */
+};
+
 /// PID that is awaiting input
 pid_t keyboard_pid_waiting;
 
@@ -370,9 +420,33 @@ void regular_key(uint8_t scancode){
 	uint8_t scanchar;
 
 	// send control character if control key is pressed
-	if(ctrl_status == PRESSED){
+	if(alt_status == PRESSED){
+		scanchar = kbdalt[scancode];
+		/*
+		uint8_t scanchar_buf[2];
+		scanchar_buf[0] = 0;
+		scanchar_buf[1] = scanchar;
+		tty_send_input((uint8_t*)scanchar_buf, 2);*/
+		/*switch(scanchar){
+			case TERMINAL_ONE:
+			//something
+			break;
+			case TERMINAL_TWO:
+			//something
+			break;
+			case TERMINAL_THR:
+			//something
+			break;
+		//TODO: switch terminal or something like that?
+		}*/
+		scanchar += TERMINAL_OFFSET;
+		if (scanchar < MAX_STDOUT)
+			tty_switch(scanchar);
+		return;
+	}
+	else if(ctrl_status == PRESSED){
 		scanchar = kbdctl[scancode];
-		terminal_out_write_(&scanchar,1);
+		tty_send_input(&scanchar, 1);
 		return;
 	}
 	else{
@@ -393,6 +467,8 @@ void regular_key(uint8_t scancode){
 		}
 	}
 
+	tty_send_input(&scanchar, 1);
+	/*
 	switch(scanchar){
 		// if enter is pressed, mark the previous enter position
 		case ENTER_CHAR:
@@ -430,7 +506,7 @@ void regular_key(uint8_t scancode){
 		}
 		break;
 	}
-
+	*/
 }
 
 /**
@@ -537,7 +613,7 @@ int keyboard_driver_register(){
 ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
 	task_sigact_t sa;
 	sigset_t ss;
-
+	
 	if (prev_enter < 0){
 		// No enter in buffer, set process to sleep until SIGIO
 		keyboard_pid_waiting = task_current_pid();
@@ -550,7 +626,7 @@ ssize_t keyboard_read(file_t* file, uint8_t *buf, size_t count, off_t *offset){
 		return 0; // Should not hit
 	}
 
-	if (prev_enter < count) {
+	if (prev_enter < (int) count) {
 		// If the flushable part of internal buffer is smaller than the external
 		// buffer, only copy the length of the flushable part of internal buffer
 		count = prev_enter;

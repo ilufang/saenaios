@@ -8,8 +8,10 @@
 #include "i8259.h"
 #include "keyboard.h"
 #include "rtc.h"
+#include "pit.h"
 #include "debug.h"
 #include "terminal_driver/terminal_out_driver.h"
+#include "terminal_driver/tty.h"
 #include "tests.h"
 
 #include "fsdriver/mp3fs_driver.h"
@@ -32,7 +34,7 @@
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
 void entry(unsigned long magic, unsigned long addr) {
-	int mp3fs_load_addr;
+	int mp3fs_load_addr = 0;
 	multiboot_info_t *mbi;
 
 	/* Clear the screen. */
@@ -70,7 +72,7 @@ void entry(unsigned long magic, unsigned long addr) {
 		module_t* mod = (module_t*)mbi->mods_addr;
         mp3fs_load_addr = mod->mod_start;
 
-		while (mod_count < mbi->mods_count) {
+		while ((unsigned int)mod_count < mbi->mods_count) {
 			printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
 			printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
 			printf("First few bytes of module:\n");
@@ -161,6 +163,10 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Initialize Paging */
 	page_ece391_init();
 
+	// init tty
+	tty_init();
+	terminal_out_clear();
+
 	/* Init the PIC */
 	i8259_init();
 
@@ -168,6 +174,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * PIC, any other initialization stuff... */
 	keyboard_init();
 	rtc_init();
+	pit_init();
 
 	signal_init();
 
@@ -175,12 +182,12 @@ void entry(unsigned long magic, unsigned long addr) {
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
-	printf("Enabling Interrupts\n");
+	//printf("Enabling Interrupts\n");
 	sti();
 
 	// install device driver fs
 	devfs_installfs();
-	if (mp3fs_installfs(mp3fs_load_addr)){
+	if (!mp3fs_load_addr || mp3fs_installfs(mp3fs_load_addr)){
 		printf("error installing mp3fs\n");
 		while(1);
 	}
@@ -190,10 +197,10 @@ void entry(unsigned long magic, unsigned long addr) {
 	syscall_mount((int)"devfs", (int)"/dev", (int)(&mount_opts));
 
 	// register drivers
-	terminal_out_driver_register();
-	keyboard_driver_register();
 	rtc_out_driver_register();
-
+	keyboard_driver_register();
+	terminal_out_driver_register();
+	tty_driver_register();
 
 #ifdef RUN_TESTS
 	/* Run tests */

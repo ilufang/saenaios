@@ -4,6 +4,7 @@
 #include "elf.h"
 #include "signal.h"
 #include "scheduler.h"
+#include "../terminal_driver/tty.h"
 #include "../../libc/include/sys/wait.h"
 
 task_t task_list[TASK_MAX_PROC];
@@ -42,6 +43,8 @@ void task_create_kernel_pid() {
 	tss.esp0 = init_task->ks_esp = (uint32_t)(kstack+1);
 	task_pid_allocator = 0;
 
+	init_task->sigacts[SIGCHLD].flags = SA_NOCLDWAIT;
+	
 	// initialize kernel stack page
 	for (i=0; i<512; ++i){
 		kstack[i].pid = -1;
@@ -272,6 +275,9 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		sigaddset(&(proc->sigacts[i].mask), i);
 	}
 
+	tty_attach(proc);
+	proc->vidmap = 0; 	// f**king video map
+
 	proc->status = TASK_ST_RUNNING;
 
 	page_flush_tlb();
@@ -288,12 +294,24 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 int syscall__exit(int status, int b, int c) {
 	task_t *proc, *parent;
-	task_sigact_t *sa;
-	int i;
+	int i, new_proc;
 
 	proc = task_list + task_current_pid();
 	parent = task_list + proc->parent;
-	sa = parent->sigacts + SIGCHLD;
+
+	// Start a new shell if the terminal has nothing to run
+	if (cur_tty && proc->pid == cur_tty->root_proc){
+		new_proc = _tty_start_shell();
+		if (new_proc < 0) {
+			printf("Cannot create new shell\n");
+		} else {
+			printf("Creating new shell\n");
+			task_list[new_proc].files[1]->private_data = get_current_tty();
+			cur_tty->fg_proc = new_proc;
+			cur_tty->root_proc = new_proc;
+		}
+	}
+	
 	proc->regs.eax = status;
 
 	// Close all fd
@@ -310,7 +328,7 @@ int syscall__exit(int status, int b, int c) {
 			scheduler_page_clear(proc->pages);
 			task_release(proc);
 			// Restart parent `wait` in case this is the last child
-			syscall_kill(parent->pid, SIGCHLD, 0);
+			syscall_kill(parent->pid, SIGCONT, 0);
 		} else {
 			proc->status = TASK_ST_ZOMBIE;
 			if (WIFSIGNALED(status)) {
@@ -341,9 +359,9 @@ int syscall_waitpid(int cpid, int statusp, int options) {
 	if (!statusp) {
 		return -EFAULT;
 	}
-	
+
 	status = (int *) statusp;
-	
+
 	pid = task_current_pid();
 
 	found_child = 0;
@@ -507,6 +525,7 @@ int syscall_ece391_getargs(int bufp, int nbytes, int c) {
 
 void task_release(task_t *proc) {
 	int i;
+
 	// Mark program as dead
 	proc->status = TASK_ST_DEAD;
 	// Release all pages
@@ -568,6 +587,8 @@ int task_access_memory(uint32_t addr) {
 
 	proc = task_list + task_current_pid();
 	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
+		if (!(proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT))
+			break;
 		if (addr < proc->pages[i].vaddr)
 			continue;
 		if (proc->pages[i].pt_flags & PAGE_DIR_ENT_4MB) {

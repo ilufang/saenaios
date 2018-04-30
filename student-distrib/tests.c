@@ -262,7 +262,7 @@ extern int do_syscall(int num, int b, int c, int d);
  *	@return 0xac if data matched, 0xbad if it does not
  */
 int test_syscall_handler(int a, int b, int c) {
-	if (a == 42 && b == -391 && c == 0xecebcafe) {
+	if (a == 42 && b == -391 && c == (int)0xecebcafe) {
 		return 0xac;
 	}
 	printf("Syscall passed in bad values\n");
@@ -532,6 +532,7 @@ void launch_tests() {
 	//TEST_OUTPUT("syscall_devfs_stdout_test", test_stdio_with_fd());
 
 	TEST_OUTPUT("paging test",paging_test());
+	TEST_OUTPUT("rtc_test_2", rtc_test_2());
 
 	// IDT tests
 	//TEST_OUTPUT("idt_test", idt_test());
@@ -562,9 +563,7 @@ void launch_tests() {
 
 	// TEST_OUTPUT("mp3fs driver test", launch_mp3fs_driver_test());
 
-	fs_test();
+	// fs_test();
 
 	// TEST_OUTPUT("test_keyboard_read", test_keyboard_read());
-
-	// TEST_OUTPUT("rtc_test_2", rtc_test_2());
 }

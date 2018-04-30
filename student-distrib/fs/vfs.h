@@ -19,6 +19,8 @@
 #define FTYPE_SYMLINK	'l'	///< File type: symbolic link
 #define FTYPE_DEVICE	'p'	///< File type: special device file
 
+#define MP3FS_IDENTIFIER 0xecebcafe ///< MP3FS RTC symlink identifier
+
 // Forward declarations
 struct s_file;
 struct s_inode;
@@ -415,7 +417,7 @@ int syscall_write(int fd, int bufaddr, int size);
  *
  *	@param fd: the file descriptor to write to
  *	@param bufaddr: pointer to the user buffer to write from
- *	@param size: the size of the buffer
+ *	@param count: the size of the buffer
  *	@return the number of bytes written, or -1 on failure.
  */
 int syscall_ece391_write(int fd, int bufaddr, int count);
