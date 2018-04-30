@@ -64,21 +64,21 @@ void rtc_init(){
 
 void rtc_handler(){
 	/* sends eoi */
-	int i; // iterator
+	int iter; // iterator
     rtc_count_prev = rtc_count;
     // Update count and alrm timer
-    for(i = 0; i < rtc_openfile+1; i++) {
+    for(iter = 0; iter < rtc_openfile+1; iter++) {
 	    if (rtc_count % RTC_MAX_FREQ == 0) {
-	    	if (rtc_file_table[i].timer.it_value < 0) {
-	    		rtc_file_table[i].timer.it_value = 0;
-	    		rtc_file_table[i].timer.it_interval = 0;
+	    	if (rtc_file_table[iter].timer.it_value < 0) {
+	    		rtc_file_table[iter].timer.it_value = 0;
+	    		rtc_file_table[iter].timer.it_interval = 0;
 	    		break;
 	    	}
-	    	
-	    	if(rtc_file_table[i].timer.it_value-- == 0) {
-	    		rtc_file_table[i].timer.it_value = rtc_file_table[i].timer.it_interval;
-	    		rtc_file_table[i].timer.it_interval = 0;
-	    		syscall_kill(rtc_file_table[i].rtc_pid, SIGALRM, 0);
+
+	    	if(rtc_file_table[iter].timer.it_value-- == 0) {
+	    		rtc_file_table[iter].timer.it_value = rtc_file_table[iter].timer.it_interval;
+	    		rtc_file_table[iter].timer.it_interval = 0;
+	    		syscall_kill(rtc_file_table[iter].rtc_pid, SIGALRM, 0);
 	    	}
 	    }
 	}
@@ -94,11 +94,12 @@ void rtc_handler(){
     // }
 
     if ((rtc_count != rtc_count_prev)) {
-    	for (i = 0; i < rtc_openfile+1; i++) {
-    		if (((rtc_count & (rtc_file_table[i].rtc_freq-1)) == 0) &&
-    			(rtc_file_table[i].rtc_sleep == 1)) {
-    			syscall_kill(rtc_file_table[i].rtc_pid, SIGIO, 0);
-    			rtc_file_table[i].rtc_sleep = 0;
+    	for (iter = 0; iter < rtc_openfile+1; iter++) {
+    		if ((rtc_file_table[iter].rtc_freq != 0) &&
+    			((rtc_count & (rtc_file_table[iter].rtc_freq-1)) == 0) &&
+    			(rtc_file_table[iter].rtc_sleep == 1)) {
+    			syscall_kill(rtc_file_table[iter].rtc_pid, SIGIO, 0);
+    			rtc_file_table[iter].rtc_sleep = 0;
     		}
     	}
     }
@@ -314,6 +315,17 @@ int setitimer(struct itimerval *value, struct itimerval *old_value) {
 }
 
 int nanosleep(struct itimerval *requested, struct itimerval *remain) {
+
+	if (requested == NULL || remain == NULL) {
+		return -EINVAL;
+	}
+	if (requested->it_value == 0 || requested->it_value > ALRM_MAX_TIMER) {
+		return -EINVAL;
+	}
+	if (requested->it_interval != 0) {
+		return -EINVAL;
+	}
+	return setitimer(requested, remain);
 
 }
 
