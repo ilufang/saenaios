@@ -134,6 +134,7 @@ int mp3fs_installfs(int32_t bootblock_start_addr){
 
     // get address of boot block from parameter
     boot_ptr = (mp3fs_bootblock_t*)bootblock_start_addr;
+    // pinpoint install position of mp3fs
     if ((bootblock_start_addr > 0x800000) && (bootblock_start_addr < 0xC00000)){
         page_dir_add_4MB_entry(bootblock_start_addr,bootblock_start_addr,
                             PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
