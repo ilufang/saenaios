@@ -35,7 +35,7 @@ int rtc_out_driver_register() {
 	rtc_out_op.readdir = NULL;
 
 	for (i = 0; i < RTC_MAX_OPEN; i++) {
-        rtc_file_table[i].rtc_pid = 0;
+        rtc_file_table[i].rtc_pid = -1;
 		rtc_file_table[i].rtc_status = 0;
 		rtc_file_table[i].rtc_freq = 0;
         rtc_file_table[i].rtc_sleep = -1;
@@ -64,17 +64,24 @@ void rtc_init(){
 
 void rtc_handler(){
 	/* sends eoi */
-	int i; // iterator
+	int iter; // iterator
     rtc_count_prev = rtc_count;
     // Update count and alrm timer
-    if (rtc_count % RTC_MAX_FREQ == 0) {
-    	if(rtc_file_table[rtc_openfile].timer.it_value-- == 0) {
-    		rtc_file_table[rtc_openfile].timer.it_value = rtc_file_table[rtc_openfile].timer.it_interval;
-    		rtc_file_table[rtc_openfile].timer.it_interval = 0;
-    		syscall_kill(rtc_file_table[rtc_openfile].rtc_pid, 
-    			SIGALRM, 0);
-    	}
-    }
+    for(iter = 0; iter < rtc_openfile+1; iter++) {
+	    if (rtc_count % RTC_MAX_FREQ == 0) {
+	    	if (rtc_file_table[iter].timer.it_value < 0) {
+	    		rtc_file_table[iter].timer.it_value = 0;
+	    		rtc_file_table[iter].timer.it_interval = 0;
+	    		break;
+	    	}
+
+	    	if(rtc_file_table[iter].timer.it_value-- == 0) {
+	    		rtc_file_table[iter].timer.it_value = rtc_file_table[iter].timer.it_interval;
+	    		rtc_file_table[iter].timer.it_interval = 0;
+	    		syscall_kill(rtc_file_table[iter].rtc_pid, SIGALRM, 0);
+	    	}
+	    }
+	}
 	rtc_count++;
 
     // if ((rtc_count != rtc_count_prev) &&
@@ -87,11 +94,12 @@ void rtc_handler(){
     // }
 
     if ((rtc_count != rtc_count_prev)) {
-    	for (i = 0; i < rtc_openfile+1; i++) {
-    		if (((rtc_count & (rtc_file_table[i].rtc_freq-1)) == 0) &&
-    			(rtc_file_table[i].rtc_sleep == 1)) {
-    			syscall_kill(rtc_file_table[i].rtc_pid, SIGIO, 0);
-    			rtc_file_table[i].rtc_sleep = 0;
+    	for (iter = 0; iter < rtc_openfile+1; iter++) {
+    		if ((rtc_file_table[iter].rtc_freq != 0) &&
+    			((rtc_count & (rtc_file_table[iter].rtc_freq-1)) == 0) &&
+    			(rtc_file_table[iter].rtc_sleep == 1)) {
+    			syscall_kill(rtc_file_table[iter].rtc_pid, SIGIO, 0);
+    			rtc_file_table[iter].rtc_sleep = 0;
     		}
     	}
     }
@@ -148,6 +156,9 @@ int rtc_open(inode_t* inode, file_t* file) {
 	rtc_file_table[rtc_openfile].rtc_status |= RTC_IS_OPEN;
 	rtc_file_table[rtc_openfile].rtc_freq = 512;
 	rtc_file_table[rtc_openfile].rtc_pid = task_current_pid();
+	rtc_file_table[rtc_openfile].rtc_sleep = -1;
+	rtc_file_table[rtc_openfile].timer.it_interval = 0;
+	rtc_file_table[rtc_openfile].timer.it_value = 0;
 	file->private_data = rtc_openfile;
 	rtc_count = 1;
 
@@ -160,10 +171,16 @@ int rtc_close(inode_t* inode, file_t* file) {
 	// rtc_status = 0;
 	// rtc_freq = 0;
 	// rtc_count = 1;
-	rtc_file_table[rtc_openfile].rtc_status &= ~RTC_IS_OPEN;
-	rtc_file_table[rtc_openfile].rtc_freq = 0;
+	int i;
+	i = file->private_data;
+	rtc_file_table[i].rtc_status &= ~RTC_IS_OPEN;
+	rtc_file_table[i].rtc_freq = 0;
+	rtc_file_table[i].rtc_pid = -1;
+	rtc_file_table[i].rtc_sleep = -1;
+	rtc_file_table[i].timer.it_interval = 0;
+	rtc_file_table[i].timer.it_value = 0;
 	rtc_count = 1;
-	rtc_openfile--;
+	// rtc_openfile--;
 	return 0;
 }
 
@@ -293,3 +310,19 @@ int setitimer(struct itimerval *value, struct itimerval *old_value) {
 	return 0;
 
 }
+
+int nanosleep(struct itimerval *requested, struct itimerval *remain) {
+
+	if (requested == NULL || remain == NULL) {
+		return -EINVAL;
+	}
+	if (requested->it_value == 0 || requested->it_value > ALRM_MAX_TIMER) {
+		return -EINVAL;
+	}
+	if (requested->it_interval != 0) {
+		return -EINVAL;
+	}
+	return setitimer(requested, remain);
+
+}
+
