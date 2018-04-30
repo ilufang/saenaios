@@ -116,9 +116,10 @@ void tty_attach(task_t* proc){
 	}
 	proc->tty = get_current_tty();
 	tty_list[proc->tty].fg_proc = proc->pid;
-	// if differs, means different tty
+	// if this is a root process of a tty, and it differs with the files
 	if ((proc->files[1]->private_data != proc->tty)
 		&& (proc->pid == cur_tty->root_proc)){
+		// means this process should open new in/out
 		syscall_close(0,0,0);
 		syscall_close(1,0,0);
 		syscall_open((int)"/dev/stdin", O_RDONLY, 0);
@@ -179,6 +180,7 @@ void tty_send_input(uint8_t* data, uint32_t size){
 				print_size ++;
 			}
 		}else if (data[i] == '\n' ){
+			// handle the char normally, but notify waiting process if there is
 			temp_buf[i] = data[i];
 			print_size ++;
 			op_buf->buf[op_buf->index] = data[i];

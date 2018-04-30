@@ -109,9 +109,11 @@ int syscall_ece391_vidmap(int start_addr_in, int b, int c){
 		*start_addr = NULL;
 		return -1;
 	}
+	page_flush_tlb();
 	*start_addr = (uint8_t*)VIDMAP_START;
 	proc->vidmap = VIDMEM_START;
 	proc->vidpage_index = i;
+
 
 	return 0;
 }
@@ -139,6 +141,7 @@ void* terminal_out_tty_init(){
 		errno = EFAULT;
 		return NULL;
 	}
+	page_flush_tlb();
 
 	video_mem = (uint8_t*)stdout[stdout_index].vidmem.vaddr;
 	terminal_out_clear();
@@ -172,7 +175,7 @@ int terminal_out_tty_switch(void* fromp, void* top){
 	if (ret) return ret;
 	ret = _page_tab_add_entry(to->vidmem.vaddr,to->vidmem.paddr,to->vidmem.pt_flags);
 	if (ret) return ret;
-
+	page_flush_tlb();
 
 	terminal_set_cursor(top);
 	return 0;
