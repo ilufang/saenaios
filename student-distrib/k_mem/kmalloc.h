@@ -38,6 +38,6 @@ int ceiling_division(int x, int y);
 
 void* kmalloc(size_t size);
 
-int free(void* ptr);
+int kfree(void* ptr);
 
 #endif

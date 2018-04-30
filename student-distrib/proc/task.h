@@ -64,6 +64,8 @@ typedef struct s_task {
 
 	uid_t uid; ///< User ID of the process
 	gid_t gid; ///< Group ID of the process
+	
+	char *wd; ///< Working directory
 } task_t;
 
 /**
@@ -180,7 +182,7 @@ int syscall_getcwd(int bufp, int size, int);
  *	@param pathp: address of path to the new working directory
  *	@return 0 on success, or the negative of an errno on failure.
  */
-int syscall_chdir(int fd, int, int);
+int syscall_chdir(int pathp, int, int);
 
 /**
  *	Release a process from memory

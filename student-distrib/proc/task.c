@@ -1,6 +1,8 @@
 #include "task.h"
 
+#include "../k_mem/kmalloc.h"
 #include "../fs/vfs.h"
+#include "../fs/file_lookup.h"
 #include "elf.h"
 #include "signal.h"
 #include "scheduler.h"
@@ -42,6 +44,9 @@ void task_create_kernel_pid() {
 	tss.esp0 = init_task->ks_esp = (uint32_t)(kstack+1);
 	task_pid_allocator = 0;
 
+	init_task->wd = kmalloc(sizeof(pathname_t));
+	strcpy(init_task->wd, "/");
+	
 	init_task->uid = 0; // root
 	init_task->gid = 0; // root
 
@@ -82,6 +87,8 @@ int syscall_fork(int a, int b, int c) {
 	memcpy(new_task, cur_task, sizeof(task_t));
 	new_task->pid = pid;
 	new_task->parent = cur_pid;
+	new_task->wd = (char *) kmalloc(sizeof(pathname_t));
+	strcpy(new_task->wd, cur_task->wd);
 
 	for (i = 0; i < TASK_MAX_OPEN_FILES; ++i) {
 		if (new_task->files[i]) {
@@ -508,13 +515,56 @@ int syscall_ece391_getargs(int bufp, int nbytes, int c) {
 }
 
 int syscall_getcwd(int bufp, int size, int c) {
-	//TODO
-	return -ENOSYS;
+	int len;
+	task_t *proc;
+
+	if (!bufp) {
+		return -EFAULT;
+	}
+	
+	proc = task_list + task_current_pid();
+	len = strlen(proc->wd) + 1;
+	
+	if (len > c) {
+		return -ERANGE;
+	}
+	
+	memcpy((char *)bufp, proc->wd, len);
+	
+	return len;
 }
 
-int syscall_chdir(int fd, int b, int c) {
-	//TODO
-	return -ENOSYS;
+int syscall_chdir(int pathp, int b, int c) {
+	task_t *proc;
+	pathname_t path;
+	int ret;
+	inode_t *inode;
+	
+	if (!pathp) {
+		return -EINVAL;
+	}
+	
+	proc = task_list + task_current_pid();
+	
+	strcpy(path, proc->wd);
+	
+	ret = path_cd(path, (char *)pathp);
+	if (ret != 0) {
+		return -ret;
+	}
+	
+	inode = file_lookup(path);
+	
+	if (inode == NULL) {
+		return -errno;
+	} else {
+		// Close. Not needed
+		(*inode->sb->s_op->free_inode)(inode);
+	}
+	
+	strcpy(proc->wd, path);
+	
+	return 0;
 }
 
 void task_release(task_t *proc) {
@@ -537,6 +587,8 @@ void task_release(task_t *proc) {
 		proc->pages[i].pt_flags = 0;
 	}
 	page_flush_tlb();
+	// Release dynamic memory
+	kfree(proc->wd);
 	// Release kernel stack
 	((task_ks_t *)(proc->ks_esp))[-1].pid = -1;
 	// Mark program as void

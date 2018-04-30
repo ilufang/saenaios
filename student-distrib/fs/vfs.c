@@ -15,7 +15,7 @@ file_t vfs_files[VFS_MAX_OPEN_FILES];
 
 int syscall_ece391_open(int pathaddr, int b, int c) {
 	int ret;
-	ret = syscall_open(pathaddr, O_RDONLY, 0);
+	ret = syscall_open(pathaddr, O_RDWR, 0);
 	if (ret < 0)
 		return -1;
 	if (ret >= 8) {
@@ -27,7 +27,7 @@ int syscall_ece391_open(int pathaddr, int b, int c) {
 
 int syscall_open(int pathaddr, int flags, int mode) {
 	task_t *proc;
-	pathname_t path = "/";
+	pathname_t path;
 	int i, avail_fd = -1;
 	inode_t *inode;
 	file_t *file;
@@ -35,6 +35,7 @@ int syscall_open(int pathaddr, int flags, int mode) {
 
 	proc = task_list + task_current_pid();
 
+	strcpy(path, proc->wd);
 	errno = -path_cd(path, (char *)pathaddr);
 	if (errno != 0) {
 		return -errno;

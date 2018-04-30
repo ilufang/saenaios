@@ -188,7 +188,7 @@ void* kmalloc(size_t size) {
 	return (void*)(addr+INFO_SIZE);
 }
 
-int free(void* ptr) {
+int kfree(void* ptr) {
 
 	if (((malloc_info_t*)(ptr - INFO_SIZE))->status != 1)
 		return -EINVAL;
