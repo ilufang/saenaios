@@ -1,6 +1,6 @@
 CFLAGS += -Wall -nostdlib -ffreestanding -g
 LDFLAGS += -nostdlib -ffreestanding
-CC = gcc
+CC = i386-saenaios-gcc
 
 ALL: cat grep hello ls pingpong counter shell sigtest testprint syserr
 
@@ -14,8 +14,7 @@ ALL: cat grep hello ls pingpong counter shell sigtest testprint syserr
 	$(CC) $(LDFLAGS) -o $@ $^
 
 %: %.exe
-	../elfconvert $<
-	mv $<.converted to_fsdir/$@
+	mv $< ../fsdir/$@
 
 clean::
 	rm -f *~ *.o

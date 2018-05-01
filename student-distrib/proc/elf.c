@@ -59,6 +59,8 @@ int elf_load(int fd)  {
 		return -ENOEXEC;
 	}
 
+	/*
+	// This case no longer exists
 	if (eh.abi != 0x03 || eh.abi_ver != 0x91) {
 		// Not properly x-compiled, just assume it comes from ece391
 		// Only 1 segment is present by presumption. Do NOT load PH from ELF
@@ -75,6 +77,7 @@ int elf_load(int fd)  {
 		ph.flags = 7; // rwx all granted
 		ph.align = 0x1000; // 4kb aligned
 	}
+	*/
 
 	// Set entry point
 	proc->regs.eip = eh.entry;

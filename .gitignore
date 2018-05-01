@@ -7,3 +7,4 @@ filesys_img
 docs/
 *.xcodeproj
 build-*/
+sysroot/
