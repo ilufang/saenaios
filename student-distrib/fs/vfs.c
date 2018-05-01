@@ -435,27 +435,311 @@ int syscall_chown(int fd, int uid, int gid) {
 	// Perform chown
 	inode->uid = uid;
 	inode->gid = gid;
+	// Prevent chown setuid/setguid elevation vulnerability
+	inode->perm &= ~(S_ISUID | S_ISGID);
 	return 0;
 }
 
 int syscall_link(int path1p, int path2p, int c) {
-	// TODO
-	return -ENOSYS;
+	task_t *proc;
+	pathname_t path;
+	char *filename;
+	inode_t *inode_from, *inode_to;
+	int i;
+	
+	proc = task_list + task_current_pid();
+	
+	errno = task_access_memory(path1p);
+	if (errno != 0) {
+		return -errno;
+	}
+	errno = task_access_memory(path2p);
+	if (errno != 0) {
+		return -errno;
+	}
+
+	// Open source file
+	strcpy(path, proc->wd);
+	errno = -path_cd(path, (char *)path1p);
+	if (errno != 0) {
+		return -errno;
+	}
+	if (!(inode_from = file_lookup(path))){
+		return -errno;
+	}
+	errno = -file_permission(inode_from, proc->uid, proc->gid, S_IR);
+	if (errno != 0) {
+		// Permission denied
+		goto cleanup_from;
+	}
+	
+	// Open destination file
+	strcpy(path, proc->wd);
+	errno = -path_cd(path, (char *)path2p);
+	if (errno != 0) {
+		goto cleanup_from;
+	}
+	// Find base filename
+	filename = NULL;
+	for (i = 1; path[i]; i++) {
+		if (path[i] == '/') {
+			filename = path + i;
+		}
+	}
+	if (!filename) {
+		errno = EINVAL;
+		goto cleanup_from;
+	}
+	*filename = '\0';
+	filename++;
+	if (!*filename) {
+		errno = EINVAL;
+		goto cleanup_from;
+	}
+	if (!(inode_to = file_lookup(path))) {
+		goto cleanup_from;
+	}
+	errno = -file_permission(inode_to, proc->uid, proc->gid, S_IW);
+	if (errno != 0) {
+		// Permission denied
+		goto cleanup_fromto;
+	}
+	if (inode_from->sb != inode_to->sb) {
+		// No hardlink across device
+		errno = EXDEV;
+		goto cleanup_fromto;
+	}
+	
+	if (!inode_to->i_op->link) {
+		errno = ENOSYS;
+		goto cleanup_fromto;
+	}
+	
+	errno = -(*inode_to->i_op->link)(inode_from->ino, inode_to, filename);
+
+	if (errno != 0) {
+		goto cleanup_fromto;
+	}
+	
+	inode_from->link_count++;
+
+	// Success
+	(*inode_to->sb->s_op->write_inode)(inode_to);
+	(*inode_from->sb->s_op->write_inode)(inode_from);
+	errno = 0;
+	
+cleanup_fromto:
+	(*inode_to->sb->s_op->free_inode)(inode_to);
+cleanup_from:
+	(*inode_from->sb->s_op->free_inode)(inode_from);
+	return -errno;
 }
 
 int syscall_unlink(int pathp, int b, int c) {
-	//TODO
-	return -ENOSYS;
+	task_t *proc;
+	pathname_t path;
+	char *filename;
+	inode_t *inode_from, *inode_to;
+	int i;
+	
+	proc = task_list + task_current_pid();
+	
+	errno = task_access_memory(pathp);
+	if (errno != 0) {
+		return -errno;
+	}
+	
+	// Open file to be unlinked
+	strcpy(path, proc->wd);
+	errno = -path_cd(path, (char *)pathp);
+	if (errno != 0) {
+		return -errno;
+	}
+	if (!(inode_from = file_lookup(path))){
+		return -errno;
+	}
+	// Find base filename
+	filename = NULL;
+	for (i = 1; path[i]; i++) {
+		if (path[i] == '/') {
+			filename = path + i;
+		}
+	}
+	if (!filename) {
+		errno = EINVAL;
+		goto cleanup_from;
+	}
+	*filename = '\0';
+	filename++;
+	if (!*filename) {
+		errno = EINVAL;
+		goto cleanup_from;
+	}
+
+	// Open containing directory
+	if (!(inode_to = file_lookup(path))) {
+		goto cleanup_from;
+	}
+	errno = -file_permission(inode_to, proc->uid, proc->gid, S_IW);
+	if (errno != 0) {
+		// Permission denied
+		goto cleanup_fromto;
+	}
+	
+	if (!inode_to->i_op->unlink) {
+		errno = ENOSYS;
+		goto cleanup_fromto;
+	}
+	
+	errno = -(*inode_to->i_op->unlink)(inode_to, filename);
+	
+	if (errno != 0) {
+		goto cleanup_fromto;
+	}
+	
+	inode_from->link_count--;
+	
+	// Success
+	(*inode_to->sb->s_op->write_inode)(inode_to);
+	(*inode_from->sb->s_op->write_inode)(inode_from);
+	errno = 0;
+	
+cleanup_fromto:
+	(*inode_to->sb->s_op->free_inode)(inode_to);
+cleanup_from:
+	(*inode_from->sb->s_op->free_inode)(inode_from);
+	return -errno;
 }
 
 int syscall_symlink(int path1p, int path2p, int c) {
-	//TODO
-	return -ENOSYS;
+	task_t *proc;
+	pathname_t path;
+	char *filename;
+	inode_t *inode;
+	int i;
+	
+	proc = task_list + task_current_pid();
+	
+	errno = task_access_memory(path1p);
+	if (errno != 0) {
+		return -errno;
+	}
+	errno = task_access_memory(path2p);
+	if (errno != 0) {
+		return -errno;
+	}
+
+	// Open destination file
+	strcpy(path, proc->wd);
+	errno = -path_cd(path, (char *)path2p);
+	if (errno != 0) {
+		return -errno;
+	}
+	// Find base filename
+	filename = NULL;
+	for (i = 1; path[i]; i++) {
+		if (path[i] == '/') {
+			filename = path + i;
+		}
+	}
+	if (!filename) {
+		return -EINVAL;
+	}
+	*filename = '\0';
+	filename++;
+	if (!*filename) {
+		return -EINVAL;
+	}
+	if (!(inode = file_lookup(path))) {
+		goto cleanup;
+	}
+	errno = -file_permission(inode, proc->uid, proc->gid, S_IW);
+	if (errno != 0) {
+		// Permission denied
+		goto cleanup;
+	}
+	
+	if (!inode->i_op->symlink) {
+		errno = ENOSYS;
+		goto cleanup;
+	}
+	
+	errno = -(*inode->i_op->symlink)(inode, filename, (char *)path1p);
+	
+	// Success
+	(*inode->sb->s_op->write_inode)(inode);
+	errno = 0;
+	
+cleanup:
+	(*inode->sb->s_op->free_inode)(inode);
+	return -errno;
 }
 
 int syscall_readlink(int pathp, int bufp, int bufsize) {
-	//TODO
-	return -ENOSYS;
+	task_t *proc;
+	pathname_t path;
+	char *filename;
+	inode_t *inode;
+	int i;
+	
+	errno = task_access_memory(pathp);
+	if (errno != 0) {
+		return -errno;
+	}
+
+	proc = task_list + task_current_pid();
+	
+	// Open destination file
+	strcpy(path, proc->wd);
+	errno = -path_cd(path, (char *)pathp);
+	if (errno != 0) {
+		return -errno;
+	}
+	// Find base filename
+	filename = NULL;
+	for (i = 1; path[i]; i++) {
+		if (path[i] == '/') {
+			filename = path + i;
+		}
+	}
+	if (!filename) {
+		return -EINVAL;
+	}
+	*filename = '\0';
+	filename++;
+	if (!*filename) {
+		return -EINVAL;
+	}
+	if (!(inode = file_lookup(path))) {
+		goto cleanup;
+	}
+	errno = -file_permission(inode, proc->uid, proc->gid, S_IW);
+	if (errno != 0) {
+		// Permission denied
+		goto cleanup;
+	}
+	
+	if (!inode->i_op->readlink) {
+		errno = ENOSYS;
+		goto cleanup;
+	}
+	
+	errno = -(*inode->i_op->readlink)(inode, path);
+	if (errno != 0) {
+		goto cleanup;
+	}
+	if (strlen(path) >= bufsize) {
+		errno = ERANGE;
+		goto cleanup;
+	}
+	strcpy((char *)bufp, path);
+	
+	// Success
+	errno = 0;
+	
+cleanup:
+	(*inode->sb->s_op->free_inode)(inode);
+	return -errno;
 }
 
 int syscall_truncate(int fd, int length, int c) {
@@ -483,18 +767,137 @@ int syscall_truncate(int fd, int length, int c) {
 }
 
 int syscall_rename(int oldpathp, int newpathp, int c) {
-	//TODO
-	return -ENOSYS;
+	int ret;
+	ret = syscall_link(oldpathp, newpathp, 0);
+	if (ret != 0) {
+		return ret;
+	}
+	ret = syscall_unlink(oldpathp, 0, 0);
+	if (ret != 0) {
+		syscall_unlink(newpathp, 0, 0);
+		return ret;
+	}
+	return 0;
 }
 
 int syscall_mkdir(int pathp, int mode, int c) {
-	//TODO
-	return -ENOSYS;
+	task_t *proc;
+	pathname_t path;
+	char *filename;
+	inode_t *inode;
+	int i;
+	
+	proc = task_list + task_current_pid();
+	
+	errno = task_access_memory(pathp);
+	if (errno != 0) {
+		return -errno;
+	}
+	
+	// Open containing directory
+	strcpy(path, proc->wd);
+	errno = -path_cd(path, (char *)pathp);
+	if (errno != 0) {
+		return -errno;
+	}
+	// Find base filename
+	filename = NULL;
+	for (i = 1; path[i]; i++) {
+		if (path[i] == '/') {
+			filename = path + i;
+		}
+	}
+	if (!filename) {
+		return -EINVAL;
+	}
+	*filename = '\0';
+	filename++;
+	if (!*filename) {
+		return -EINVAL;
+	}
+	if (!(inode = file_lookup(path))) {
+		goto cleanup;
+	}
+	errno = -file_permission(inode, proc->uid, proc->gid, S_IW);
+	if (errno != 0) {
+		// Permission denied
+		goto cleanup;
+	}
+	
+	if (!inode->i_op->mkdir) {
+		errno = ENOSYS;
+		goto cleanup;
+	}
+	
+	errno = -(*inode->i_op->mkdir)(inode, filename, mode);
+	
+	// Success
+	(*inode->sb->s_op->write_inode)(inode);
+	errno = 0;
+	
+cleanup:
+	(*inode->sb->s_op->free_inode)(inode);
+	return -errno;
 }
 
 int syscall_rmdir(int pathp, int b, int c) {
-	//TODO
-	return -ENOSYS;
+	task_t *proc;
+	pathname_t path;
+	char *filename;
+	inode_t *inode;
+	int i;
+	
+	proc = task_list + task_current_pid();
+	
+	errno = task_access_memory(pathp);
+	if (errno != 0) {
+		return -errno;
+	}
+	
+	// Open containing directory
+	strcpy(path, proc->wd);
+	errno = -path_cd(path, (char *)pathp);
+	if (errno != 0) {
+		return -errno;
+	}
+	// Find base filename
+	filename = NULL;
+	for (i = 1; path[i]; i++) {
+		if (path[i] == '/') {
+			filename = path + i;
+		}
+	}
+	if (!filename) {
+		return -EINVAL;
+	}
+	*filename = '\0';
+	filename++;
+	if (!*filename) {
+		return -EINVAL;
+	}
+	if (!(inode = file_lookup(path))) {
+		goto cleanup;
+	}
+	errno = -file_permission(inode, proc->uid, proc->gid, S_IW);
+	if (errno != 0) {
+		// Permission denied
+		goto cleanup;
+	}
+	
+	if (!inode->i_op->rmdir) {
+		errno = ENOSYS;
+		goto cleanup;
+	}
+	
+	errno = -(*inode->i_op->rmdir)(inode, filename);
+	
+	// Success
+	(*inode->sb->s_op->write_inode)(inode);
+	errno = 0;
+	
+cleanup:
+	(*inode->sb->s_op->free_inode)(inode);
+	return -errno;
 }
 
 int syscall_ioctl(int fd, int cmd, int arg) {

@@ -200,9 +200,6 @@ typedef struct s_inode_operations {
 	/**
 	 *	Remove entry in directory
 	 *
-	 *	The driver should also release an inode if its hard link is decreased to
-	 *	0 by this unlink call.
-	 *
 	 *	@param inode: the inode of the directory file to operate on
 	 *	@param filename: the name of file to be unlinked
 	 *	@return 0 on success, or the negative of an errno on failure
