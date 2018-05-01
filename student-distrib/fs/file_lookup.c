@@ -51,14 +51,14 @@ file_lookup_start:
 		if (fs->sb->private_data != MP3FS_IDENTIFIER){
 			char pathtemp[sym_link_buff_size];
 			int pathtemp_length;
-			int temp_buff_size;
+			//int temp_buff_size;
 			// update nd for sym link
 			if (nd.inode -> i_op -> readlink){
 				if ((pathtemp_length = (*(nd.inode -> i_op -> readlink))(nd.inode,pathtemp))<0){
 					// the errno should be set by function called
 					return NULL;
 				}
-				if (pathtemp_length<temp_buff_size)
+				if (pathtemp_length<sym_link_buff_size)
 					pathtemp[pathtemp_length] = '\0';
 				else{
 					errno = EFBIG;
