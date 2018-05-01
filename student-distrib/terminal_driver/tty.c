@@ -165,12 +165,6 @@ void tty_send_input(uint8_t* data, uint32_t size){
 			_tty_clear_buffer(cur_tty);
 			continue;
 		}
-		if (op_buf->index == op_buf->end){
-			// reaching the end of the buffer, abort
-			// note that the last char of the buffer has not yet been written
-			break;
-		}
-
 		// special case for backspace, put into temp_buf but delete in tty buffer
 		if (data[i] == '\b'){
 			// don't backspace over the start
@@ -180,6 +174,11 @@ void tty_send_input(uint8_t* data, uint32_t size){
 				print_size ++;
 			}
 		}else if (data[i] == '\n' ){
+			if (op_buf->index == op_buf->end){
+				// reaching the end of the buffer, abort
+				// note that the last char of the buffer has not yet been written
+				break;
+			}
 			// handle the char normally, but notify waiting process if there is
 			temp_buf[i] = data[i];
 			print_size ++;
@@ -195,6 +194,11 @@ void tty_send_input(uint8_t* data, uint32_t size){
 			temp_buf[i] = data[i];
 			print_size ++;
 		}else if (data[i] >= 32 && data[i] <= 126){ // filter out unprintable chars
+			if (op_buf->index == op_buf->end){
+				// reaching the end of the buffer, abort
+				// note that the last char of the buffer has not yet been written
+				break;
+			}
 			// printable characters go in
 			temp_buf[i] = data[i];
 			print_size ++;
