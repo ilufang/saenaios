@@ -32,7 +32,7 @@ int elf_load(int fd)  {
 	int i, j, ret, idx, idx0;
 	uint32_t addr, align_off, brk = 0;
 	task_ptentry_t *ptent;
-	stat_t file_stat;
+	// stat_t file_stat;
 	proc = task_list + task_current_pid();
 
 	ret = syscall_read(fd, (int)&eh, sizeof(eh));
@@ -215,6 +215,6 @@ int elf_load(int fd)  {
 		}
 	}
 	page_flush_tlb();
-	proc->heap.start = proc->heap.prog_break = brk;
+	proc->heap.start = proc->heap.prog_break = (brk & ~((4<<20)-1)) + (4<<20);
 	return 0;
 }
