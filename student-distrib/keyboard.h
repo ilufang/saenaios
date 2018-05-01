@@ -13,6 +13,7 @@
 #include "i8259.h"
 #include "lib.h"
 #include "terminal_driver/terminal_out_driver.h"
+#include "terminal_driver/tty.h"
 
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
@@ -91,6 +92,7 @@ ssize_t keyboard_write(file_t* file, uint8_t *buf, size_t count, off_t *offset);
  *	Initialize any local variable
  *
  *	@param file: file object
+ *	@param inode: inode of the file to close
  *
  */
 int32_t keyboard_open(inode_t* inode, file_t* file);
@@ -100,7 +102,6 @@ int32_t keyboard_open(inode_t* inode, file_t* file);
  *
  *	@note the function does nothing for now
  *	@param inode: inode of the file to close
- *	@param fd: index into file descriptor table
  */
 int32_t keyboard_close(inode_t* inode, file_t* file);
 

@@ -134,11 +134,13 @@ int mp3fs_installfs(int32_t bootblock_start_addr){
 
     // get address of boot block from parameter
     boot_ptr = (mp3fs_bootblock_t*)bootblock_start_addr;
+    // pinpoint install position of mp3fs
     if ((bootblock_start_addr > 0x800000) && (bootblock_start_addr < 0xC00000)){
         page_dir_add_4MB_entry(bootblock_start_addr,bootblock_start_addr,
                             PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
                             PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_GLOBAL);
     }
+    // pinpoint install position of mp3fs
     if (!((bootblock_start_addr > 0x400000) && (bootblock_start_addr < 0x800000))){
         return -EINVAL;
     }
@@ -178,6 +180,7 @@ void mp3fs_brutal_magic(){
     int i;
     for (i=0; i<boot_ptr->dir_count; ++i){
         if (strncmp(mp3fs_dentry_start_ptr[i].filename, "rtc", 3)==0){
+            // a designated magic number
             mp3fs_dentry_start_ptr[i].inode_num = 64;
             break;
         }
@@ -194,6 +197,8 @@ super_block_t* mp3fs_get_sb(struct s_file_system *fs, int flags,
 
     // get root dentry's (i.e. root dir) inode number
     mp3fs_sb.root = mp3fs_dentry_start_ptr->inode_num;
+
+    mp3fs_sb.private_data = MP3FS_IDENTIFIER;
 
     // initialize file table
     // of course brutal force table

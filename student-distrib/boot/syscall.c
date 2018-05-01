@@ -8,6 +8,7 @@
 #include "../proc/signal.h"
 
 #include "../../libc/src/syscalls.h" // Definitions from libc
+#include "../terminal_driver/terminal_out_driver.h"
 
 syscall_handler syscall_handler_table[SYSCALL_NUMBER_MAX];
 
@@ -52,7 +53,7 @@ void syscall_register_all() {
 	// ece391_getargs
 	syscall_register(7, syscall_ece391_getargs);
 	// ece391_vidmap
-	syscall_register(8, NULL);
+	syscall_register(8, syscall_ece391_vidmap);
 	// ece391_set_handler
 	syscall_register(9, syscall_ece391_set_handler);
 	// ece391_sigreturn

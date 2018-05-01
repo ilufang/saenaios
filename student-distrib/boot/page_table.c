@@ -211,10 +211,7 @@ void page_ece391_init(){
 	page_dir_add_4MB_entry(0x800000, 0x800000, PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR |
 							PAGE_DIR_ENT_SUPERVISOR | PAGE_DIR_ENT_4MB |
 							PAGE_DIR_ENT_GLOBAL);
-
-	// create 4KB page for video memory
-	page_tab_add_entry(0xB8000, 0xB8000,PAGE_TAB_ENT_PRESENT | PAGE_TAB_ENT_RDWR |
-								PAGE_TAB_ENT_SUPERVISOR | PAGE_TAB_ENT_GLOBAL);
+	// NOTE: creating page table dir for video memory now in tty
 
 	// create 4KB page table for Manyoushu
 	page_dir_add_4KB_entry(USER_PAGE_TABLE_VIR_ADDR,&manyoushu_page_table,
@@ -351,9 +348,15 @@ int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags){
 		return -EEXIST;
 	}
 
-	// if want to map to a kernel address, hmmmmmm
+/*	// if want to map to a kernel address, hmmmmmm
 	if (page_phys_mem_map[GET_MEM_MAP_INDEX(real_addr)].flags & (PAGE_DES_KERNEL)){
 		return -EACCES;
+	}*/
+
+	// NOTE SPECIAL WORKAROUND
+	if (page_tab_index == 0){
+		dest_page_table->page_table_entry[page_tab_index] = (real_addr) | flags;
+		return 0;
 	}
 
 	// if want to map to a physical memory that hasn't been allocated
@@ -362,6 +365,34 @@ int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags){
 	}
 	if ((GET_MEM_MAP_INDEX(real_addr) == GET_MEM_MAP_INDEX(MANYOUSHU_PAGE_START_ADDR))&&(manyoushu_mem_table[GET_MANYOU_INDEX(real_addr)].count<=0)){
 		return -EINVAL;
+	}
+
+	flags |= PAGE_TAB_ENT_PRESENT;	// enforce preset bit
+
+	dest_page_table->page_table_entry[page_tab_index] = (real_addr) | flags;
+
+	return 0;
+}
+
+int _page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags){
+	// auto fit to nearest 4KB
+	int page_tab_index = GET_TAB_INDEX(virtual_addr);
+
+	// find the page table the virtual address belongs to
+	int page_dir_entry_index = GET_DIR_INDEX(virtual_addr);
+
+	real_addr = (real_addr / PAGE_4KB) * PAGE_4KB;
+
+	// check that page table is valid and in use
+	if (!(page_directory.page_directory_entry[page_dir_entry_index] & (PAGE_DIR_ENT_PRESENT))){
+		return -EINVAL;
+	}
+	// get the address of the page table
+	page_table_t* dest_page_table = (page_table_t*)(page_directory.page_directory_entry[page_dir_entry_index] & 0xFFFFF000);
+
+	// check if already exists
+	if (dest_page_table->page_table_entry[page_tab_index] & (PAGE_TAB_ENT_PRESENT)){
+		return -EEXIST;
 	}
 
 	flags |= PAGE_TAB_ENT_PRESENT;	// enforce preset bit
@@ -392,6 +423,22 @@ int page_tab_delete_entry(uint32_t virtual_addr){
 		return -EINVAL;
 	}
 
+	// check valid page dir entry just for ... redundancy
+	if (!(page_directory.page_directory_entry[GET_DIR_INDEX(virtual_addr)] & PAGE_DIR_ENT_PRESENT)){
+		return -EINVAL;
+	}
+
+	page_table_t* dest_page_table = (page_table_t*)(page_directory.page_directory_entry[GET_DIR_INDEX(virtual_addr)] & (0xFFFFF000));
+	// if the page table entry is not present
+	if (dest_page_table->page_table_entry[GET_TAB_INDEX(virtual_addr)] & PAGE_TAB_ENT_PRESENT){
+		dest_page_table->page_table_entry[GET_TAB_INDEX(virtual_addr)] -= PAGE_TAB_ENT_PRESENT;
+		return 0;
+	}else{
+		return -EINVAL;
+	}
+}
+
+int _page_tab_delete_entry(uint32_t virtual_addr){
 	// check valid page dir entry just for ... redundancy
 	if (!(page_directory.page_directory_entry[GET_DIR_INDEX(virtual_addr)] & PAGE_DIR_ENT_PRESENT)){
 		return -EINVAL;

@@ -112,28 +112,128 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 //functions below connect with vfs
 int mp3fs_installfs(int32_t bootblock_start_addr);
 
+/**
+ *  inflate the superblock object for mp3fs
+ *
+ *  initialize superblock object for mp3fs and initialize device table & inodes
+ *
+ *  @param  fs: file system object
+ *  @param  flags: flags, not used for now
+ *  @param  dev: not used
+ *  @param  opts: not used
+ */
 super_block_t* mp3fs_get_sb(file_system_t* fs,int flags, const char *dev,const char *opts);
 
+/**
+ *  work around rtc inode number for mp3fs
+ */
 void mp3fs_brutal_magic();
 
+/**
+ *  close a superblock object
+ */
 void mp3fs_kill_sb();
 
+/**
+ *  private helper function to fetch inode data from mp3fs disk
+ *
+ *  @param ino: inode number of inode to be fetched
+ *  @return inode pointer on success, NULL on failure
+ */
 inode_t* _mp3fs_fetch_inode(ino_t ino);
 
+/**
+ *  Create a new i-node with new i-number in the file system.
+ *
+ *  Similar to the principle of `creat`. The driver owns the memory of the
+ *  i-node, but the user must free it with `free_inode` after using it.
+ *
+ *  @param sb: the super block of the file system
+ *  @return pointer to a new index node
+ */
 inode_t* mp3fs_s_op_alloc_inode(super_block_t* sb);
 
+/**
+ *  Retrieve an i-node from the file system with the given i-number.
+ *
+ *  Similar to the principle of `open`. The driver owns the memory of the
+ *  i-node, but the user must free it with `free_inode` after using it.
+ *
+ *  @param sb: the super block of the file system
+ *  @param ino: the i-number of the i-node to be opened
+ *  @return pointer to a populated i-node with the specified `ino`
+ */
 inode_t* mp3fs_s_op_open_inode(super_block_t* sb, ino_t ino);
 
+/**
+ *  Release an i-node
+ *
+ *  Similar to the principle of `close`. The driver should handle any
+ *  clean-up when the user finishes using the i-node. The i-node passed in
+ *  must come from either `alloc_inode` or `open_inode`.
+ *
+ *  @param inode: the inode pointer from `alloc_inode` or `open_inode`
+ *  @return 0 on success, or the negative of an errno on failure
+ */
 int mp3fs_s_op_free_inode(inode_t* inode);
 
+/**
+ *  Populate/update an i-node
+ *
+ *  The driver reads the `ino` field of the i-node passed in and populates
+ *  the rest of the fields.
+ *
+ *  @param inode: the i-node with field `ino` specified. The rest of the
+ *                fields will be modified by this call
+ *  @return 0 on success, or the negative of an errno on failure
+ */
 int mp3fs_s_op_read_inode(inode_t* inode);
 
+/**
+ *  Flush an i-node to permanent storage
+ *
+ *  The driver write the metadata fields in the i-node to the permanent
+ *  index node on its permanent storage specified by the `ino` field. The
+ *  driver may or may not choose to flush certain fields according to its
+ *  file system features or specification.
+ *
+ *  @param inode: the i-node to write
+ *  @return 0 on success, or the negative of an errno on failure
+ */
 int mp3fs_s_op_write_inode(inode_t* inode);
 
+/**
+ *  Removes an i-node from permanent storage
+ *
+ *  The driver removes the index node on its permanent storage specified by
+ *  the `ino` field. For instance, when all hardlinks to a file has been
+ *  removed, `drop_inode` would be called to permanently delete the file and
+ *  free up the corresponding disk space.
+ *
+ *  The driver also performs clean-up on the i-node structure. No further
+ *  call to `free_inode` is necessary or allowed.
+ *
+ *  @param inode: the i-node to delete
+ *  @return 0 on success, or the negative of an errno on failure
+ */
 int mp3fs_s_op_drop_inode(inode_t* inode);
 
+/**
+ *  Find file with name in directory
+ *
+ *  @param inode: current inode, must be a directory
+ *  @param filename: the name to lookup
+ *  @return the i-number of the file, or the negative of an errno on failure
+ */
 ino_t mp3fs_i_op_lookup(inode_t* inode, const char* path);
 
+/**
+ *  Read symbolic link of inode
+ *
+ *  @param inode: current inode, must be a symbolic link
+ *  @param buf: the buffer to read the linked path into, must be big enough
+ *              to hold a path (PATH_MAX_LEN+1)
+ */
 int mp3fs_i_op_readlink(inode_t* inode, char* buf);
 
 /**

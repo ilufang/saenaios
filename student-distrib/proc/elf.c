@@ -70,7 +70,7 @@ int elf_load(int fd)  {
 		// PH is instead hardcoded as follow
 		ph.type = 1;
 		ph.offset = 0;
-		ph.vaddr = 0x08048000;
+		ph.vaddr = 0x08048000; // Default load addr
 		syscall_fstat(fd, (int)(&file_stat), 0);
 		ph.filesz = (uint32_t)file_stat.st_size;
 		ph.memsz = ph.filesz;
