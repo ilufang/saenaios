@@ -160,4 +160,5 @@ Activity
   10:51pm
 * xutaoj2 (@xutaoj2) mentioned in merge request `!29` on Apr 27, 2018 11:43pm
 * xutaoj2 (@xutaoj2) closed via merge request `!29` on Apr 27, 2018 11:43pm
-* xutaoj2 (@xutaoj2) mentioned in commit `a1844b3d` Apr 27, 2018 11:43pm
+* xutaoj2 (@xutaoj2) mentioned in commit `a1844b3d` Apr 27, 2018 11:43p
+* 
