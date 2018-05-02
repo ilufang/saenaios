@@ -7,6 +7,3 @@
 [submodule "binutils"]
 	path = binutils
 	url = https://gitlab.engr.illinois.edu/fanglu2/saenaios-binutils.git
-[submodule "busybox"]
-	path = busybox
-	url = https://gitlab.engr.illinois.edu/fanglu2/saenaios-busybox.git
