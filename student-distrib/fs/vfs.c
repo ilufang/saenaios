@@ -151,6 +151,9 @@ int syscall_read(int fd, int bufaddr, int count) {
 		return -EBADF;
 	}
 	if (!file->f_op->read) {
+		if (file->inode->file_type == FTYPE_DIRECTORY) {
+			return -EISDIR;
+		}
 		return -ENOSYS;
 	}
 	// TODO: no permission check
