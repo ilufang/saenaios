@@ -177,7 +177,7 @@ ino_t devfs_i_op_lookup(inode_t* inode,const char* path){
 
 int devfs_i_op_readlink(inode_t* inode, char* buf){
 	//every symbolic link linked to tty!
-	strncpy(buf, "../tty", 7);
+	strncpy(buf, "tty", 7);
 	return 7;
 }
 
@@ -208,7 +208,8 @@ int devfs_register_driver(const char* name, file_operations_t *ops){
 
 	inode = &(devfs_table[i].inode);
 	// special case for stdin / stdout, they are symbolic link
-	if ((!strncmp(name,"stdin",6))||(!strncmp(name,"stdout",7))){
+	if ((!strncmp(name,"stdin",6))||(!strncmp(name,"stdout",7))||
+		(!strncmp(name, "stderr", 7))){
 		inode->file_type = FTYPE_SYMLINK;
 	}else{
 		inode->file_type = FTYPE_DEVICE;

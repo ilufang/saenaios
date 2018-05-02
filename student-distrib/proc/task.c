@@ -245,8 +245,8 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	ret = task_current_pid();
 
-	// Close all fd
-	for (i = 2; i < TASK_MAX_OPEN_FILES; i++) {
+	// Close all fd (except stdin, stdout, stderr)
+	for (i = 3; i < TASK_MAX_OPEN_FILES; i++) {
 		if (proc->files[i]) {
 			syscall_close(i, 0, 0);
 		}
@@ -795,6 +795,10 @@ int task_make_initd(int a, int b, int c) {
 	ret = syscall_open((int)"/dev/stdout", O_WRONLY, 0);
 	if (ret != 1) {
 		printf("Cannot open stdout %d\n", ret);
+	}
+	ret = syscall_open((int)"/dev/stderr", O_WRONLY, 0);
+	if (ret != 2) {
+		printf("Cannot open stderr %d\n", ret);
 	}
 	return 0;
 }

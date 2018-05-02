@@ -197,7 +197,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	syscall_mount((int)"mp3fs", (int)"/", (int)(&mount_opts));
 	mp3fs_mkdir("dev", 0777);
 	syscall_mount((int)"devfs", (int)"/dev", (int)(&mount_opts));
-	mp3fs_symlink("rtc", "/dev/rtc");
+//	mp3fs_symlink("rtc", "/dev/rtc");
 
 	// register drivers
 	rtc_out_driver_register();

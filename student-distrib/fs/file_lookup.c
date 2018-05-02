@@ -83,9 +83,9 @@ file_lookup_start:
 				errno = ENOSYS;
 				return NULL;
 			}
+			path_cd(path, "..");
 			if (path_cd(path,pathtemp)){
 				// errno set in path_cd;
-				errno = EINVAL;
 				return NULL;
 			}
 			//update appended link and then restart lookup process

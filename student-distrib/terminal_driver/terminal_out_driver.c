@@ -45,7 +45,8 @@ int terminal_out_driver_register(){
 	terminal_out_op.read = NULL;
 	terminal_out_op.write = & terminal_out_write;
 	terminal_out_op.readdir = NULL;
-
+	devfs_register_driver("stderr", &terminal_out_op);
+	
 	return (devfs_register_driver("stdout", &terminal_out_op));
 }
 

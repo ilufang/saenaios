@@ -122,8 +122,10 @@ void tty_attach(task_t* proc){
 		// means this process should open new in/out
 		syscall_close(0,0,0);
 		syscall_close(1,0,0);
+		syscall_close(2,0,0);
 		syscall_open((int)"/dev/stdin", O_RDONLY, 0);
-		syscall_open((int)"/dev/stdout", O_RDONLY, 0);
+		syscall_open((int)"/dev/stdout", O_WRONLY, 0);
+		syscall_open((int)"/dev/stderr", O_WRONLY, 0);
 	}
 }
 
