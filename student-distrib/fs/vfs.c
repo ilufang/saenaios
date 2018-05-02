@@ -52,7 +52,24 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	}
 
 	if (!(inode = file_lookup(path))){
-		return -errno;
+		if (errno == ENOENT) {
+			// Create the file if flags allow
+			if (mode & O_CREAT) {
+				inode = vfs_create_file(path, mode);
+				if (!inode) {
+					return -errno;
+				}
+			} else {
+				return -errno;
+			}
+		} else {
+			return -errno;
+		}
+	} else {
+		if (mode & O_EXCL) {
+			(*inode->sb->s_op->free_inode)(inode);
+			return -EEXIST;
+		}
 	}
 
 	if (mode & O_RDONLY) {
@@ -78,6 +95,11 @@ int syscall_open(int pathaddr, int flags, int mode) {
 		return -errno;
 	}
 	proc->files[avail_fd] = file;
+
+	if (flags & O_TRUNC) {
+		syscall_truncate(avail_fd, 0, 0);
+	}
+
 	return avail_fd;
 }
 
@@ -151,6 +173,9 @@ int syscall_read(int fd, int bufaddr, int count) {
 		return -EBADF;
 	}
 	if (!file->f_op->read) {
+		if (file->inode->file_type == FTYPE_DIRECTORY) {
+			return -EISDIR;
+		}
 		return -ENOSYS;
 	}
 	// TODO: no permission check
@@ -248,7 +273,7 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 		dent->index = file->pos - 1;
 		ret = (*file->f_op->readdir)(file, dent);
 		if (ret >= 0) {
-			file->pos++;
+			file->pos = dent->index + 1;
 		}
 		return ret;
 	} else
@@ -310,6 +335,61 @@ int vfs_close_file(file_t *file) {
 	file->mode = 0;
 	file->f_op = NULL;
 	return 0;
+}
+
+inode_t *vfs_create_file(pathname_t path, mode_t mode) {
+	char *filename;
+	int i;
+	inode_t *inode;
+	task_t *proc;
+
+	proc = task_list + task_current_pid();
+
+	// Find base filename
+	filename = NULL;
+	for (i = 1; path[i]; i++) {
+		if (path[i] == '/') {
+			filename = path + i;
+		}
+	}
+	if (!filename) {
+		errno = EINVAL;
+		return NULL;
+	}
+	*filename = '\0';
+	filename++;
+	if (!*filename) {
+		errno = EINVAL;
+		filename[-1] = '/';
+		return NULL;
+	}
+	if (!(inode = file_lookup(path))) {
+		filename[-1] = '/';
+		return NULL;
+	}
+	errno = -file_permission(inode, proc->uid, proc->gid, S_IW);
+	if (errno != 0) {
+		// Permission denied
+		goto cleanup;
+	}
+
+	if (!inode->i_op->mkdir) {
+		errno = ENOSYS;
+		goto cleanup;
+	}
+
+	errno = -(*inode->i_op->create)(inode, filename, mode);
+
+	// Success
+	(*inode->sb->s_op->write_inode)(inode);
+	(*inode->sb->s_op->free_inode)(inode);
+	filename[-1] = '/';
+	return file_lookup(path);
+
+cleanup:
+	(*inode->sb->s_op->free_inode)(inode);
+	filename[-1] = '/';
+	return NULL;
 }
 
 int syscall_stat(int path, int stat_in, int c){
@@ -680,7 +760,7 @@ int syscall_readlink(int pathp, int bufp, int bufsize) {
 	pathname_t path;
 	char *filename;
 	inode_t *inode;
-	int i;
+	int i, ret;
 
 	errno = task_access_memory(pathp);
 	if (errno != 0) {
@@ -724,11 +804,13 @@ int syscall_readlink(int pathp, int bufp, int bufsize) {
 		goto cleanup;
 	}
 
-	errno = -(*inode->i_op->readlink)(inode, path);
-	if (errno != 0) {
+	ret = (*inode->i_op->readlink)(inode, path);
+	if (ret < 0) {
+		errno = -ret;
 		goto cleanup;
 	}
-	if ((int)strlen(path) >= bufsize) {
+	if (ret >= bufsize) {
+
 		errno = ERANGE;
 		goto cleanup;
 	}

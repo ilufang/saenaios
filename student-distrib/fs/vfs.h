@@ -443,6 +443,14 @@ file_t *vfs_open_file(inode_t *inode, int mode);
  */
 int vfs_close_file(file_t *file);
 
+/**
+ *	Create file at path. Assuming all prefix directories are present
+ *
+ *	@param path: the path to the file
+ *	@return the inode of the newly created file, or NULL on failure. Set errno
+ */
+inode_t *vfs_create_file(pathname_t path, mode_t mode);
+
 // System call handlers
 /**
  *	System call handler for `open`: opens a file from a given path and produces

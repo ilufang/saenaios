@@ -10,6 +10,11 @@
 #define O_WRONLY	0x2		///< Open for writing only
 #define O_RDWR		0x3		///< Open for reading and writing
 
+#define O_APPEND	0x10	///< Write at the end of file, always
+#define O_CREAT		0x20	///< Create new file if file does not exist
+#define O_TRUNC		0x40	///< Truncate file to 0 on open
+#define O_EXCL		0x80	///< Fail if file already exist
+
 /**
  *	Opens a file from a given path
  *
