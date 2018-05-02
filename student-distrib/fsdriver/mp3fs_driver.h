@@ -22,6 +22,10 @@
 #define ITOA_BUF_SIZE           10			///< buffer size for itoa function
 #define MP3FS_MAX_FILE_NUM      65          ///< maximum number of files in mp3fs, root dir included
 
+#define MP3FS_TEMP_BASE		100	///< I-no base for temporary file
+#define MP3FS_TEMP_MAX		64	///< Max number of temporary files
+
+
 /**
  *	Dentry type used for file system parsing
  */
@@ -288,12 +292,32 @@ ssize_t mp3fs_f_op_write(struct s_file *file, uint8_t *buf, size_t count,
 int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent);
 
 /**
- *	File system directory write function
+ *	Create directory
  *
- *	@note the function will do nothing and return -1 because
- *         the file system is read only
+ *	This function will create an empty temporary directory for a mountpoint. The
+ *	newly created directory cannot hold files, and will not be saved after power
+ *	off
+ *
+ *	@param inode: the root directory
+ *	@param filename: the name of the new directory
  */
-//int32_t dir_write(int32_t fd, void* buf, int32_t nbytes);
+int mp3fs_i_op_mkdir(struct s_inode *inode, const char *filename, mode_t mode);
+
+/**
+ *	Add symlink to MP3FS temporary file list
+ *
+ *	@parma filename: the name of the symlink
+ *	@param link: content of the symlink
+ */
+int mp3fs_symlink(const char *filename, const char *link);
+
+/**
+ *	Add directory to MP3FS temporary file list
+ *
+ *	@param filename: name of the directory
+ *	@param mode: permissions of the directory
+ */
+int mp3fs_mkdir(const char *filename, mode_t mode);
 
 
 #endif

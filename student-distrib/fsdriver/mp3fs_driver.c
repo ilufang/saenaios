@@ -17,6 +17,16 @@ static  super_block_t mp3fs_sb;
 // inode buffer
 static  inode_t mp3fs_file_table[MP3FS_MAX_FILE_NUM];
 
+typedef struct s_mp3fs_tempfile {
+	char name[FILENAME_LEN];
+	inode_t inode;
+} mp3fs_tempfile_t;
+
+static mp3fs_tempfile_t mp3fs_temp_table[MP3FS_TEMP_MAX];
+static int mp3fs_temp_ptr;
+static char mp3fs_temp_heap[65536];
+static int mp3fs_temp_heap_ptr;
+
 // static function tables
 static super_operations_t mp3fs_s_op;
 static inode_operations_t mp3fs_i_op;
@@ -160,6 +170,7 @@ int mp3fs_installfs(int32_t bootblock_start_addr){
 
     mp3fs_i_op.lookup = &mp3fs_i_op_lookup;
     mp3fs_i_op.readlink = &mp3fs_i_op_readlink;
+	mp3fs_i_op.mkdir = &mp3fs_i_op_mkdir;
 
     mp3fs_f_op.open = &mp3fs_f_op_open;
     mp3fs_f_op.release = &mp3fs_f_op_close;
@@ -221,19 +232,29 @@ inode_t* mp3fs_s_op_alloc_inode(super_block_t* sb){
 
 inode_t* mp3fs_s_op_open_inode(super_block_t* sb, ino_t ino){
     // search for the ino given
-    if ((!sb) || (ino<0) || (ino>MP3FS_MAX_FILE_NUM)){
-        errno = EINVAL;
+    if (!sb || ino < 0){
+        errno = ENOENT;
         return NULL;
     }
-    // search for the inodes in the memory
-    if (mp3fs_file_table[ino].open_count){
-        // found in inodes in memory
-        ++mp3fs_file_table[ino].open_count;
-        return &mp3fs_file_table[ino];
-    }
-    // then go for the disk although it should not reach here
-    // found that in the disk, then get it from 'disk'!
-    return _mp3fs_fetch_inode(ino);
+	if (ino < MP3FS_MAX_FILE_NUM) {
+    	// search for the inodes in the memory
+		if (mp3fs_file_table[ino].open_count){
+			// found in inodes in memory
+			++mp3fs_file_table[ino].open_count;
+			return &mp3fs_file_table[ino];
+		} else {
+			// then go for the disk although it should not reach here
+			// found that in the disk, then get it from 'disk'!
+			return _mp3fs_fetch_inode(ino);
+		}
+	} else if (ino < MP3FS_TEMP_BASE) {
+		errno = ENOENT;
+		return NULL;
+	} else if (ino < MP3FS_TEMP_BASE + mp3fs_temp_ptr) {
+		return &mp3fs_temp_table[ino - MP3FS_TEMP_BASE].inode;
+	}
+	errno = ENOENT;
+	return NULL;
 }
 
 int mp3fs_s_op_free_inode(inode_t* inode){
@@ -285,33 +306,54 @@ inode_t* _mp3fs_fetch_inode(ino_t ino){
     // found it, ah, fetch from disk
     mp3fs_file_table[ino].file_type = mp3fs_ftype_string[mp3fs_dentry_start_ptr[i].filetype];
     mp3fs_file_table[ino].open_count = 1;   // should be 1 isn't it?
-    // TODO mp3fs_file_table[ino].mode
     mp3fs_file_table[ino].sb = &mp3fs_sb;
     mp3fs_file_table[ino].i_op = &mp3fs_i_op;
     mp3fs_file_table[ino].f_op = &mp3fs_f_op;
+	mp3fs_file_table[ino].perm = 0777;
+	mp3fs_file_table[ino].uid = 0;
+	mp3fs_file_table[ino].gid = 0;
     // private data is the length of the file
     mp3fs_file_table[ino].private_data = target_inode->length;
     return &mp3fs_file_table[ino];
 }
 
 ino_t mp3fs_i_op_lookup(inode_t* inode, const char* path){
-    int temp_return;
+    int temp_return, i;
     mp3fs_dentry_t temp_mp3fs_dentry;
     if ((!inode) || (!path)){
         return -EINVAL;
     }
-
-    if ((temp_return = read_dentry_by_name((uint8_t*)path, &temp_mp3fs_dentry))){
-        // must be error
-        return -ENOENT;
+	if (inode->ino != inode->sb->root) {
+		return -EBADF;
+	}
+	// Find temporary items
+	for (i = 0; i < MP3FS_TEMP_MAX; i++) {
+		if (!mp3fs_temp_table[i].name[0]) {
+			break;
+		}
+		if (strncmp(mp3fs_temp_table[i].name, path, FILENAME_LEN) == 0) {
+			return MP3FS_TEMP_BASE + i;
+		}
+	}
+	// Find file system
+	temp_return = read_dentry_by_name((uint8_t*)path, &temp_mp3fs_dentry);
+    if (temp_return == 0) {
+        // Found in files
+        return temp_mp3fs_dentry.inode_num;
     }
-    // found
-    return temp_mp3fs_dentry.inode_num;
+    // Not found
+	return -ENOENT;
 }
 
 int mp3fs_i_op_readlink(inode_t* inode, char* buf){
-    // should not be called
-    return -ENOSYS;
+	int len;
+	
+	if (inode->file_type != FTYPE_SYMLINK) {
+		return -EPERM;
+	}
+	len = strlen((char *)inode->private_data);
+	strcpy(buf, (char *)inode->private_data);
+	return len + 1;
 }
 
 int mp3fs_f_op_open(struct s_inode *inode, struct s_file *file){
@@ -337,11 +379,14 @@ int mp3fs_f_op_close(struct s_inode *inode, struct s_file *file){
 }
 
 ssize_t mp3fs_f_op_read(struct s_file *file, uint8_t *buf, size_t count,
-                            off_t *offset){
+						off_t *offset){
     int temp_read_count;
-    if (file->inode->file_type == FTYPE_DIRECTORY){
+    if (file->inode->file_type == FTYPE_DIRECTORY) {
         return -EISDIR;
     }
+	if (file->inode->file_type != FTYPE_REGULAR) {
+		return -EBADF;
+	}
     temp_read_count = read_data(file->inode->ino, file -> pos, buf, count);
     if (temp_read_count>=0)
         file -> pos += temp_read_count;
@@ -363,23 +408,101 @@ int mp3fs_f_op_readdir(struct s_file *file, struct dirent *dirent){
     mp3fs_dentry_t temp_mp3fs_dentry;
 
     for (i = dirent->index + 1; i < MP3FS_MAX_FILE_NUM; ++i){
-        if (!read_dentry_by_index(i, &temp_mp3fs_dentry))
-            //found
-            break;
+		if (!read_dentry_by_index(i, &temp_mp3fs_dentry)) {
+			dirent->ino = i;
+			strncpy(dirent->filename, temp_mp3fs_dentry.filename, 32);
+			dirent->index = i;
+			return 0;
+		}
     }
-    if (i >= MP3FS_MAX_FILE_NUM){
-        return -ENOENT;
-    }
-	/*
-	if (!read_dentry_by_index(count, &temp_mp3fs_dentry)){
-		count++;
+	if (i < MP3FS_TEMP_BASE) {
+		i = MP3FS_TEMP_BASE;
 	}
-	else{
-		count = 0;
-        return -ENOENT;
-    }*/
-    dirent->ino = i;
-    strncpy(dirent->filename, temp_mp3fs_dentry.filename, 32);
-    dirent->index = i;
-    return 0;
+	if (mp3fs_temp_table[i-MP3FS_TEMP_BASE].name[0]) {
+		dirent->ino = i;
+		strcpy(dirent->filename, mp3fs_temp_table[i-MP3FS_TEMP_BASE].name);
+		dirent->index = i;
+		return 0;
+	}
+	return -ENOENT;
+}
+
+int mp3fs_mkdir(const char *filename, mode_t mode) {
+	inode_t *inode_new;
+
+	strcpy(mp3fs_temp_table[mp3fs_temp_ptr].name, filename);
+	inode_new = &(mp3fs_temp_table[mp3fs_temp_ptr].inode);
+	inode_new->ino = mp3fs_temp_ptr + MP3FS_TEMP_BASE;
+	inode_new->file_type = FTYPE_DIRECTORY;
+	inode_new->open_count = 1;
+	inode_new->sb = &mp3fs_sb;
+	inode_new->i_op = &mp3fs_i_op;
+	inode_new->f_op = &mp3fs_f_op;
+	inode_new->perm = mode;
+	inode_new->uid = 0;
+	inode_new->gid = 0;
+	mp3fs_temp_ptr++;
+	return 0;
+}
+
+int mp3fs_i_op_mkdir(struct s_inode *inode, const char *filename, mode_t mode) {
+	if (inode->ino != inode->sb->root) {
+		return -EBADF;
+	}
+	if (mp3fs_i_op_lookup(inode, filename) != -ENOENT) {
+		return -EEXIST;
+	}
+	if (mp3fs_temp_ptr >= MP3FS_TEMP_MAX) {
+		return -ENOSPC;
+	}
+	if (strlen(filename) >= FILENAME_LEN) {
+		return -ENAMETOOLONG;
+	}
+	return mp3fs_mkdir(filename, mode);
+}
+
+int mp3fs_symlink(const char *filename, const char *link) {
+	inode_t *inode_new;
+	char *linkbuf;
+	int len;
+	
+	len = strlen(link);
+	if (len > 256 || mp3fs_temp_heap_ptr + len >= 65536) {
+		return ENOSPC;
+	}
+	linkbuf = mp3fs_temp_heap + mp3fs_temp_heap_ptr;
+	mp3fs_temp_heap_ptr += len + 1;
+	strcpy(linkbuf, link);
+	
+	strcpy(mp3fs_temp_table[mp3fs_temp_ptr].name, filename);
+	inode_new = &(mp3fs_temp_table[mp3fs_temp_ptr].inode);
+	inode_new->ino = mp3fs_temp_ptr + MP3FS_TEMP_BASE;
+	inode_new->file_type = FTYPE_SYMLINK;
+	inode_new->open_count = 1;
+	inode_new->sb = &mp3fs_sb;
+	inode_new->i_op = &mp3fs_i_op;
+	inode_new->f_op = &mp3fs_f_op;
+	inode_new->perm = 0777;
+	inode_new->uid = 0;
+	inode_new->gid = 0;
+	inode_new->private_data = (int) linkbuf;
+	mp3fs_temp_ptr++;
+	return 0;
+}
+
+int mp3fs_i_op_symlink(struct s_inode *inode, const char *filename,
+					   const char *link) {
+	if (inode->ino != inode->sb->root) {
+		return -EBADF;
+	}
+	if (mp3fs_i_op_lookup(inode, filename) != -ENOENT) {
+		return -EEXIST;
+	}
+	if (mp3fs_temp_ptr >= MP3FS_TEMP_MAX) {
+		return -ENOSPC;
+	}
+	if (strlen(filename) >= FILENAME_LEN) {
+		return -ENAMETOOLONG;
+	}
+	return mp3fs_symlink(filename, link);
 }

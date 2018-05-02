@@ -72,6 +72,11 @@ typedef struct s_task {
 	sigset_t signals;	///< Pending signals
 	sigset_t signal_mask; ///< Deferred signals
 	uint32_t exit_status; ///< Status to report on `wait`
+
+	uid_t uid; ///< User ID of the process
+	gid_t gid; ///< Group ID of the process
+	
+	char *wd; ///< Working directory
 } task_t;
 
 /**
@@ -89,9 +94,14 @@ extern task_t task_list[TASK_MAX_PROC];
 pid_t task_current_pid();
 
 /**
- *	Initialize first process
+ *	Initialize pid 0 for kernel code
  */
 void task_create_kernel_pid();
+
+/**
+ *	Start process system
+ */
+void task_start_kernel_pid();
 
 /**
  *	Find an available pid
@@ -196,6 +206,23 @@ int syscall_ece391_halt(int, int, int);
  *	@return -1 on error, 0 on success
  */
 int syscall_ece391_getargs(int buf, int nbytes, int);
+
+/**
+ *	System call handler for `getcwd`: Get current working directory
+ *
+ *	@param bufp: the buffer to read cwd into
+ *	@param size: the max size of the buffer
+ *	@return 0 on success, or the negative of an errno on failure
+ */
+int syscall_getcwd(int bufp, int size, int);
+
+/**
+ *	System call handler for `chdir`: Change current working directory
+ *
+ *	@param pathp: address of path to the new working directory
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_chdir(int pathp, int, int);
 
 /**
  *	Release a process from memory

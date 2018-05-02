@@ -184,7 +184,8 @@ void entry(unsigned long magic, unsigned long addr) {
 	 * without showing you any output */
 	//printf("Enabling Interrupts\n");
 	sti();
-
+	// Create kernel process identity
+	task_create_kernel_pid();
 	// install device driver fs
 	devfs_installfs();
 	if (!mp3fs_load_addr || mp3fs_installfs(mp3fs_load_addr)){
@@ -194,7 +195,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	// mount filesystems
 	struct sys_mount_opts mount_opts;
 	syscall_mount((int)"mp3fs", (int)"/", (int)(&mount_opts));
+	mp3fs_mkdir("dev", 0777);
 	syscall_mount((int)"devfs", (int)"/dev", (int)(&mount_opts));
+	mp3fs_symlink("rtc", "/dev/rtc");
 
 	// register drivers
 	rtc_out_driver_register();
@@ -207,7 +210,7 @@ void entry(unsigned long magic, unsigned long addr) {
 	launch_tests();
 #endif
 	// create a basic process
-	task_create_kernel_pid();
+	task_start_kernel_pid();
 
 	// Bye!
 

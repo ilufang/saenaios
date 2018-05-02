@@ -72,6 +72,7 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_MOUNT, syscall_mount);
 	syscall_register(SYSCALL_UMOUNT, syscall_umount);
 	syscall_register(SYSCALL_GETDENTS, syscall_getdents);
+	syscall_register(SYSCALL_LSEEK, syscall_lseek);
 	syscall_register(SYSCALL_STAT, syscall_stat);
 	syscall_register(SYSCALL_FSTAT, syscall_fstat);
 	syscall_register(SYSCALL_LSTAT, syscall_lstat);
@@ -90,4 +91,20 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_SIGACTION, syscall_sigaction);
 	syscall_register(SYSCALL_SIGSUSPEND, syscall_sigsuspend);
 	syscall_register(SYSCALL_SIGPROCMASK, syscall_sigprocmask);
+	
+	// VFS Security
+	syscall_register(SYSCALL_CHMOD, syscall_chmod);
+	syscall_register(SYSCALL_CHOWN, syscall_chown);
+	syscall_register(SYSCALL_LINK, syscall_link);
+	syscall_register(SYSCALL_UNLINK, syscall_unlink);
+	syscall_register(SYSCALL_SYMLINK, syscall_symlink);
+	syscall_register(SYSCALL_READLINK, syscall_readlink);
+	syscall_register(SYSCALL_TRUNCATE, syscall_truncate);
+	syscall_register(SYSCALL_RENAME, syscall_rename);
+	syscall_register(SYSCALL_GETCWD, syscall_getcwd);
+	syscall_register(SYSCALL_CHDIR, syscall_chdir);
+	syscall_register(SYSCALL_MKDIR, syscall_mkdir);
+	syscall_register(SYSCALL_RMDIR, syscall_rmdir);
+	syscall_register(SYSCALL_IOCTL, syscall_ioctl);
+	
 }
