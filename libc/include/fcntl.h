@@ -6,14 +6,14 @@
 #ifndef FCNTL_H
 #define FCNTL_H
 
-#define O_RDONLY	0x0000
-#define O_WRONLY	0x0001
-#define O_RDWR		0x0002
-#define O_APPEND	0x0008
-#define O_CREAT		0x0200
-#define O_TRUNC		0x0400
-#define O_EXCL		0x0800
-#define O_SYNC		0x2000
+#define O_RDONLY	0x1		///< Open for reading only
+#define O_WRONLY	0x2		///< Open for writing only
+#define O_RDWR		0x3		///< Open for reading and writing
+
+#define O_APPEND	0x10	///< Write at the end of file, always
+#define O_CREAT		0x20	///< Create new file if file does not exist
+#define O_TRUNC		0x40	///< Truncate file to 0 on open
+#define O_EXCL		0x80	///< Fail if file already exist
 
 /**
  *	Opens a file from a given path
