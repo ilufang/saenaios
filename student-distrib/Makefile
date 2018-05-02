@@ -4,14 +4,14 @@
 
 
 # Flags to use when compiling, preprocessing, assembling, and linking
-CFLAGS=-std=gnu89 -ffreestanding -O2 -Wall -Wextra -g -Wno-unused-parameter
+CFLAGS=-std=gnu89 -ffreestanding -O0 -Wall -Wextra -g -Wno-unused-parameter -I../libc/include
 ASFLAGS=
-LDFLAGS=-ffreestanding -O2 -nostdlib
+LDFLAGS=-ffreestanding -O0 -nostdlib
 CC=i386-elf-gcc
 LD=i386-elf-gcc
 
 #If you have any .h files in another directory, add -I<dir> to this line
-CPPFLAGS+=-nostdinc -g
+CPPFLAGS+=-nostdinc -g -I../libc/include
 
 # This generates the list of source files
 SRC=$(wildcard *.S) $(wildcard *.c) $(wildcard */*.S) $(wildcard */*.c)
@@ -20,6 +20,7 @@ SRC=$(wildcard *.S) $(wildcard *.c) $(wildcard */*.S) $(wildcard */*.c)
 OBJS=boot.o
 OBJS+=$(filter-out boot.o,$(patsubst %.S,%.o,$(filter %.S,$(SRC))))
 OBJS+=$(patsubst %.c,%.o,$(filter %.c,$(SRC)))
+OBJS+=../fuse-lwext4/lwext4/src/libext4.a
 
 bootimg: Makefile $(OBJS)
 	rm -f bootimg

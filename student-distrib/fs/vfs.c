@@ -399,9 +399,9 @@ int syscall_chmod(int fd, int mode, int c) {
 	task_t *proc;
 	file_t *file;
 	inode_t *inode;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
@@ -420,9 +420,9 @@ int syscall_chown(int fd, int uid, int gid) {
 	task_t *proc;
 	file_t *file;
 	inode_t *inode;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
@@ -446,9 +446,9 @@ int syscall_link(int path1p, int path2p, int c) {
 	char *filename;
 	inode_t *inode_from, *inode_to;
 	int i;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	errno = task_access_memory(path1p);
 	if (errno != 0) {
 		return -errno;
@@ -472,7 +472,7 @@ int syscall_link(int path1p, int path2p, int c) {
 		// Permission denied
 		goto cleanup_from;
 	}
-	
+
 	// Open destination file
 	strcpy(path, proc->wd);
 	errno = -path_cd(path, (char *)path2p);
@@ -509,25 +509,25 @@ int syscall_link(int path1p, int path2p, int c) {
 		errno = EXDEV;
 		goto cleanup_fromto;
 	}
-	
+
 	if (!inode_to->i_op->link) {
 		errno = ENOSYS;
 		goto cleanup_fromto;
 	}
-	
+
 	errno = -(*inode_to->i_op->link)(inode_from->ino, inode_to, filename);
 
 	if (errno != 0) {
 		goto cleanup_fromto;
 	}
-	
+
 	inode_from->link_count++;
 
 	// Success
 	(*inode_to->sb->s_op->write_inode)(inode_to);
 	(*inode_from->sb->s_op->write_inode)(inode_from);
 	errno = 0;
-	
+
 cleanup_fromto:
 	(*inode_to->sb->s_op->free_inode)(inode_to);
 cleanup_from:
@@ -541,14 +541,14 @@ int syscall_unlink(int pathp, int b, int c) {
 	char *filename;
 	inode_t *inode_from, *inode_to;
 	int i;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	errno = task_access_memory(pathp);
 	if (errno != 0) {
 		return -errno;
 	}
-	
+
 	// Open file to be unlinked
 	strcpy(path, proc->wd);
 	errno = -path_cd(path, (char *)pathp);
@@ -585,25 +585,25 @@ int syscall_unlink(int pathp, int b, int c) {
 		// Permission denied
 		goto cleanup_fromto;
 	}
-	
+
 	if (!inode_to->i_op->unlink) {
 		errno = ENOSYS;
 		goto cleanup_fromto;
 	}
-	
+
 	errno = -(*inode_to->i_op->unlink)(inode_to, filename);
-	
+
 	if (errno != 0) {
 		goto cleanup_fromto;
 	}
-	
+
 	inode_from->link_count--;
-	
+
 	// Success
 	(*inode_to->sb->s_op->write_inode)(inode_to);
 	(*inode_from->sb->s_op->write_inode)(inode_from);
 	errno = 0;
-	
+
 cleanup_fromto:
 	(*inode_to->sb->s_op->free_inode)(inode_to);
 cleanup_from:
@@ -617,9 +617,9 @@ int syscall_symlink(int path1p, int path2p, int c) {
 	char *filename;
 	inode_t *inode;
 	int i;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	errno = task_access_memory(path1p);
 	if (errno != 0) {
 		return -errno;
@@ -658,18 +658,18 @@ int syscall_symlink(int path1p, int path2p, int c) {
 		// Permission denied
 		goto cleanup;
 	}
-	
+
 	if (!inode->i_op->symlink) {
 		errno = ENOSYS;
 		goto cleanup;
 	}
-	
+
 	errno = -(*inode->i_op->symlink)(inode, filename, (char *)path1p);
-	
+
 	// Success
 	(*inode->sb->s_op->write_inode)(inode);
 	errno = 0;
-	
+
 cleanup:
 	(*inode->sb->s_op->free_inode)(inode);
 	return -errno;
@@ -681,14 +681,14 @@ int syscall_readlink(int pathp, int bufp, int bufsize) {
 	char *filename;
 	inode_t *inode;
 	int i;
-	
+
 	errno = task_access_memory(pathp);
 	if (errno != 0) {
 		return -errno;
 	}
 
 	proc = task_list + task_current_pid();
-	
+
 	// Open destination file
 	strcpy(path, proc->wd);
 	errno = -path_cd(path, (char *)pathp);
@@ -718,25 +718,25 @@ int syscall_readlink(int pathp, int bufp, int bufsize) {
 		// Permission denied
 		goto cleanup;
 	}
-	
+
 	if (!inode->i_op->readlink) {
 		errno = ENOSYS;
 		goto cleanup;
 	}
-	
+
 	errno = -(*inode->i_op->readlink)(inode, path);
 	if (errno != 0) {
 		goto cleanup;
 	}
-	if (strlen(path) >= bufsize) {
+	if ((int)strlen(path) >= bufsize) {
 		errno = ERANGE;
 		goto cleanup;
 	}
 	strcpy((char *)bufp, path);
-	
+
 	// Success
 	errno = 0;
-	
+
 cleanup:
 	(*inode->sb->s_op->free_inode)(inode);
 	return -errno;
@@ -746,9 +746,9 @@ int syscall_truncate(int fd, int length, int c) {
 	task_t *proc;
 	file_t *file;
 	int orig_length, ret;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
@@ -786,14 +786,14 @@ int syscall_mkdir(int pathp, int mode, int c) {
 	char *filename;
 	inode_t *inode;
 	int i;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	errno = task_access_memory(pathp);
 	if (errno != 0) {
 		return -errno;
 	}
-	
+
 	// Open containing directory
 	strcpy(path, proc->wd);
 	errno = -path_cd(path, (char *)pathp);
@@ -823,18 +823,18 @@ int syscall_mkdir(int pathp, int mode, int c) {
 		// Permission denied
 		goto cleanup;
 	}
-	
+
 	if (!inode->i_op->mkdir) {
 		errno = ENOSYS;
 		goto cleanup;
 	}
-	
+
 	errno = -(*inode->i_op->mkdir)(inode, filename, mode);
-	
+
 	// Success
 	(*inode->sb->s_op->write_inode)(inode);
 	errno = 0;
-	
+
 cleanup:
 	(*inode->sb->s_op->free_inode)(inode);
 	return -errno;
@@ -846,14 +846,14 @@ int syscall_rmdir(int pathp, int b, int c) {
 	char *filename;
 	inode_t *inode;
 	int i;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	errno = task_access_memory(pathp);
 	if (errno != 0) {
 		return -errno;
 	}
-	
+
 	// Open containing directory
 	strcpy(path, proc->wd);
 	errno = -path_cd(path, (char *)pathp);
@@ -883,18 +883,18 @@ int syscall_rmdir(int pathp, int b, int c) {
 		// Permission denied
 		goto cleanup;
 	}
-	
+
 	if (!inode->i_op->rmdir) {
 		errno = ENOSYS;
 		goto cleanup;
 	}
-	
+
 	errno = -(*inode->i_op->rmdir)(inode, filename);
-	
+
 	// Success
 	(*inode->sb->s_op->write_inode)(inode);
 	errno = 0;
-	
+
 cleanup:
 	(*inode->sb->s_op->free_inode)(inode);
 	return -errno;
@@ -903,9 +903,9 @@ cleanup:
 int syscall_ioctl(int fd, int cmd, int arg) {
 	task_t *proc;
 	file_t *file;
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	file = proc->files[fd];
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;

@@ -23,6 +23,9 @@
 #include "fs/fs_devfs.h"
 #include "libc.h"
 
+#include "atadriver/ata.h"
+#include "fsdriver/ext4_driver.h"
+
 //#define RUN_TESTS
 
 /* Macros. */
@@ -171,6 +174,8 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	signal_init();
 
+
+
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
@@ -193,7 +198,10 @@ void entry(unsigned long magic, unsigned long addr) {
 	terminal_out_driver_register();
 	keyboard_driver_register();
 	rtc_out_driver_register();
+	ata_init();
+	ata_driver_register();
 
+	ext4_ece391_init();
 
 #ifdef RUN_TESTS
 	/* Run tests */
