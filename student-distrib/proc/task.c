@@ -376,7 +376,7 @@ int syscall_waitpid(int cpid, int statusp, int options) {
 			found_child = 1;
 			break;
 		}
-		if (cpid < 0 && task_list[i].parent == pid) {
+		if ((cpid < 0 || cpid > TASK_MAX_PROC) && task_list[i].parent == pid) {
 			switch (task_list[i].status) {
 				case TASK_ST_ZOMBIE:
 					// Notify parent of dead child
@@ -411,7 +411,6 @@ int syscall_waitpid(int cpid, int statusp, int options) {
 	sa.flags = SA_RESTART;
 	syscall_sigaction(SIGCHLD, (int)&sa, 0);
 	sigemptyset(&ss);
-	task_list[pid].regs.eax = -EINTR;
 	task_list[pid].exit_status = SYSCALL_WAITPID | WIFSYSCALL(-1);
 	syscall_sigsuspend((int) &ss, NULL, 0);
 	return 0; // Should not hit
