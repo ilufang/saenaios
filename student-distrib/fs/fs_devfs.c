@@ -56,6 +56,9 @@ int devfs_installfs() {
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.sb = &devfs_sb;
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.f_op = &devfs_f_op;
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.i_op = &devfs_inode_op;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.perm = 555;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.uid = 0;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.gid = 0;
 
 	//inflate devfs and register
 	strcpy(devfs.name,"devfs");
@@ -76,6 +79,10 @@ int devfs_installfs() {
 		devfs_table[i].inode.sb = &devfs_sb;
 		devfs_table[i].inode.f_op = NULL;
 		devfs_table[i].inode.i_op = &devfs_inode_op;
+		devfs_table[i].inode.perm = 777;
+		devfs_table[i].inode.uid = 0;
+		devfs_table[i].inode.gid = 0;
+
 		//private data don't care
 	}
 

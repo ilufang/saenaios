@@ -248,7 +248,7 @@ int syscall_getdents(int fd, int bufaddr, int c) {
 		dent->index = file->pos - 1;
 		ret = (*file->f_op->readdir)(file, dent);
 		if (ret >= 0) {
-			file->pos++;
+			file->pos = dent->index + 1;
 		}
 		return ret;
 	} else
@@ -680,7 +680,7 @@ int syscall_readlink(int pathp, int bufp, int bufsize) {
 	pathname_t path;
 	char *filename;
 	inode_t *inode;
-	int i;
+	int i, ret;
 	
 	errno = task_access_memory(pathp);
 	if (errno != 0) {
@@ -724,11 +724,12 @@ int syscall_readlink(int pathp, int bufp, int bufsize) {
 		goto cleanup;
 	}
 	
-	errno = -(*inode->i_op->readlink)(inode, path);
-	if (errno != 0) {
+	ret = (*inode->i_op->readlink)(inode, path);
+	if (ret < 0) {
+		errno = -ret;
 		goto cleanup;
 	}
-	if (strlen(path) >= bufsize) {
+	if (ret >= bufsize) {
 		errno = ERANGE;
 		goto cleanup;
 	}

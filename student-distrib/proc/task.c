@@ -60,8 +60,10 @@ void task_create_kernel_pid() {
 	init_task->status = TASK_ST_RUNNING;
 
 	kstack[0].pid = 0;
+}
 
-	// now iret to the kernel process
+void task_start_kernel_pid() {
+	// iret to the kernel process
 	scheduling_start();
 	task_kernel_process_iret();
 }
@@ -160,6 +162,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	task_t *proc;
 	uint32_t *u_argv, *u_envp, argc, envc;
 	task_ptentry_t ptent_stack;
+	char *path_prev;
 
 	// Sanity checks
 	if (!pathp) {
@@ -234,7 +237,6 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	strcpy((char *)0xc0000000, (char *)pathp); // Copy path to top-of-stack
 
-	// Release previous process
 	ret = task_current_pid();
 
 	// Close all fd
@@ -244,8 +246,13 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		}
 	}
 
+	// Release previous process
+	path_prev = proc->wd;
+	proc->wd = NULL;
 	scheduler_page_clear(proc->pages);
 	task_release(proc);
+	proc->wd = path_prev;
+	proc->status = TASK_ST_RUNNING;
 	// Update kernel stack PID
 	((task_ks_t *)(proc->ks_esp))[-1].pid = ret;
 
@@ -588,7 +595,9 @@ void task_release(task_t *proc) {
 	}
 	page_flush_tlb();
 	// Release dynamic memory
-	kfree(proc->wd);
+	if (proc->wd) {
+		kfree(proc->wd);
+	}
 	// Release kernel stack
 	((task_ks_t *)(proc->ks_esp))[-1].pid = -1;
 	// Mark program as void

@@ -118,9 +118,6 @@ int syscall_mount(int typeaddr, int destaddr, int optaddr) {
 
 	// mount call privilege check
 	proc = task_list + task_current_pid();
-	if (proc->status != TASK_ST_RUNNING) {
-		return -ESRCH;
-	}
 	if (proc->uid != 0 && proc->gid != 0) {
 		return -EPERM;
 	}

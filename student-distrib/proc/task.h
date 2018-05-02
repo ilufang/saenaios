@@ -83,11 +83,14 @@ extern task_t task_list[TASK_MAX_PROC];
 pid_t task_current_pid();
 
 /**
- *	TEMPORARY: initialize pid 0 for kernel code
- *
- *	@todo Will be removed later
+ *	Initialize pid 0 for kernel code
  */
 void task_create_kernel_pid();
+
+/**
+ *	Start process system
+ */
+void task_start_kernel_pid();
 
 /**
  *	Find an available pid

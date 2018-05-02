@@ -139,13 +139,13 @@ void* kmalloc(size_t size) {
 			if (mem_info[i].status == 0) {
 				temp2 = &(mem_info[i]);
 				temp2->status = 1;
-				break;
+				goto buf_found;
 			}
-            else {
-                errno = ENOBUFS;
-                return NULL;
-            }
 		}
+		// Out of memory
+		errno = ENOMEM;
+		return NULL;
+	buf_found:
 		temp2->size = temp->size - num_slab;
 		temp2->prev = temp->prev;
 		temp2->info = new_info;
