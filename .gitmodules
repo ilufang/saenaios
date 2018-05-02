@@ -1,3 +1,6 @@
 [submodule "lwext4"]
 	path = lwext4
 	url = https://gitlab.engr.illinois.edu/xutaoj2/saenaios-lwext4.git
+[submodule "fuse-lwext4"]
+	path = fuse-lwext4
+	url = https://gitlab.engr.illinois.edu/xutaoj2/saenaios-fuse-lwext4.git
