@@ -15,7 +15,7 @@ void user_set_password(login_t *user, char *password) {
 
 	sha256_init(&ctx);
 	sha256_update(&ctx, user->salt, 8);
-	sha256_update(&ctx, (uint8_t*)password, 8);
+	sha256_update(&ctx, (uint8_t*)password, strlen(password));
 	sha256_final(&ctx, user->password);
 }
 

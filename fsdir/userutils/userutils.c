@@ -10,7 +10,7 @@
 login_t *user_data = NULL;
 
 int user_load() {
-	stat_t fi;
+	struct stat fi;
 	int fd;
 	fd = open("/passwd", O_RDONLY, 0);
 	if (fd == -1) {
@@ -68,7 +68,7 @@ int user_check_password(login_t *user, char *password) {
 
 	sha256_init(&ctx);
 	sha256_update(&ctx, user->salt, 8);
-	sha256_update(&ctx, (uint8_t*) password, 8);
+	sha256_update(&ctx, (uint8_t*) password, strlen(password));
 	sha256_final(&ctx, buf);
 
 	return strncmp((char*)buf, (char*)user->password, 32);

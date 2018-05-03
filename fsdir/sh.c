@@ -172,7 +172,7 @@ int main ()
 					perror("close original stdout");
 					return 1;
 				}
-				if (open(redir_out, O_WRONLY, 0) != 1) {
+				if (open(redir_out, O_WRONLY | O_CREAT, 0) != 1) {
 					perror("open new stdout");
 					return 1;
 				}
@@ -182,16 +182,26 @@ int main ()
 					perror("close original stderr");
 					return 1;
 				}
-				if (open(redir_err, O_WRONLY, 0) != 2) {
+				if (open(redir_err, O_WRONLY | O_CREAT, 0) != 2) {
 					perror("open new stderr");
 					return 1;
 				}
 			}
 			cptr = NULL;
-			ret = execve(argv[0], argv, &cptr);
-			if (ret < 0) {
-				perror("execve");
+			ret = fork();
+			if (ret == -1) {
+				perror("fork");
 				return 1;
+			}
+			if (ret != 0) {
+				wait(&ret);
+				return 0;
+			} else {
+				ret = execve(argv[0], argv, &cptr);
+				if (ret < 0) {
+					perror("execve");
+					return 1;
+				}
 			}
 		}
 	}

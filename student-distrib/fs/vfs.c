@@ -72,7 +72,7 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	if (!(inode = file_lookup(path))){
 		if (errno == ENOENT) {
 			// Create the file if flags allow
-			if (mode & O_CREAT) {
+			if (flags & O_CREAT) {
 				inode = vfs_create_file(path, mode);
 				if (!inode) {
 					return -errno;
@@ -84,19 +84,19 @@ int syscall_open(int pathaddr, int flags, int mode) {
 			return -errno;
 		}
 	} else {
-		if (mode & O_EXCL) {
+		if (flags & O_EXCL) {
 			(*inode->sb->s_op->free_inode)(inode);
 			return -EEXIST;
 		}
 	}
 
-	if (mode & FMODE_RD) {
+	if (flags & FMODE_RD) {
 		perm_mask |= 4; // Read bit
 	}
-	if (mode & FMODE_WR) {
+	if (flags & FMODE_WR) {
 		perm_mask |= 2; // Write bit
 	}
-	if (mode & FMODE_EXEC) {
+	if (flags & FMODE_EXEC) {
 		perm_mask |= 1; // Exec bit
 	}
 	errno = -file_permission(inode, proc->uid, proc->gid, perm_mask);
