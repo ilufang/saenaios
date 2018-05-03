@@ -135,10 +135,20 @@ int file_find(nameidata_t* nd){
 		// get over '/'
 		if (*(nd->path) == '/')
 			(nd->path)++;
+		int i, found = 0;
+		for (i = 0; nd->path[i]; i++) {
+			if (nd->path[i] == '/') {
+				found = 1;
+				nd->path[i] = '\0';
+				break;
+			}
+		}
 		if ((temp_ino = (*(nd->inode->i_op->lookup))(nd->inode, nd->path)) < 0){
 			//error, errno set in called function
 			return temp_ino;
 		}else{
+			if (found)
+				nd->path[i] = '/';
 			// free previous directory inode
 			(*nd->mnt->sb->s_op->free_inode)(nd->inode);
 			nd->inode = NULL;
