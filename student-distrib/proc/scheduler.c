@@ -59,10 +59,10 @@ void scheduler_switch(task_t* from, task_t* to) {
 	}
 	// tear down original paging
 	if (from) {
-		scheduler_page_clear(from->pages);
+		scheduler_page_clear(from);
 	}
 	// set up new pagin
-	scheduler_page_setup(to->pages);
+	scheduler_page_setup(to);
 
 	page_flush_tlb();
 
@@ -93,9 +93,11 @@ void scheduler_update_taskregs(regs_t *regs) {
 	memcpy(&(proc->regs), regs, sizeof(regs_t));
 }
 
-void scheduler_page_clear(task_ptentry_t* pages){
+void scheduler_page_clear(task_t *proc){
+	task_ptentry_t* pages;
 	int i, ret;
-	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
+	pages = proc->pages;
+	for (i=0; i<proc->page_limit; ++i){
 		// check whether the page is present
 		if (pages[i].pt_flags & PAGE_DIR_ENT_PRESENT) {
 			// then delete this entry
@@ -112,9 +114,11 @@ void scheduler_page_clear(task_ptentry_t* pages){
 	}
 }
 
-void scheduler_page_setup(task_ptentry_t* pages){
+void scheduler_page_setup(task_t *proc){
+	task_ptentry_t* pages;
 	int i, ret;
-	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
+	pages = proc->pages;
+	for (i=0; i<proc->page_limit; ++i){
 		// check whether the page is present
 		if (pages[i].pt_flags & PAGE_DIR_ENT_PRESENT) {
 			// then setup this entry

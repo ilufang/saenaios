@@ -21,6 +21,10 @@
 
 #define MP3FS_IDENTIFIER 0xecebcafe ///< MP3FS RTC symlink identifier
 
+#define FMODE_RD	1
+#define FMODE_WR	2
+#define FMODE_EXEC	4
+
 // Forward declarations
 struct s_file;
 struct s_inode;
@@ -126,6 +130,21 @@ typedef struct s_file_operations {
 	 *			Specifically, -ENOENT when iteration has finished
 	 */
 	int (*readdir)(struct s_file *file, struct dirent *dirent);
+
+	/**
+	 *	IO Control driver-specific commands
+	 *
+	 *	This call should be applicable only to device files, which may need
+	 *	additional custom commands. However the VFS currently does not strictly
+	 *	enforce file to be of device type. If this function is not applicable,
+	 *	simply leave it NULL and VFS will return `-ENOSYS` to the caller.
+	 *
+	 *	@param file: the file the command is sent to
+	 *	@param cmd: the command
+	 *	@param args: payload arguments
+	 *	@return 0 on success, or the negative of an errno on failure.
+	 */
+	int (*ioctl)(struct s_file *file, int cmd, int args);
 } file_operations_t;
 
 /**
@@ -144,26 +163,109 @@ typedef struct s_inode_operations {
 	 */
 	ino_t (*lookup)(struct s_inode *inode, const char *filename);
 
-	// int (*permission) (struct inode *, int, unsigned int);
-
 	/**
 	 *	Read symbolic link of inode
 	 *
 	 *	@param inode: current inode, must be a symbolic link
 	 *	@param buf: the buffer to read the linked path into, must be big enough
 	 *				to hold a path (PATH_MAX_LEN+1)
+	 *	@return the number of bytes read, or the negative of an errno on failure
 	 */
 	int (*readlink)(struct s_inode *inode, char buf[PATH_MAX_LEN + 1]);
 
-	// int (*create) (struct inode *,struct dentry *,int, struct nameidata *);
-	// int (*link) (struct dentry *,struct inode *,struct dentry *);
-	// int (*unlink) (struct inode *,struct dentry *);
-	// int (*symlink) (struct inode *,struct dentry *,const char *link);
-	// int (*mkdir) (struct inode *,struct dentry *,int);
-	// int (*rmdir) (struct inode *,struct dentry *);
+	/**
+	 *	Check for access permissions
+	 *
+	 *	@param inode: the inode of the file being accessed
+	 *	@param mask: access type. Bit map of `S_IR`, `S_IW` and `S_IX`
+	 *	@return 0 if access is granted, or the negative of an errno if access is
+	 *			denied (typically -EACCESS)
+	 */
+	int (*permission)(struct s_inode *inode, mode_t mask);
+
+	/**
+	 *	Create regular file entry in directory
+	 *
+	 *	@param inode: the inode of the directory file to operate on
+	 *	@param filename: the name of the entry to be created
+	 *	@param mode: the permission of the newly-created file
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*create) (struct s_inode *inode, const char *filename, mode_t mode);
+
+	/**
+	 *	Create entry in directory
+	 *
+	 *	@param fileno: i-number of file to create entry for
+	 *	@param inode: the inode of the directory file to operate on
+	 *	@param filename: the name of the entry to be created
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*link) (ino_t fileno, struct s_inode *inode, const char *filename);
+
+	/**
+	 *	Remove entry in directory
+	 *
+	 *	@param inode: the inode of the directory file to operate on
+	 *	@param filename: the name of file to be unlinked
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*unlink) (struct s_inode *inode, const char *filename);
+
+	/**
+	 *	Create symlink entry in directory
+	 *
+	 *	This function might create new inodes for the symlink file if it chose
+	 *	to do so.
+	 *
+	 *	@param inode: the inode of the directory file to operate on
+	 *	@param filename: the name of the symlink
+	 *	@param link: the target of the symlink
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*symlink) (struct s_inode *inode, const char *filename,
+					const char *link);
+
+	/**
+	 *	Create directory entry in directory
+	 *
+	 *	This function might create new inodes for the new directory file if it
+	 *	chose to do so.
+	 *
+	 *	@param inode: the inode of the directory file to operate on (parent)
+	 *	@param filename: the name of the entry to be created (child)
+	 *	@param mode: the permission of the newly-created directory file
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*mkdir)(struct s_inode *inode, const char *filename, mode_t mode);
+
+	/**
+	 *	Remove directory entry in directory
+	 *
+	 *	This function should refuse to remove a directory if doing so will cause
+	 *	its children to be orphaned. A directory may only be removed if it is
+	 *	empty or the filesystem still maintains hard links to it elsewhere.
+	 *
+	 *	@param inode: the inode of the directory file to operate on (parent)
+	 *	@param filename: the name of the directory to be removed
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*rmdir) (struct s_inode *inode, const char *filename);
+
 	// int (*mknod) (struct inode *,struct dentry *,int,dev_t);
 	// int (*rename) (struct inode *, struct dentry *, struct inode *, struct dentry *);
-	// void (*truncate) (struct inode *);
+
+	/**
+	 *	Change file size
+	 *
+	 *	This function will extend or shrink the size of the file to the value
+	 *	specified by `size` in the inode.
+	 *
+	 *	@param inode: the inode to truncate
+	 *	@return 0 on success, or the negative of an errno on failure
+	 */
+	int (*truncate) (struct s_inode *inode);
+
 	// int (*setattr) (struct dentry *, struct iattr *);
 	// int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
 } inode_operations_t;
@@ -180,6 +282,10 @@ typedef struct s_super_operations {
 	 *
 	 *	Similar to the principle of `creat`. The driver owns the memory of the
 	 *	i-node, but the user must free it with `free_inode` after using it.
+	 *
+	 *	@note this function should be used by driver's internal logic only, like
+	 *		  the inode operations. The kernel will obtain inode only through
+	 *		  ino lookup through `open_inode` and inode operation functions
 	 *
 	 *	@param sb: the super block of the file system
 	 *	@return pointer to a new index node
@@ -246,6 +352,10 @@ typedef struct s_super_operations {
 	 *	The driver also performs clean-up on the i-node structure. No further
 	 *	call to `free_inode` is necessary or allowed.
 	 *
+	 *	@note this function should be used by driver's internal logic only, like
+	 *		  the inode operations. The kernel will delete files using inode
+	 *		  operations, such as `unlink`
+	 *
 	 *	@param inode: the i-node to delete
 	 *	@return 0 on success, or the negative of an errno on failure
 	 */
@@ -279,12 +389,23 @@ typedef struct s_super_block {
  *	tell the device driver to free the inode when it finishes using the inode.
  */
 typedef struct s_inode {
-	uint32_t ino; ///< I-number
+	ino_t ino; ///< I-number
 	int file_type; ///< File type. See FTPYE_ macros
+	off_t size; ///< Size of file in bytes
 	int open_count; ///< Number of open files
+	int link_count; ///< Number of linked dentrys
+
 	super_block_t *sb; ///< Reference to super block
 	file_operations_t *f_op; ///< Default file operations driver
 	inode_operations_t *i_op; ///< I-node operations driver
+
+	mode_t perm; ///< File permissions
+	uid_t uid; ///< Owner user ID
+	gid_t gid; ///< Owner group ID
+	time_t atime; ///< Last access date
+	time_t mtime; ///< Last modification date
+	time_t ctime; ///< Last creation date
+
 	int private_data; ///< Private data for drivers
 } inode_t;
 
@@ -327,6 +448,14 @@ file_t *vfs_open_file(inode_t *inode, int mode);
  *	@return int: 0 on success. The negative of errno on failure.
  */
 int vfs_close_file(file_t *file);
+
+/**
+ *	Create file at path. Assuming all prefix directories are present
+ *
+ *	@param path: the path to the file
+ *	@return the inode of the newly created file, or NULL on failure. Set errno
+ */
+inode_t *vfs_create_file(pathname_t path, mode_t mode);
 
 // System call handlers
 /**
@@ -449,35 +578,129 @@ int syscall_getdents(int fd, int bufaddr, int);
  *
  *	@param path: char string of the path
  *	@param stat_in: pointer to a user allocated stat structure
- *	@param c: placeholder
- *
  *	@return 0 for success, negative value for errors
  */
-int syscall_stat(int path, int stat_in, int c);
+int syscall_stat(int path, int stat_in, int);
 
 /**
  *	System call handler for `fstat`: get file status
  *
  *	@param fd: fd of the file, of course, a valid one
  *	@param stat_in: pointer to a user allocated stat structure
- *	@param c: placeholder
- *
  *	@return 0 for success, negative value for errors
  */
-int syscall_fstat(int fd, int stat_in, int c);
+int syscall_fstat(int fd, int stat_in, int);
 
 /**
  *	System call handler for `lstat`: get file status
  *
  *	@param path: char string of the path
  *	@param stat: pointer to a user allocated stat structure
- *	@param c: placeholder
- *
  *	@return 0 for success, negative value for errors
  *
  *	@note not implemented yet
  */
-int syscall_lstat(int path, int stat, int c);
+int syscall_lstat(int path, int stat, int);
+
+/**
+ *	System call handler for `chmod`: Change permission of file
+ *
+ *	@param fd: the file descriptor
+ *	@param mode: the new mode
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_chmod(int fd, int mode, int);
+
+/**
+ *	System call handler for `chown`: Change owner of file
+ *
+ *	@param fd: the file descriptor
+ *	@param uid: the new owner user ID
+ *	@param gid: the new owner group ID
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_chown(int fd, int uid, int gid);
+
+/**
+ *	System call handler for `link`: Create new hard link
+ *
+ *	@param path1p: address of path to the file to create link to (source)
+ *	@param path2p: address of path the link (destination)
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_link(int path1p, int path2p, int);
+
+/**
+ *	System call handler for `unlink`: Delete file (remove directory entry)
+ *
+ *	@param pathp: address of the path to the file to unlink
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_unlink(int pathp, int, int);
+
+/**
+ *	System call handler for `symlink`: Create symbolic link to file
+ *
+ *	@param path1p: address of path to the file to create link to (source)
+ *	@param path2p: address of path the link (destination)
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_symlink(int path1p, int path2p, int);
+
+/**
+ *	System call handler for `readlink`: Read the contents of symbolic link
+ *
+ *	@param pathp: address of path to the symlink file
+ *	@param bufp: address of the buffer to read into
+ *	@param count: the maximum number of bytes to read
+ *	@return the number of bytes read, or the negative of an errno on failure.
+ */
+int syscall_readlink(int pathp, int bufp, int bufsize);
+
+/**
+ *	System call handler for `truncate`: Truncate or extend a file to a specified
+ *	length
+ *
+ *	@param fd: the file descriptor
+ *	@param length: the new length of the file
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_truncate(int fd, int length, int);
+
+/**
+ *	System call handler for `rename`: Move file
+ *
+ *	@param oldpathp: address of path to file to move
+ *	@param newpathp: address of new name/location of file
+ *	@return 0 on success, or the negative of an errno on failure
+ */
+int syscall_rename(int oldpathp, int newpathp, int);
+
+/**
+ *	System call handler for `mkdir`: Create new directory
+ *
+ *	@param pathp: address of path to the new directory
+ *	@param mode: permission bits of the new directory file
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_mkdir(int pathp, int mode, int);
+
+/**
+ *	System call handler for `rmdir`: Remove directory
+ *
+ *	@param pathp: path to the directory to be removed
+ *	@return 0 on success, or -1 on failure. Set errno
+ */
+int syscall_rmdir(int pathp, int, int);
+
+/**
+ *	System call handler for `ioctl`: Control device
+ *
+ *	@param fd: the file to send commands to
+ *	@param cmd: the command
+ *	@param arg: the argument
+ */
+int syscall_ioctl(int fd, int cmd, int arg);
 
 // For consistent include order
 #include "fstab.h"

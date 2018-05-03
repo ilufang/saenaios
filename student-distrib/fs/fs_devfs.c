@@ -56,6 +56,9 @@ int devfs_installfs() {
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.sb = &devfs_sb;
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.f_op = &devfs_f_op;
 	devfs_table[DEVFS_DRIVER_LIMIT].inode.i_op = &devfs_inode_op;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.perm = 555;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.uid = 0;
+	devfs_table[DEVFS_DRIVER_LIMIT].inode.gid = 0;
 
 	//inflate devfs and register
 	strcpy(devfs.name,"devfs");
@@ -76,6 +79,10 @@ int devfs_installfs() {
 		devfs_table[i].inode.sb = &devfs_sb;
 		devfs_table[i].inode.f_op = NULL;
 		devfs_table[i].inode.i_op = &devfs_inode_op;
+		devfs_table[i].inode.perm = 777;
+		devfs_table[i].inode.uid = 0;
+		devfs_table[i].inode.gid = 0;
+
 		//private data don't care
 	}
 
@@ -165,12 +172,12 @@ ino_t devfs_i_op_lookup(inode_t* inode,const char* path){
 			return i;
 		}
 	}
-	return -ENXIO;
+	return -ENOENT;
 }
 
 int devfs_i_op_readlink(inode_t* inode, char* buf){
 	//every symbolic link linked to tty!
-	strncpy(buf, "../tty", 7);
+	strncpy(buf, "tty", 7);
 	return 7;
 }
 
@@ -201,13 +208,18 @@ int devfs_register_driver(const char* name, file_operations_t *ops){
 
 	inode = &(devfs_table[i].inode);
 	// special case for stdin / stdout, they are symbolic link
-	if ((!strncmp(name,"stdin",6))||(!strncmp(name,"stdout",7))){
+	if ((!strncmp(name,"stdin",6))||(!strncmp(name,"stdout",7))||
+		(!strncmp(name, "stderr", 7))){
 		inode->file_type = FTYPE_SYMLINK;
 	}else{
 		inode->file_type = FTYPE_DEVICE;
 	}
 
+	inode->size = 0;
 	inode->f_op = ops;
+	inode->uid = 0;
+	inode->gid = 0;
+	inode->perm = 0777; // All granted for now
 
 	return 0;
 }

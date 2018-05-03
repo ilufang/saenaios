@@ -4,7 +4,7 @@ static tty_t tty_list[TTY_NUMBER];
 
 static file_operations_t tty_f_op;
 
-static char shell_cmdline[6] = "shell";
+static char shell_cmdline[6] = "login";
 static char* argv_placeholder = NULL;
 
 tty_t* cur_tty = NULL;
@@ -79,6 +79,9 @@ int _tty_start_shell(){
 	child_proc->regs.ecx = (uint32_t)argv_placeholder;
 	child_proc->regs.edx = 0;
 	child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
+	strcpy(child_proc->wd, "/");
+	child_proc->uid = 0;
+	child_proc->gid = 0;
 
 	return child_pid;
 }
@@ -122,8 +125,10 @@ void tty_attach(task_t* proc){
 		// means this process should open new in/out
 		syscall_close(0,0,0);
 		syscall_close(1,0,0);
+		syscall_close(2,0,0);
 		syscall_open((int)"/dev/stdin", O_RDONLY, 0);
-		syscall_open((int)"/dev/stdout", O_RDONLY, 0);
+		syscall_open((int)"/dev/stdout", O_WRONLY, 0);
+		syscall_open((int)"/dev/stderr", O_WRONLY, 0);
 	}
 }
 
@@ -150,7 +155,7 @@ void _tty_clear_buffer(tty_t* tty){
 
 void tty_send_input(uint8_t* data, uint32_t size){
 	// input is always sent to the current foreground tty
-	int i;
+	uint32_t i;
 	uint32_t print_size = 0;
 	tty_buf_t* op_buf = &(cur_tty->buf);
 	uint32_t keyboard_pid_waiting = cur_tty->input_pid_waiting;
@@ -241,7 +246,7 @@ ssize_t tty_read(struct s_file *file, uint8_t *buf, size_t count, off_t *offset)
 	task_sigact_t sa;
 	sigset_t ss;
 	tty_buf_t* op_buf = &(tty_list[(task_list + task_current_pid())->tty].buf);
-	int i;
+	uint32_t i;
 	uint32_t copy_start = (op_buf->end + 1) % TTY_BUF_LENGTH;
 
 	// check for enter in the buffer

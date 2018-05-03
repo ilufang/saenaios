@@ -420,6 +420,16 @@ void* memcpy(void* dest, const void* src, uint32_t n) {
     return dest;
 }
 
+int32_t memcmp(const void* s1, const void* s2, uint32_t n){
+    uint32_t i;
+    for (i=0;i<n;++i){
+        if (((int8_t*)s1)[i] != ((int8_t*)s2)[i]){
+            return ((int8_t*)s1)[i] - ((int8_t*)s2)[i];
+        }
+    }
+    return 0;
+}
+
 /* void* memmove(void* dest, const void* src, uint32_t n);
  * Description: Optimized memmove (used for overlapping memory areas)
  * Inputs:      void* dest = destination of move
@@ -470,6 +480,33 @@ int32_t strncmp(const int8_t* s1, const int8_t* s2, uint32_t n) {
              * '\0', since we know they are equal. */
             return s1[i] - s2[i];
         }
+    }
+    return 0;
+}
+
+/* int32_t strcmp(const int8_t* s1, const int8_t* s2)
+ * Inputs: const int8_t* s1 = first string to compare
+ *         const int8_t* s2 = second string to compare
+ * Return Value: A zero value indicates that the characters compared
+ *               in both strings form the same string.
+ *               A value greater than zero indicates that the first
+ *               character that does not match has a greater value
+ *               in str1 than in str2; And a value less than zero
+ *               indicates the opposite.
+ * Function: compares string 1 and string 2 for equality */
+int32_t strcmp(const int8_t* s1, const int8_t* s2) {
+    uint32_t i = 0;
+    while(1) {
+        if ((s1[i] != s2[i]) || (s1[i] == '\0') || s2[i] == '\0') {
+
+            /* The s2[i] == '\0' is unnecessary because of the short-circuit
+             * semantics of 'if' expressions in C.  If the first expression
+             * (s1[i] != s2[i]) evaluates to false, that is, if s1[i] ==
+             * s2[i], then we only need to test either s1[i] or s2[i] for
+             * '\0', since we know they are equal. */
+            return s1[i] - s2[i];
+        }
+        ++i;
     }
     return 0;
 }

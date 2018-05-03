@@ -25,6 +25,9 @@
 #include "fs/fs_devfs.h"
 #include "libc.h"
 
+#include "atadriver/ata.h"
+#include "fsdriver/ext4_driver.h"
+
 //#define RUN_TESTS
 
 /* Macros. */
@@ -178,13 +181,16 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	signal_init();
 
+
+
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
 	//printf("Enabling Interrupts\n");
 	sti();
-
+	// Create kernel process identity
+	task_create_kernel_pid();
 	// install device driver fs
 	devfs_installfs();
 	if (!mp3fs_load_addr || mp3fs_installfs(mp3fs_load_addr)){
@@ -194,7 +200,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	// mount filesystems
 	struct sys_mount_opts mount_opts;
 	syscall_mount((int)"mp3fs", (int)"/", (int)(&mount_opts));
+	mp3fs_mkdir("dev", 0777);
 	syscall_mount((int)"devfs", (int)"/dev", (int)(&mount_opts));
+//	mp3fs_symlink("rtc", "/dev/rtc");
 
 	// register drivers
 	rtc_out_driver_register();
@@ -202,12 +210,21 @@ void entry(unsigned long magic, unsigned long addr) {
 	terminal_out_driver_register();
 	tty_driver_register();
 
+	ata_driver_register();
+	ext4_ece391_init();
+	mp3fs_mkdir("ext4", 0777);
+	if (syscall_mount((int)"ext4fs", (int)"/ext4", (int)(&mount_opts))){
+		printf("ext4fs mount failed\n");
+		while(1);
+	}
+
+
 #ifdef RUN_TESTS
 	/* Run tests */
 	launch_tests();
 #endif
 	// create a basic process
-	task_create_kernel_pid();
+	task_start_kernel_pid();
 
 	// Bye!
 
