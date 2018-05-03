@@ -44,6 +44,23 @@ int ext4_ece391_init(){
 	}
 	_ext4_init();
 
+	// inflate superblock for the device
+	ret_val = ext4_mount("hda","/ext4/",false);
+	if (ret_val){
+		printf("mount hda failed\n");
+		return -ret_val;
+	}
+
+	// initialize superblock
+	ext4_sb.s_op = &ext4_s_op;
+	ext4_sb.fstype = fstab_get_fs("ext4fs");
+
+	// open inode for root, it is always present
+	ext4_inode_list[0].open_count = 1;
+
+	// go get the ino number of the root
+	ext4_inode_list[0].ino = EXT4_INODE_ROOT_INDEX;
+
 	// register file system
 	file_system_t ext4fs;
 
@@ -106,24 +123,7 @@ void _ext4_init(){
 }
 
 super_block_t* ext4_get_sb(file_system_t* fs, int flags, const char* dev, const char* opts){
-	// inflate superblock for the device
-	int ret_val;
-	ret_val = ext4_mount("hda","/ext4",false);
-	if (ret_val){
-		printf("mount hda failed\n");
-		errno = ret_val;
-		return NULL;
-	}
 
-	// initialize superblock
-	ext4_sb.s_op = &ext4_s_op;
-	ext4_sb.fstype = fstab_get_fs("ext4fs");
-
-	// open inode for root, it is always present
-	ext4_inode_list[0].open_count = 1;
-
-	// go get the ino number of the root
-	ext4_inode_list[0].ino = EXT4_INODE_ROOT_INDEX;
 
 	return &ext4_sb;
 }

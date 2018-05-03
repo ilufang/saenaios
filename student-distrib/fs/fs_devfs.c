@@ -177,7 +177,7 @@ ino_t devfs_i_op_lookup(inode_t* inode,const char* path){
 
 int devfs_i_op_readlink(inode_t* inode, char* buf){
 	//every symbolic link linked to tty!
-	strncpy(buf, "../tty", 7);
+	strncpy(buf, "tty", 7);
 	return 7;
 }
 

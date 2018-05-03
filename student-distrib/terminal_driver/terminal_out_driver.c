@@ -238,7 +238,7 @@ ssize_t tty_stdout(uint8_t* data, uint32_t size, void* private_data_ptr){
 }
 
 int terminal_out_write_(uint8_t* buf, uint32_t length){
-	int i;
+	uint32_t i;
 	if (length == 1){
 		switch (buf[0]){
 			//escape sequence

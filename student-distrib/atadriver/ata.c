@@ -367,11 +367,11 @@ void ata_init(){
 
 int32_t ata_open(inode_t* inode, file_t* file){
 	ata_init();
-	return 1;
+	return 0;
 }
 
 int32_t ata_close(inode_t* inode, file_t* file){
-	return 1;
+	return 0;
 }
 
 int ata_driver_register(){

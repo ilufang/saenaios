@@ -211,8 +211,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	tty_driver_register();
 
 	ata_driver_register();
-	ata_init();
 	ext4_ece391_init();
+	mp3fs_mkdir("ext4", 0777);
+	syscall_mount((int)"ext4fs", (int)"/ext4", (int)(&mount_opts));
 
 
 #ifdef RUN_TESTS

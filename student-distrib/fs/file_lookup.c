@@ -11,12 +11,12 @@
 inode_t* file_lookup(pathname_t path){
 	vfsmount_t *fs;
 	int i;	// number for path offset
+
 	int temp_return;
 	nameidata_t nd;
 	inode_t *mntnode;
 
 	// initialize nameidata for this file lookup
-
 	nd.depth = 0;
 	nd.path = path;
 
@@ -83,9 +83,9 @@ file_lookup_start:
 				errno = ENOSYS;
 				return NULL;
 			}
+			path_cd(path, "..");
 			if (path_cd(path,pathtemp)){
 				// errno set in path_cd;
-				errno = EINVAL;
 				return NULL;
 			}
 			//update appended link and then restart lookup process
@@ -107,16 +107,12 @@ file_lookup_start:
 
 int file_find(nameidata_t* nd){
 	ino_t temp_ino;
-
 	task_t *proc;
 	uid_t uid;
 	gid_t gid;
 	int last_errno = 0;
 
 	proc = task_list + task_current_pid();
-	if (proc->status != TASK_ST_RUNNING) {
-		return -ESRCH;
-
 	if (!nd){
 		errno = EINVAL;
 		return -errno;

@@ -68,7 +68,7 @@ static int filedev_open(struct ext4_blockdev *bdev)
     if (!dev_file)
         return EIO;
 
-    if ((*dev_file->f_op->llseek)(dev_file, 0, SEEK_END))
+    //if ((*dev_file->f_op->llseek)(dev_file, 0, SEEK_END))
         return EFAULT;
 
     _filedev.bdif->ph_bcnt = dev_file->pos / _filedev.bdif->ph_bsize;
