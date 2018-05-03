@@ -113,6 +113,7 @@ int main ()
 				}
 			}
 		}
+		argv[argc] = NULL;
 		if (strcmp(argv[0], "exit") == 0) {
 			return 0;
 		}

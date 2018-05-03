@@ -242,6 +242,8 @@ int ext4_f_op_readdir(file_t* file, struct dirent* dirent){
 		dirent->ino = ((ext4_file*)(file->private_data))->inode;
 		dirent->index = 0;
 		dirent->data = (int)(&ext4_dir_list[i]);
+		ext4_dir_open(&(((ext4_dir_data_t*)(dirent->data))->dir),
+					  (char *) file->inode->private_data);
 	}
 	temp_ret = ext4_dir_entry_next(&(((ext4_dir_data_t*)(dirent->data))->dir));
 	// end of iteration
