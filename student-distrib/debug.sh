@@ -16,6 +16,7 @@ cp ./mp3.img /tmp/mp3/
 mount -o loop,offset=32256 /tmp/mp3/mp3.img /mnt/tmpmp3
 cp -f /tmp/mp3/bootimg /mnt/tmpmp3/
 cp -f /tmp/mp3/filesys_img /mnt/tmpmp3/
+cp ../fsdir/* /mnt/tmpmmp3/
 umount /mnt/tmpmp3
 cp -f /tmp/mp3/mp3.img ./
 rm -rf /tmp/mp3

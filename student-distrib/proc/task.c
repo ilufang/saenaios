@@ -14,7 +14,7 @@ pid_t task_pid_allocator;
 
 typedef struct s_task_ks {
 	int32_t pid;
-	uint8_t stack[8188]; // Empty space to fill 8kb
+	uint8_t stack[16380]; // Empty space to fill 16kb
 } __attribute__((__packed__)) task_ks_t;
 
 task_ks_t *kstack = (task_ks_t *)0x800000;
@@ -54,7 +54,7 @@ void task_create_kernel_pid() {
 	init_task->gid = 0; // root
 
 	// initialize kernel stack page
-	for (i=0; i<512; ++i){
+	for (i=0; i<256; ++i){
 		kstack[i].pid = -1;
 	}
 
@@ -101,8 +101,17 @@ int syscall_fork(int a, int b, int c) {
 		}
 	}
 
-	// Create kernel stack (512 8kb entries in 4MB page)
+/*	// Create kernel stack (512 8kb entries in 4MB page)
 	for (i = 0; i < 512; i++) {
+		if (kstack[i].pid < 0) {
+			// Slot is empty, use it
+			kstack[i].pid = pid;
+			new_task->ks_esp = (int)(kstack + i + 1);
+			break;
+		}
+	}*/
+	// Create kernel stack (256 16kb entries in 4MB page)
+	for (i = 0; i < 256; i++) {
 		if (kstack[i].pid < 0) {
 			// Slot is empty, use it
 			kstack[i].pid = pid;
@@ -553,7 +562,7 @@ int syscall_getcwd(int bufp, int size, int c) {
 	proc = task_list + task_current_pid();
 	len = strlen(proc->wd) + 1;
 
-	if (len > c) {
+	if (len > size) {
 		return -ERANGE;
 	}
 

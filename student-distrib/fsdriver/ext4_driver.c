@@ -34,6 +34,8 @@ static file_operations_t ext4_f_op;
 static inode_operations_t ext4_i_op;
 static super_operations_t ext4_s_op;
 
+static char temp_pathname[1024];
+
 int ext4_ece391_init(){
 	int ret_val;
 
@@ -53,13 +55,14 @@ int ext4_ece391_init(){
 
 	// initialize superblock
 	ext4_sb.s_op = &ext4_s_op;
-	ext4_sb.fstype = fstab_get_fs("ext4fs");
+	ext4_sb.root = EXT4_INODE_ROOT_INDEX;
 
 	// open inode for root, it is always present
 	ext4_inode_list[0].open_count = 1;
 
 	// go get the ino number of the root
 	ext4_inode_list[0].ino = EXT4_INODE_ROOT_INDEX;
+	strcpy((char*)ext4_inode_list[0].private_data, "/ext4/");
 
 	// register file system
 	file_system_t ext4fs;
@@ -97,7 +100,7 @@ void _ext4_init(){
 	// superblock operation
 	ext4_s_op.alloc_inode 	= NULL;
 	ext4_s_op.open_inode 	= &ext4_s_op_open_inode;
-	ext4_s_op.free_inode 	= NULL;
+	ext4_s_op.free_inode 	= &ext4_s_op_free_inode;
 	ext4_s_op.read_inode 	= NULL;
 	ext4_s_op.write_inode 	= &ext4_s_op_write_inode;
 	ext4_s_op.drop_inode 	= NULL;
@@ -123,8 +126,7 @@ void _ext4_init(){
 }
 
 super_block_t* ext4_get_sb(file_system_t* fs, int flags, const char* dev, const char* opts){
-
-
+	ext4_sb.fstype = fstab_get_fs("ext4fs");
 	return &ext4_sb;
 }
 
@@ -146,7 +148,7 @@ int ext4_f_op_open(inode_t* inode, file_t* file){
 		return -ENOMEM;
 	}
 	temp_ret = ext4_fopen2(&ext4_file_list[i].file,
-		(char*)inode->private_data, file->mode);
+		(char*)inode->private_data, file->mode-1);
 	if (temp_ret){
 		return -temp_ret;
 	}
@@ -276,7 +278,8 @@ ino_t ext4_i_op_lookup(inode_t* inode, const char* filename){
 	ino_t ino;
 	ext4_file file;
 	// get current dir from the inode
-	char* i_dir = (char*)(inode->private_data);
+	char* i_dir = (char*)temp_pathname;
+	strcpy(i_dir, (char*)inode->private_data);
 	// append filename
 	temp_ret = path_cd(i_dir, filename);
 	if (temp_ret){
@@ -324,7 +327,7 @@ int ext4_i_op_create(inode_t* inode, const char* filename, mode_t mode){
 	ext4_file file;
 	// get current dir from the inode
 	char* i_dir = (char*)(inode->private_data);
-	temp_ret = ext4_fopen2(&file, i_dir, mode);
+	temp_ret = ext4_fopen2(&file, i_dir, mode-1);
 	if (temp_ret){
 		return -temp_ret;
 	}
@@ -342,7 +345,8 @@ int ext4_i_op_create(inode_t* inode, const char* filename, mode_t mode){
 int ext4_i_op_unlink(inode_t *inode, const char* filename){
 	int temp_ret;
 	// get current dir from the inode
-	char* i_dir = (char*)(inode->private_data);
+	char* i_dir = (char*)temp_pathname;
+	strcpy(i_dir, (char*)inode->private_data);
 	// append filename
 	temp_ret = path_cd(i_dir, filename);
 	if (temp_ret){
@@ -358,7 +362,8 @@ int ext4_i_op_unlink(inode_t *inode, const char* filename){
 int ext4_i_op_symlink(inode_t* inode, const char* filename, const char* link){
 	int temp_ret;
 	// get current dir from the inode
-	char* i_dir = (char*)(inode->private_data);
+	char* i_dir = (char*)temp_pathname;
+	strcpy(i_dir, (char*)inode->private_data);
 	// append filename
 	temp_ret = path_cd(i_dir, filename);
 	if (temp_ret){
@@ -374,7 +379,8 @@ int ext4_i_op_symlink(inode_t* inode, const char* filename, const char* link){
 int ext4_i_op_mkdir(inode_t* inode, const char* filename, mode_t mode){
 	int temp_ret;
 	// get current dir from the inode
-	char* i_dir = (char*)(inode->private_data);
+	char* i_dir = (char*)temp_pathname;
+	strcpy(i_dir, (char*)inode->private_data);
 	// append filename
 	temp_ret = path_cd(i_dir, filename);
 	if (temp_ret){
@@ -395,7 +401,8 @@ int ext4_i_op_mkdir(inode_t* inode, const char* filename, mode_t mode){
 int ext4_i_op_rmdir(inode_t* inode, const char* filename){
 	int temp_ret;
 	// get current dir from the inode
-	char* i_dir = (char*)(inode->private_data);
+	char* i_dir = (char*)temp_pathname;
+	strcpy(i_dir, (char*)inode->private_data);
 	// append filename
 	temp_ret = path_cd(i_dir, filename);
 	if (temp_ret){
@@ -445,6 +452,10 @@ inode_t* ext4_s_op_open_inode(super_block_t* sb, ino_t ino){
 	uint32_t temp_ino;
 	temp_ret = ext4_raw_inode_fill((char*)(ext4_inode_list[i].private_data),
 		&temp_ino, &temp_real_inode);
+	if (temp_ret){
+		errno = temp_ret;
+		return NULL;
+	}
 	// fill related fields
 	_ext4_fill_inode(&ext4_inode_list[i], &temp_real_inode);
 	return &ext4_inode_list[i];
@@ -485,11 +496,6 @@ void _ext4_fill_inode(inode_t* vinode,struct ext4_inode* einode){
 // free inode not implemented
 int ext4_s_op_free_inode(inode_t* inode){
 	// decrease open count, that's it
-	if (inode->open_count <= 0)
-		return -EINVAL;
-	else
-		inode->open_count--;
-
 	return 0;
 }
 // read inode not implemented

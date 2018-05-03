@@ -213,7 +213,10 @@ void entry(unsigned long magic, unsigned long addr) {
 	ata_driver_register();
 	ext4_ece391_init();
 	mp3fs_mkdir("ext4", 0777);
-	syscall_mount((int)"ext4fs", (int)"/ext4", (int)(&mount_opts));
+	if (syscall_mount((int)"ext4fs", (int)"/ext4", (int)(&mount_opts))){
+		printf("ext4fs mount failed\n");
+		while(1);
+	}
 
 
 #ifdef RUN_TESTS

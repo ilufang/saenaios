@@ -140,4 +140,7 @@ int32_t ata_close(inode_t* inode, file_t* file);
  */
 int ata_driver_register();
 
+
+int ata_identify();
+
 #endif

@@ -18,6 +18,9 @@
 #define CMD_WRITE_SEC		0x30	///< sector write command
 #define CMD_WRITE_SEC_EXT	0x34	///< sector write ext command
 #define CMD_CACHE_FLUSH		0xE7	///< cache flush command
+#define CMD_MASTER_ID		0xA0	///< master identify command
+#define CMD_SLAVE_ID		0xA0	///< slave identify command
+#define CMD_ID				0xEC	///< identify command
 
 static ata_data_t driver_info;		///< local struct to store driver data
 
@@ -345,6 +348,43 @@ int ata_write_st(int32_t sectorcount, uint8_t* buf, int32_t lba, ata_data_t* dev
 ssize_t ata_write(file_t* file, uint8_t *buf, size_t count, off_t *offset){
 	int sec_count = count%512 ? count/512 + 1 : count/512;
 	return (ssize_t)ata_write_st(sec_count, buf, (int32_t)((*offset)/512), &driver_info);
+}
+
+int ata_identify(){
+	outb(0x0A, 0x1f6);
+	outb(0, 0x1f2);
+	outb(0, 0x1f3);
+	outb(0, 0x1f4);
+	outb(0, 0x1f5);
+	outb(CMD_ID, 0x1f7);
+	uint8_t stat = inb(0x1f7);
+	if(stat == 0)
+		return -1;
+	while(stat&STAT_BSY_BIT){
+		stat = inb(0x1f7);
+	}
+	while(!(stat& STAT_DRQ_BIT)){
+		if(stat&STAT_ERR_BIT)
+			return -1;
+		stat = inb(0x1f7);
+	}
+	int i = 0;
+	uint16_t id_buf[256];
+	asm volatile (
+			"								\n\
+			movl	%1, %%edx				\n\
+			movl	$256, %%ecx				\n\
+			movl	%0, %%edi				\n\
+			rep insw						\n\
+			"
+			:
+			: "r"(&id_buf), "r"(0x1f0)
+			: "%edx", "%ecx", "%edi"
+	);
+	int size = (id_buf[61]<<16) | id_buf[60];
+	return size * 512;
+
+
 }
 
 void set_driver_data(ata_data_t* dev_info){
