@@ -3,9 +3,9 @@
 .globl 	syscall_ece391_execute_magic
 
 task_current_pid:
-	// Mask out lower 13 bits of current stack to get current kernel stack
+	// Mask out lower 14 bits of current stack to get current kernel stack
 	// block address
-	movl	$0xffffe000, %eax
+	movl	$0xffffc000, %eax
 	andl	%esp, %eax
 	// Temporary kernel stack is below 0x800000
 	cmpl	$0x800000, %eax

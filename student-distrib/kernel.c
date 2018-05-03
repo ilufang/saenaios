@@ -25,6 +25,9 @@
 #include "fs/fs_devfs.h"
 #include "libc.h"
 
+#include "atadriver/ata.h"
+#include "fsdriver/ext4_driver.h"
+
 //#define RUN_TESTS
 
 /* Macros. */
@@ -178,6 +181,8 @@ void entry(unsigned long magic, unsigned long addr) {
 
 	signal_init();
 
+
+
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
@@ -204,6 +209,15 @@ void entry(unsigned long magic, unsigned long addr) {
 	keyboard_driver_register();
 	terminal_out_driver_register();
 	tty_driver_register();
+
+	ata_driver_register();
+	ext4_ece391_init();
+	mp3fs_mkdir("ext4", 0777);
+	if (syscall_mount((int)"ext4fs", (int)"/ext4", (int)(&mount_opts))){
+		printf("ext4fs mount failed\n");
+		while(1);
+	}
+
 
 #ifdef RUN_TESTS
 	/* Run tests */

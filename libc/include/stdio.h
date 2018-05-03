@@ -6,6 +6,9 @@
 #ifndef STDIO_H
 #define STDIO_H
 
+#include "sys/types.h"
+#include "stdlib.h"
+
 /**
  *	Rename a file (directory entry)
  *

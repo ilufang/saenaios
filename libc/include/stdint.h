@@ -18,5 +18,7 @@ typedef unsigned short uint16_t;
 typedef char int8_t;
 /// 8-bit unsigned integers
 typedef unsigned char uint8_t;
+/// 64-bit unsigned integers
+typedef unsigned long long uint64_t;
 
 #endif

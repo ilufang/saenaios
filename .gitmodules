@@ -7,3 +7,6 @@
 [submodule "binutils"]
 	path = binutils
 	url = https://gitlab.engr.illinois.edu/fanglu2/saenaios-binutils.git
+[submodule "fuse-lwext4"]
+	path = fuse-lwext4
+	url = https://gitlab.engr.illinois.edu/xutaoj2/saenaios-fuse-lwext4.git

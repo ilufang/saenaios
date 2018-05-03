@@ -130,7 +130,7 @@ typedef struct s_file_operations {
 	 *			Specifically, -ENOENT when iteration has finished
 	 */
 	int (*readdir)(struct s_file *file, struct dirent *dirent);
-	
+
 	/**
 	 *	IO Control driver-specific commands
 	 *
@@ -182,7 +182,7 @@ typedef struct s_inode_operations {
 	 *			denied (typically -EACCESS)
 	 */
 	int (*permission)(struct s_inode *inode, mode_t mask);
-	
+
 	/**
 	 *	Create regular file entry in directory
 	 *
@@ -192,7 +192,7 @@ typedef struct s_inode_operations {
 	 *	@return 0 on success, or the negative of an errno on failure
 	 */
 	int (*create) (struct s_inode *inode, const char *filename, mode_t mode);
-	
+
 	/**
 	 *	Create entry in directory
 	 *
@@ -202,7 +202,7 @@ typedef struct s_inode_operations {
 	 *	@return 0 on success, or the negative of an errno on failure
 	 */
 	int (*link) (ino_t fileno, struct s_inode *inode, const char *filename);
-	
+
 	/**
 	 *	Remove entry in directory
 	 *
@@ -211,7 +211,7 @@ typedef struct s_inode_operations {
 	 *	@return 0 on success, or the negative of an errno on failure
 	 */
 	int (*unlink) (struct s_inode *inode, const char *filename);
-	
+
 	/**
 	 *	Create symlink entry in directory
 	 *
@@ -225,7 +225,7 @@ typedef struct s_inode_operations {
 	 */
 	int (*symlink) (struct s_inode *inode, const char *filename,
 					const char *link);
-	
+
 	/**
 	 *	Create directory entry in directory
 	 *
@@ -238,7 +238,7 @@ typedef struct s_inode_operations {
 	 *	@return 0 on success, or the negative of an errno on failure
 	 */
 	int (*mkdir)(struct s_inode *inode, const char *filename, mode_t mode);
-	
+
 	/**
 	 *	Remove directory entry in directory
 	 *
@@ -251,10 +251,10 @@ typedef struct s_inode_operations {
 	 *	@return 0 on success, or the negative of an errno on failure
 	 */
 	int (*rmdir) (struct s_inode *inode, const char *filename);
-	
+
 	// int (*mknod) (struct inode *,struct dentry *,int,dev_t);
 	// int (*rename) (struct inode *, struct dentry *, struct inode *, struct dentry *);
-	
+
 	/**
 	 *	Change file size
 	 *
@@ -265,7 +265,7 @@ typedef struct s_inode_operations {
 	 *	@return 0 on success, or the negative of an errno on failure
 	 */
 	int (*truncate) (struct s_inode *inode);
-	
+
 	// int (*setattr) (struct dentry *, struct iattr *);
 	// int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
 } inode_operations_t;
