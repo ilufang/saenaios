@@ -13,6 +13,7 @@
 #include "../../lwext4/lwext4/ext4_super.c"
 #include "../../lwext4/lwext4/ext4_blockdev.c"
 #include "../../lwext4/blockdev/filedev/ext4_filedev.c"*/
+#include "ext4_filedev.h"
 
 #include "../fs/vfs.h"
 #include "ext4_driver.h"
@@ -35,7 +36,8 @@ static super_operations_t ext4_s_op;
 
 int ext4_ece391_init(){
 	int ret_val;
-	ret_val = ext4_device_register(&_filedev, &_ext4_bcache, "hda");
+
+	ret_val = ext4_device_register(&_filedev, "hda");
 	if (ret_val){
 		printf("register block device failed\n");
 		return -ret_val;
@@ -106,7 +108,7 @@ void _ext4_init(){
 super_block_t* ext4_get_sb(file_system_t* fs, int flags, const char* dev, const char* opts){
 	// inflate superblock for the device
 	int ret_val;
-	ret_val = ext4_mount("hda","/ext4");
+	ret_val = ext4_mount("hda","/ext4",false);
 	if (ret_val){
 		printf("mount hda failed\n");
 		errno = ret_val;

@@ -107,7 +107,7 @@ void* kmalloc(size_t size) {
 	}
 
 	if (temp->size - num_slab == 0) {
-		
+
 		addr = temp->info->start_addr;
 
 		if (temp->prev != NULL)
@@ -228,4 +228,20 @@ int kfree(void* ptr) {
 	}
 
 	return 0;
+}
+
+void* malloc(size_t size){
+	return kmalloc(size);
+}
+
+void* calloc(size_t count, size_t size){
+	void* temp = kmalloc(count*size);
+	if (temp){
+		memset(temp, 0, count*size);
+	}
+	return temp;
+}
+
+void free(void* ptr){
+	free(ptr);
 }

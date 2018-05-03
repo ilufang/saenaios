@@ -201,9 +201,9 @@ void entry(unsigned long magic, unsigned long addr) {
 	terminal_out_driver_register();
 	keyboard_driver_register();
 	rtc_out_driver_register();
-	ata_init();
-	ata_driver_register();
 
+	ata_driver_register();
+	ata_init();
 	ext4_ece391_init();
 
 #ifdef RUN_TESTS
