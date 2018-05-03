@@ -4,7 +4,7 @@ static tty_t tty_list[TTY_NUMBER];
 
 static file_operations_t tty_f_op;
 
-static char shell_cmdline[6] = "shell";
+static char shell_cmdline[6] = "login";
 static char* argv_placeholder = NULL;
 
 tty_t* cur_tty = NULL;
@@ -79,6 +79,9 @@ int _tty_start_shell(){
 	child_proc->regs.ecx = (uint32_t)argv_placeholder;
 	child_proc->regs.edx = 0;
 	child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
+	strcpy(child_proc->wd, "/");
+	child_proc->uid = 0;
+	child_proc->gid = 0;
 
 	return child_pid;
 }

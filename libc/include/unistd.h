@@ -60,52 +60,6 @@ off_t lseek(int fd, off_t offset, int whence);
 pid_t fork();
 
 /**
- *	Get file status & info
- *
- *	Given the file path and name, and a pointer to the user allocated stat
- * 	structure, the function will fill in the stat structure if the
- *	parameters are valid, and permission is right
- *
- *	@param path: char string of the path
- *	@param buf: pointer to a user allocated stat structure
- *
- *	@return 0 for success, negative value for errors
- *
- *	@note will open symbolic link and redirect to the file linked
- */
-int stat(const char* path, struct s_stat* buf);
-
-/**
- *	Get file status & info
- *
- *	Given the file descriptor, and a pointer to the user allocated stat
- * 	structure, the function will fill in the stat structure if the
- *	parameters are valid, and permission is right
- *
- *	@param fd: fd of the file, of course, a valid one
- *	@param buf: pointer to a user allocated stat structure
- *
- *	@return 0 for success, negative value for errors
- */
-int fstat(int fd, struct s_stat* buf);
-
-/**
- *	Get symbolic link file status & info
- *
- *	Given the symbolic file path and name, and a pointer to the user allocated stat
- * 	structure, the function will fill in the stat structure if the
- *	parameters are valid, and permission is right
- *
- *	@param path: char string of the path
- *	@param buf: pointer to a user allocated stat structure
- *
- *	@return 0 for success, negative value for errors
- *
- *	@note this will fill the stat of the symbolic link file
- */
-int lstat(const char* path, struct s_stat* buf);
-
-/**
  *	Reload current process with the given executable image.
  *
  *	@param path: path to the executable file (ELF)

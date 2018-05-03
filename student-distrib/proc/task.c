@@ -617,6 +617,38 @@ int syscall_chdir(int pathp, int b, int c) {
 	return 0;
 }
 
+int syscall_getuid(int a, int b, int c) {
+	task_t *proc;
+	proc = task_list + task_current_pid();
+	return proc->uid;
+}
+
+int syscall_getgid(int a, int b, int c) {
+	task_t *proc;
+	proc = task_list + task_current_pid();
+	return proc->uid;
+}
+
+int syscall_setuid(int uid, int b, int c) {
+	task_t *proc;
+	proc = task_list + task_current_pid();
+	if (proc->uid != 0) {
+		return -EPERM;
+	}
+	proc->uid = uid;
+	return 0;
+}
+
+int syscall_setgid(int gid, int b, int c) {
+	task_t *proc;
+	proc = task_list + task_current_pid();
+	if (proc->uid != 0) {
+		return -EPERM;
+	}
+	proc->gid = gid;
+	return 0;
+}
+
 void task_release(task_t *proc) {
 	int i;
 

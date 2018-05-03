@@ -59,6 +59,11 @@
 #define SYSCALL_RMDIR		48
 #define SYSCALL_IOCTL		49
 
+#define SYSCALL_GETUID		51
+#define SYSCALL_SETUID		52
+#define SYSCALL_GETGID		53
+#define SYSCALL_SETGID		54
+
 struct sys_mount_opts {
 	const char *source;
 	unsigned long mountflags;

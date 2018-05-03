@@ -225,6 +225,36 @@ int syscall_getcwd(int bufp, int size, int);
 int syscall_chdir(int pathp, int, int);
 
 /**
+ *	Change UID
+ *
+ *	@param uid: the uid
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_setuid(int uid, int, int);
+
+/**
+ *	Change GID
+ *
+ *	@param gid: the gid
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int syscall_setgid(int gid, int, int);
+
+/**
+ *	Get current uid
+ *
+ *	@return uid
+ */
+int syscall_getuid(int, int, int);
+
+/**
+ *	Get current gid
+ *
+ *	@return gid
+ */
+int syscall_getgid(int, int, int);
+
+/**
  *	Release a process from memory
  *
  *	This call will free up all system resources (memory pages, file descriptors)

@@ -50,7 +50,7 @@
  *
  *	@see stat
  */
-typedef struct s_stat {
+typedef struct stat {
 	dev_t		st_dev;		///< ID of device containing file
 	ino_t		st_ino; 	///< Inode number
 	mode_t		st_mode;	///< File type and mode
@@ -67,6 +67,52 @@ typedef struct s_stat {
 	time_t st_mtim;			///< Time of last modification
 	time_t st_ctim;			///< Time of last status change
 
-} stat_t;
+} __attribute__((__packed__)) stat_t;
+
+/**
+ *	Get file status & info
+ *
+ *	Given the file path and name, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param path: char string of the path
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ *
+ *	@note will open symbolic link and redirect to the file linked
+ */
+int stat(const char* path, stat_t* buf);
+
+/**
+ *	Get file status & info
+ *
+ *	Given the file descriptor, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param fd: fd of the file, of course, a valid one
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ */
+int fstat(int fd, stat_t* buf);
+
+/**
+ *	Get symbolic link file status & info
+ *
+ *	Given the symbolic file path and name, and a pointer to the user allocated stat
+ * 	structure, the function will fill in the stat structure if the
+ *	parameters are valid, and permission is right
+ *
+ *	@param path: char string of the path
+ *	@param buf: pointer to a user allocated stat structure
+ *
+ *	@return 0 for success, negative value for errors
+ *
+ *	@note this will fill the stat of the symbolic link file
+ */
+int lstat(const char* path, stat_t* buf);
 
 #endif

@@ -97,7 +97,7 @@ pid_t fork() {
 	return ret;
 }
 
-int stat(const char* path, struct s_stat* buf){
+int stat(const char* path, struct stat* buf){
 	int ret;
 	ret = do_syscall(SYSCALL_STAT, (int)path, (int)buf, 0);
 	if (ret < 0) {
@@ -107,7 +107,7 @@ int stat(const char* path, struct s_stat* buf){
 	return ret;
 }
 
-int fstat(int fd, struct s_stat* buf){
+int fstat(int fd, struct stat* buf){
 	int ret;
 	ret = do_syscall(SYSCALL_FSTAT, fd, (int)buf, 0);
 	if (ret < 0) {
@@ -117,7 +117,7 @@ int fstat(int fd, struct s_stat* buf){
 	return ret;
 }
 
-int lstat(const char* path, struct s_stat* buf){
+int lstat(const char* path, struct stat* buf){
 	int ret;
 	ret = do_syscall(SYSCALL_LSTAT, (int)path, (int)buf, 0);
 	if (ret < 0) {
@@ -475,4 +475,20 @@ int ioctl(int fd, int cmd, int arg) {
 		return -1;
 	}
 	return ret;
+}
+
+int getuid() {
+	return do_syscall(SYSCALL_GETUID, 0, 0, 0);
+}
+
+int getgid() {
+	return do_syscall(SYSCALL_GETUID, 0, 0, 0);
+}
+
+int setuid(uid_t uid) {
+	return do_syscall(SYSCALL_SETUID, uid, 0, 0);
+}
+
+int setgid(gid_t gid) {
+	return do_syscall(SYSCALL_SETGID, gid, 0, 0);
 }

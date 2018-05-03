@@ -5,11 +5,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include "userutils/userutils.h"
 
 #define BUFSIZE 1024
 #define MAX_STOP_JOBS	16
 
 pid_t *proc_stop;
+char *username;
+char prompt = '>';
 
 void wait_child() {
 	int pid, i, ret;
@@ -38,18 +41,31 @@ int main ()
 	char *buf;
 	char *argv[16], *cptr, c, *redir_in, *redir_out, *redir_err;
 	pid_t pid;
-
-	printf("Welcome to SaenaiOS.\n\n");
+	login_t *login;
 
 	buf = malloc(BUFSIZE + 1);
 	proc_stop = calloc(MAX_STOP_JOBS, sizeof(pid_t));
 
+	ret = getuid();
+	if (ret == -1) {
+		perror("getuid");
+		username = "";
+	} else {
+		login = user_get(ret);
+		username = login->username;
+		if (ret == 0) {
+			prompt = '#';
+		} else {
+			prompt = '$';
+		}
+	}
+
 	while (1) {
 		// Print prompt
 		if (getcwd(buf, BUFSIZE) == NULL) {
-			printf("# ");
+			printf("%s%c ", username, prompt);
 		} else {
-			printf("%s # ", buf);
+			printf("%s %s%c ", buf, username, prompt);
 		}
 		fflush(stdout);
 
@@ -120,11 +136,11 @@ int main ()
 				printf("Usage: fg [job-id]\n");
 			} else {
 				if (sscanf(argv[1], "%d", &pid) != 1) {
-					printf("fg: %d: no such job\n");
+					printf("fg: no such job\n");
 				} else if (pid > 16 || pid < 0) {
-					printf("fg: %d: no such job\n");
+					printf("fg: %d: no such job\n", pid);
 				} else if (proc_stop[pid] == 0) {
-					printf("fg: %d: no such job\n");
+					printf("fg: %d: no such job\n", pid);
 				} else {
 					kill(pid, SIGCONT);
 					wait_child();

@@ -107,4 +107,10 @@ void syscall_register_all() {
 	syscall_register(SYSCALL_RMDIR, syscall_rmdir);
 	syscall_register(SYSCALL_IOCTL, syscall_ioctl);
 	
+	// Process security
+	syscall_register(SYSCALL_SETUID, syscall_setuid);
+	syscall_register(SYSCALL_SETGID, syscall_setgid);
+	syscall_register(SYSCALL_GETUID, syscall_getuid);
+	syscall_register(SYSCALL_GETGID, syscall_getgid);
+	
 }

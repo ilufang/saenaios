@@ -60,7 +60,7 @@ task_kernel_process$parent:
 	jmp	task_kernel_process$parent
 
 task_kernel_process$execve:
-	.string	"/shell"
+	.string	"/login"
 
 task_kernel_process$argv:
 	.long	task_kernel_process$execve

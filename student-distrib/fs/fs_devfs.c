@@ -215,6 +215,7 @@ int devfs_register_driver(const char* name, file_operations_t *ops){
 		inode->file_type = FTYPE_DEVICE;
 	}
 
+	inode->size = 0;
 	inode->f_op = ops;
 	inode->uid = 0;
 	inode->gid = 0;

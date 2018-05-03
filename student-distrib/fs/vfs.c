@@ -446,7 +446,7 @@ int syscall_stat(int path, int stat_in, int c){
 	//stat->st_gid							TODO
 
 	//NOTE, TEMPORARY WORKAROUND
-	stat->st_size = temp_file->inode->private_data;
+	stat->st_size = temp_file->inode->size;
 	//stat->st_blksize						TODO
 	//stat->st_blocks						TODO
 
@@ -487,7 +487,7 @@ int syscall_fstat(int fd, int stat_in, int c){
 	//stat->st_gid							TODO
 
 	//NOTE, TEMPORARY WORKAROUND
-	stat->st_size = temp_file->inode->private_data;
+	stat->st_size = temp_file->inode->size;
 	//stat->st_blksize						TODO
 	//stat->st_blocks						TODO
 

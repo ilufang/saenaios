@@ -312,8 +312,7 @@ inode_t* _mp3fs_fetch_inode(ino_t ino){
 	mp3fs_file_table[ino].perm = 0777;
 	mp3fs_file_table[ino].uid = 0;
 	mp3fs_file_table[ino].gid = 0;
-    // private data is the length of the file
-    mp3fs_file_table[ino].private_data = target_inode->length;
+    mp3fs_file_table[ino].size = target_inode->length;
     return &mp3fs_file_table[ino];
 }
 
