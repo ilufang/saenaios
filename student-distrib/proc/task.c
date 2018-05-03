@@ -6,6 +6,7 @@
 #include "elf.h"
 #include "signal.h"
 #include "scheduler.h"
+#include "../terminal_driver/tty.h"
 #include "../../libc/include/sys/wait.h"
 
 task_t task_list[TASK_MAX_PROC];
@@ -44,9 +45,11 @@ void task_create_kernel_pid() {
 	tss.esp0 = init_task->ks_esp = (uint32_t)(kstack+1);
 	task_pid_allocator = 0;
 
+	init_task->sigacts[SIGCHLD].flags = SA_NOCLDWAIT;
+
 	init_task->wd = kmalloc(sizeof(pathname_t));
 	strcpy(init_task->wd, "/");
-	
+
 	init_task->uid = 0; // root
 	init_task->gid = 0; // root
 
@@ -205,7 +208,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		for (argc = 0; argv[argc]; argc++) {
 			task_user_pushs(&(proc->regs.esp), (uint8_t *) argv[argc],
 							strlen(argv[argc])+1);
-			u_argv[argc] = proc->regs.esp - 0x400000;
+			u_argv[argc] = proc->regs.esp - 0x400000; // Offset 4MB
 		}
 	} else {
 		argc = 0;
@@ -217,7 +220,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		for (envc = 0; envp[envc]; envc++) {
 			task_user_pushs(&(proc->regs.esp), (uint8_t *) envp[envc],
 							strlen(envp[envc])+1);
-			u_envp[envc] = proc->regs.esp - 0x400000;
+			u_envp[envc] = proc->regs.esp - 0x400000; // Offset 4MB
 		}
 	} else {
 		envc = 0;
@@ -225,9 +228,9 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	u_envp[envc] = 0; // Terminating zero
 	// Move temp values back
 	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_argv, 4*(argc+1));
-	u_argv = (uint32_t *)(proc->regs.esp - 0x400000);
+	u_argv = (uint32_t *)(proc->regs.esp - 0x400000); // Offset 4MB
 	task_user_pushs(&(proc->regs.esp), (uint8_t *) u_envp, 4*(envc+1));
-	u_envp = (uint32_t *)(proc->regs.esp - 0x400000);
+	u_envp = (uint32_t *)(proc->regs.esp - 0x400000); // Offset 4MB
 	task_user_pushl(&(proc->regs.esp), (uint32_t) u_envp);
 	task_user_pushl(&(proc->regs.esp), (uint32_t) u_argv);
 	task_user_pushl(&(proc->regs.esp), argc);
@@ -262,11 +265,11 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	page_dir_add_4MB_entry(ptent_stack.vaddr, ptent_stack.paddr,
 						   ptent_stack.pt_flags);
 	memcpy(proc->pages+0, &ptent_stack, sizeof(task_ptentry_t));
-	proc->regs.esp -= 0x400000;
+	proc->regs.esp -= 0x400000; // Offset 4MB
 	page_flush_tlb();
 
 	// Try to open ELF file for reading
-	fd = syscall_open(0xbfc00000, O_RDONLY, 0);
+	fd = syscall_open(0xbfc00000, O_RDONLY, 0);	// Path stored at top of stack
 	if (fd < 0) {
 		page_alloc_free_4MB(ptent_stack.vaddr);
 		syscall__exit(WEXITSTATUS(-1),0,0);
@@ -290,6 +293,9 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 		sigaddset(&(proc->sigacts[i].mask), i);
 	}
 
+	tty_attach(proc);
+	proc->vidmap = 0; 	// f**king video map
+
 	proc->status = TASK_ST_RUNNING;
 
 	page_flush_tlb();
@@ -306,10 +312,24 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 int syscall__exit(int status, int b, int c) {
 	task_t *proc, *parent;
-	int i;
+	int i, new_proc;
 
 	proc = task_list + task_current_pid();
 	parent = task_list + proc->parent;
+
+	// Start a new shell if the terminal has nothing to run
+	if (cur_tty && proc->pid == cur_tty->root_proc){
+		new_proc = _tty_start_shell();
+		if (new_proc < 0) {
+			printf("Cannot create new shell\n");
+		} else {
+			printf("Creating new shell\n");
+			task_list[new_proc].files[1]->private_data = get_current_tty();
+			cur_tty->fg_proc = new_proc;
+			cur_tty->root_proc = new_proc;
+		}
+	}
+
 	proc->regs.eax = status;
 
 	// Close all fd
@@ -326,7 +346,7 @@ int syscall__exit(int status, int b, int c) {
 			scheduler_page_clear(proc->pages);
 			task_release(proc);
 			// Restart parent `wait` in case this is the last child
-			syscall_kill(parent->pid, SIGCHLD, 0);
+			syscall_kill(parent->pid, SIGCONT, 0);
 		} else {
 			proc->status = TASK_ST_ZOMBIE;
 			if (WIFSIGNALED(status)) {
@@ -357,9 +377,9 @@ int syscall_waitpid(int cpid, int statusp, int options) {
 	if (!statusp) {
 		return -EFAULT;
 	}
-	
+
 	status = (int *) statusp;
-	
+
 	pid = task_current_pid();
 
 	found_child = 0;
@@ -469,6 +489,7 @@ int syscall_ece391_execute(int cmdlinep, int b, int c) {
 	child_proc->regs.ebx = (uint32_t)cmdline;
 	child_proc->regs.ecx = (uint32_t)(kheap + 1);
 	child_proc->regs.edx = 0;
+	// Move user pointer to global user space at 0x8000000
 	child_proc->regs.eip = syscall_ece391_execute_magic + 0x8000000;
 
 	// Put parent to sleep
@@ -498,7 +519,7 @@ int syscall_ece391_getargs(int bufp, int nbytes, int c) {
 	}
 
 	buf = (char *) bufp;
-	argv = *(char***)(0xc0000000 - 4);
+	argv = *(char***)(0xc0000000 - 4); // Bottom of stack
 
 	if (!argv[0] || !argv[1]) {
 		return -1;
@@ -528,16 +549,16 @@ int syscall_getcwd(int bufp, int size, int c) {
 	if (!bufp) {
 		return -EFAULT;
 	}
-	
+
 	proc = task_list + task_current_pid();
 	len = strlen(proc->wd) + 1;
-	
+
 	if (len > c) {
 		return -ERANGE;
 	}
-	
+
 	memcpy((char *)bufp, proc->wd, len);
-	
+
 	return len;
 }
 
@@ -546,36 +567,37 @@ int syscall_chdir(int pathp, int b, int c) {
 	pathname_t path;
 	int ret;
 	inode_t *inode;
-	
+
 	if (!pathp) {
 		return -EINVAL;
 	}
-	
+
 	proc = task_list + task_current_pid();
-	
+
 	strcpy(path, proc->wd);
-	
+
 	ret = path_cd(path, (char *)pathp);
 	if (ret != 0) {
 		return -ret;
 	}
-	
+
 	inode = file_lookup(path);
-	
+
 	if (inode == NULL) {
 		return -errno;
 	} else {
 		// Close. Not needed
 		(*inode->sb->s_op->free_inode)(inode);
 	}
-	
+
 	strcpy(proc->wd, path);
-	
+
 	return 0;
 }
 
 void task_release(task_t *proc) {
 	int i;
+
 	// Mark program as dead
 	proc->status = TASK_ST_DEAD;
 	// Release all pages
@@ -641,6 +663,8 @@ int task_access_memory(uint32_t addr) {
 
 	proc = task_list + task_current_pid();
 	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
+		if (!(proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT))
+			break;
 		if (addr < proc->pages[i].vaddr)
 			continue;
 		if (proc->pages[i].pt_flags & PAGE_DIR_ENT_4MB) {
@@ -649,7 +673,7 @@ int task_access_memory(uint32_t addr) {
 				continue;
 		} else {
 			// 4KB page
-			if (addr >= proc->pages[i].vaddr + (4<<20))
+			if (addr >= proc->pages[i].vaddr + (4<<10))
 				continue;
 		}
 		// In bounds, OK
@@ -674,7 +698,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 				continue;
 		} else {
 			// 4KB page
-			if (addr >= proc->pages[i].vaddr + (4<<20))
+			if (addr >= proc->pages[i].vaddr + (4<<10))
 				continue;
 		}
 		// In bounds, check for copy-on-write flag
@@ -704,7 +728,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 			page->paddr = 0;
 			page->pt_flags |= PAGE_DIR_ENT_RDWR;
 			page->priv_flags &= ~(TASK_PTENT_CPONWR);
-			// Allocate and copy memory (using virtual 0xc0000000 as temp)
+			// Allocate and copy memory
 			if (page_alloc_4MB((int *) &(page->paddr)) != 0) {
 				// No memory... Delete this page
 				page->pt_flags = 0;
@@ -712,6 +736,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 				page_dir_delete_entry(page->vaddr);
 				return -ENOMEM;
 			}
+			// using virtual addr 0xc0000000 as temp
 			page_dir_add_4MB_entry(0xc0000000, page->paddr, page->pt_flags);
 			memcpy((char *) 0xc0000000, (char *)page->vaddr, 4<<20);
 			page_dir_delete_entry(0xc0000000);
@@ -724,7 +749,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 			page->paddr = 0;
 			page->pt_flags |= PAGE_DIR_ENT_RDWR;
 			page->priv_flags &= ~(TASK_PTENT_CPONWR);
-			// Allocate and copy memory (using virtual 0x08040000 as temp)
+			// Allocate and copy memory
 			if (page_alloc_4KB((int *) &(page->paddr)) != 0) {
 				// No memory... Delete this page
 				page->pt_flags = 0;
@@ -732,6 +757,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 				page_tab_delete_entry(page->vaddr);
 				return -ENOMEM;
 			}
+			// using virtual addr 0x08040000 as temp
 			page_tab_add_entry(0x08040000, page->paddr, page->pt_flags);
 			memcpy((char *) 0x08040000, (char *) page->vaddr, 4<<10);
 			page_tab_delete_entry(0x08040000);

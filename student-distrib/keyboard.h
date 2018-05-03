@@ -13,6 +13,7 @@
 #include "i8259.h"
 #include "lib.h"
 #include "terminal_driver/terminal_out_driver.h"
+#include "terminal_driver/tty.h"
 
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"

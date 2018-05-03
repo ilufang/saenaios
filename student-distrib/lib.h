@@ -35,6 +35,8 @@ int32_t safe_strncpy(int8_t* dest, const int8_t* src, int32_t n);
 /* for testing rtc */
 void test_interrupts(void);
 
+// for the f**king tty! you libc s***
+void _set_tty_start_();
 /**
  *	Terminal print wrapper
  *

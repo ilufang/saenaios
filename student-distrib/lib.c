@@ -13,6 +13,12 @@ static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
 
+static uint8_t tty_start = 0;
+
+void _set_tty_start_(){
+    tty_start = 1;
+}
+
 void disable_cursor(){
 
 	outb(0x0A, 0x3D4);
@@ -38,7 +44,11 @@ void set_cursor(int x, int y){
  * Return Value: none
  * Function: Clears video memory */
 void clear(void) {
-    terminal_out_clear();
+    uint8_t temp = 12;
+    if (tty_start)
+        write(1, &temp, 1);
+    else
+        terminal_out_clear();
     /*
     int32_t i;
     screen_x = 0;
@@ -208,7 +218,10 @@ void putc(uint8_t c) {
     }
     set_cursor(screen_x, screen_y);
     */
-    terminal_out_putc(c);
+    if (tty_start)
+        write(1, &c, 1);
+    else
+        terminal_out_putc(c);
 }
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);

@@ -14,10 +14,25 @@
 #include "lib.h"
 #include "fs/vfs.h"
 #include "fs/fs_devfs.h"
+#include "proc/scheduler.h"
 
-typedef struct rtc_file {	
-	char rtc_status;
-	int rtc_freq;
+/**
+ * 	Time interval datatype used to invoke alarm.
+ */
+typedef struct itimerval {
+	int it_interval;	///< New timer value after expiration. 0 for invoke only once.
+	int it_value;		///< Current timer value. 0 for disabled.
+} itimerval_t;
+
+/**
+ *	RTC struct used to store current RTC states.
+ */
+typedef struct rtc_file {
+	char rtc_status;		///< Indicate if RTC is on
+	int rtc_freq;			///< Indicate the rtc_frequency
+	pid_t rtc_pid;			///< Indicate the rtc current pid
+	itimerval_t timer;		///< Timer struct for alarm
+	volatile int rtc_sleep;	///< Indicate if RTC is sleeping
 } rtc_file_t;
 
 /**
@@ -204,5 +219,40 @@ ssize_t rtc_write(file_t* file, uint8_t* buf, size_t count, off_t* offset);
  */
 
 int is_power_of_two(int freq);
+
+/**
+ * 	Check the current state of alarm timer of a process.
+ *
+ * 	@param value: Receive the state of the alarm timer.
+ */
+
+int getitimer(struct itimerval *value);
+
+/**
+ * 	Set process' alarm timer to a new state
+ *
+ *	@param value: The new state to set.
+ * 	@param old_value: The previous state of the timer.
+ *
+ * 	@note: 	If value->it_interval set to 0, the alarm will be disabled after
+ *			expiration. Otherwise, the alarm will start a new count from 
+ *			it_interval's value. it_value indicates the current count.
+ *
+ */
+
+int syscall_setitimer(struct itimerval *value, struct itimerval *old_value);
+
+/**
+ * 	Set process' alarm timer to sleep and wake it only once after timer expiration.
+ *
+ *	@param requested: The new state to set.
+ * 	@param remain: The previous state of the timer.
+ *
+ * 	@note: 	If value->it_interval set to 0, the alarm will be disabled after
+ *			expiration. Otherwise, the alarm will start a new count from 
+ *			it_interval's value. it_value indicates the current count.
+ *
+ */
+int nanosleep(struct itimerval *requested, struct itimerval *remain);
 
 #endif /* _RTC_H */

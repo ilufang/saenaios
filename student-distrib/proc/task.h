@@ -46,6 +46,7 @@ typedef struct s_task_ptentry {
  */
 typedef struct s_task {
 	uint8_t status;		///< Current status of this task
+	uint8_t tty; 		///< Attached tty number
 	pid_t pid;			///< current process id
 	pid_t parent;		///< parent process id
 
@@ -54,6 +55,8 @@ typedef struct s_task {
 	file_t *files[TASK_MAX_OPEN_FILES]; ///< File descriptor pool
 
 	task_ptentry_t pages[TASK_MAX_PAGE_MAPS]; ///< Mapped pages
+	uint32_t vidmap;		///< for the damn video map
+	uint32_t vidpage_index;	///< for the damn video map
 
 	uint32_t ks_esp;	///< Kernel Stack pointer
 
