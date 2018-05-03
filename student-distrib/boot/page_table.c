@@ -1,7 +1,7 @@
 #include "page_table.h"
 #include "../proc/signal.h"
 
-#define ALLOCATABLE_4MB_START_INDEX	0x4	///< new pages will allocate from here
+#define ALLOCATABLE_4MB_START_INDEX	7	///< new pages will allocate from here
 
 #define PAGE_4MB 	0x400000
 
@@ -22,7 +22,7 @@
 
 static page_4MB_descriptor_t page_phys_mem_map[MAX_DYNAMIC_4MB_PAGE];
 
-static page_4KB_descriptor_t manyoushu_mem_table[1024];
+static page_4KB_descriptor_t manyoushu_mem_table[4][1024];
 
 static int page_4KB_allocation_index = 0;
 
@@ -41,10 +41,10 @@ int get_phys_mem_reference_count(int physical_addr){
 	if ((mem_index == 0) || (mem_index >= MAX_DYNAMIC_4MB_PAGE))
 		return -EINVAL;
 
-	if (mem_index == 3){
+	if (mem_index >= 3 && mem_index <= 6){
 		// manyoushu page
 		int mem_table_index = GET_MANYOU_INDEX(physical_addr);
-		return manyoushu_mem_table[mem_table_index].count;
+		return manyoushu_mem_table[mem_index-3][mem_table_index].count;
 	}else{
 		return page_phys_mem_map[mem_index].count;
 	}
@@ -75,22 +75,22 @@ int _page_alloc_get_4MB(){
 // should be only used for C00000 - 1000000 memory space
 int _page_alloc_get_4KB(){
 	int sanity_count = 0;
-	while (manyoushu_mem_table[page_4KB_allocation_index].count>0){
+	while (manyoushu_mem_table[page_4KB_allocation_index/1024][page_4KB_allocation_index%1024].count>0){
 		// increment index
 		++page_4KB_allocation_index;
 		// wrap around
-		if (page_4KB_allocation_index > 1024){
+		if (page_4KB_allocation_index >= 4096){
 			page_4KB_allocation_index = 0;
 		}
 		// don't go to a dead loop
 		++sanity_count;
-		if (sanity_count > 1024){
+		if (sanity_count >= 4096){
 			// nah, the 4KB pages are all out
 			return -ENOMEM;
 		}
 	}
 	// found a good one, mark as used
-	manyoushu_mem_table[page_4KB_allocation_index].count ++;
+	manyoushu_mem_table[page_4KB_allocation_index/1024][page_4KB_allocation_index%1024].count ++;
 
 	return MANYOUSHU_PAGE_START_ADDR + page_4KB_allocation_index * PAGE_4KB;
 }
@@ -108,14 +108,14 @@ int _page_alloc_add_refer_4MB(int addr){
 
 int _page_alloc_add_refer_4KB(int addr){
 	// check if the physical address is in the manyoushu 4MB
-	if (GET_MEM_MAP_INDEX(addr)!=GET_MEM_MAP_INDEX(MANYOUSHU_PAGE_START_ADDR)){
+/*	if (GET_MEM_MAP_INDEX(addr)!=GET_MEM_MAP_INDEX(MANYOUSHU_PAGE_START_ADDR)){
 		return -EINVAL;
-	}
+	}*/
 	// check if the physical address is really allocated
-	if (manyoushu_mem_table[GET_TAB_INDEX(addr)].count<=0){
+	if (manyoushu_mem_table[GET_DIR_INDEX(addr)-3][GET_TAB_INDEX(addr)].count<=0){
 		return -EINVAL;
 	}
-	manyoushu_mem_table[GET_TAB_INDEX(addr)].count++;
+	manyoushu_mem_table[GET_DIR_INDEX(addr)-3][GET_TAB_INDEX(addr)].count++;
 	return 0;
 }
 
@@ -180,11 +180,11 @@ int page_alloc_free_4KB(int physical_addr){
 		return -EINVAL;
 	}
 	// check if the physical 4KB page is really in use
-	if (manyoushu_mem_table[GET_TAB_INDEX(physical_addr)].count<=0){
+	if (manyoushu_mem_table[GET_DIR_INDEX(physical_addr)-3][GET_TAB_INDEX(physical_addr)].count<=0){
 		return -EINVAL;
 	}
 	// then decrease the use count;
-	manyoushu_mem_table[GET_TAB_INDEX(physical_addr)].count --;
+	manyoushu_mem_table[GET_DIR_INDEX(physical_addr)-3][GET_TAB_INDEX(physical_addr)].count --;
 	return 0;
 }
 
@@ -229,7 +229,7 @@ void page_ece391_init(){
 }
 
 void page_phys_mem_map_init(){
-	int i;
+	int i,j;
 	// initiate physical memory page descriptors
 	for (i=0;i<MAX_DYNAMIC_4MB_PAGE;++i){
 		page_phys_mem_map[i].flags = 0;
@@ -238,14 +238,23 @@ void page_phys_mem_map_init(){
 	}
 	// initiate memory map for manyoushu
 	for (i=0;i<1024;++i){
-		manyoushu_mem_table[i].flags = 0;
-		manyoushu_mem_table[i].count = 0;
+		for (j=0; j<4; ++j){
+			manyoushu_mem_table[j][i].flags = 0;
+			manyoushu_mem_table[j][i].count = 0;
+		}
 	}
 	page_phys_mem_map[0].count = 1;
 	page_phys_mem_map[1].count = 1;
 	page_phys_mem_map[2].count = 1;
 	page_phys_mem_map[3].count = 1;
-	page_phys_mem_map[3].pages = manyoushu_mem_table;
+	page_phys_mem_map[3].pages = manyoushu_mem_table[0];
+	page_phys_mem_map[4].count = 1;
+	page_phys_mem_map[4].pages = manyoushu_mem_table[1];
+	page_phys_mem_map[5].count = 1;
+	page_phys_mem_map[5].pages = manyoushu_mem_table[2];
+	page_phys_mem_map[6].count = 1;
+	page_phys_mem_map[6].pages = manyoushu_mem_table[3];
+
 
 	//manyoushu_mem_table[0xb8].count = 1; 	//WTF AM I THINKING
 }
@@ -258,8 +267,9 @@ void page_kernel_mem_map_init(){
 
 	// C00000 - 1000000 addresses for 4KB Manyoushu
 	page_phys_mem_map[3].flags |= PAGE_DES_RESERVE;
-	page_phys_mem_map[3].pages = manyoushu_mem_table;
-
+	page_phys_mem_map[4].flags |= PAGE_DES_RESERVE;
+	page_phys_mem_map[5].flags |= PAGE_DES_RESERVE;
+	page_phys_mem_map[6].flags |= PAGE_DES_RESERVE;
 }
 
 // this function should only be called during initialization
@@ -363,8 +373,10 @@ int page_tab_add_entry(uint32_t virtual_addr, uint32_t real_addr, int flags){
 	if (page_phys_mem_map[GET_MEM_MAP_INDEX(real_addr)].count<=0){
 		return -EINVAL;
 	}
-	if ((GET_MEM_MAP_INDEX(real_addr) == GET_MEM_MAP_INDEX(MANYOUSHU_PAGE_START_ADDR))&&(manyoushu_mem_table[GET_MANYOU_INDEX(real_addr)].count<=0)){
-		return -EINVAL;
+	if (GET_MEM_MAP_INDEX(real_addr) > 0){
+		if (page_phys_mem_map[GET_MEM_MAP_INDEX(real_addr)].pages[GET_MANYOU_INDEX(real_addr)].count <= 0){
+			return -EINVAL;
+		}
 	}
 
 	flags |= PAGE_TAB_ENT_PRESENT;	// enforce preset bit
