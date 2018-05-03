@@ -492,7 +492,7 @@ int brk_test(){
 	// mock up a virtual task to run
 	task_t* proc = task_list;
 	int i;
-	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
+	for (i=0; i<proc->page_limit; ++i){
 		proc->pages[i].pt_flags = 0;
 	}
 

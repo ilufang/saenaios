@@ -40,16 +40,16 @@ void scheduler_switch(task_t* from, task_t* to);
 /**
  *	this function tear down page table entries accordingly
  *
- *	@param pages: list of page entries to delete
+ *	@param proc: the process
  */
-void scheduler_page_clear(task_ptentry_t* pages);
+void scheduler_page_clear(task_t* proc);
 
 /**
  *	this function set up page table entries accordingly
  *
- *	@param pages: list of page entries to setup
+ *	@param proc: the process
  */
-void scheduler_page_setup(task_ptentry_t* pages);
+void scheduler_page_setup(task_t* proc);
 
 /**
  *	get magic number and the regs structure behind it

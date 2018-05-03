@@ -51,6 +51,8 @@ void task_create_kernel_pid() {
 	
 	init_task->wd = kmalloc(sizeof(pathname_t));
 	strcpy(init_task->wd, "/");
+	init_task->pages = kmalloc(4 * sizeof(task_ptentry_t));
+	init_task->page_limit = 4;
 	
 	init_task->uid = 0; // root
 	init_task->gid = 0; // root
@@ -114,9 +116,14 @@ int syscall_fork(int a, int b, int c) {
 	}
 	if (i == 512)
 		return -ENOMEM;
-
+	
 	// Copy address space
-	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
+	new_task->pages = kmalloc(cur_task->page_limit * sizeof(task_ptentry_t));
+	if (!new_task->pages) {
+		return -ENOMEM;
+	}
+	memcpy(new_task->pages, cur_task->pages, cur_task->page_limit * sizeof(task_ptentry_t));
+	for (i = 0; i < new_task->page_limit; i++) {
 		if (!(new_task->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT))
 			break;
 		if (new_task->pages[i].pt_flags & PAGE_DIR_ENT_RDWR) {
@@ -166,7 +173,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	int fd, ret, i;
 	task_t *proc;
 	uint32_t *u_argv, *u_envp, argc, envc;
-	task_ptentry_t ptent_stack;
+	task_ptentry_t ptent_stack, tmp_pages[2];
 	char *path_prev;
 
 	// Sanity checks
@@ -176,10 +183,20 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 
 	proc = task_list + task_current_pid();
 
-	// memset((char *)&(proc->regs), 0, sizeof(proc->regs));
-
-	// TODO: Permission checks
-
+	// Perform sanity test on the ELF
+	fd = syscall_open(pathp, FMODE_EXEC, 0);
+	if (fd < 0) {
+		if (fd != -EMFILE) {
+			return fd;
+		}
+	} else {
+		ret = elf_sanity(fd);
+		syscall_close(fd, 0, 0);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+	
 	// Copy execution information to new user stack
 
 	// allocate 4MB page for new stack (temporary at 0xc0000000 - 0xc0400000)
@@ -255,7 +272,7 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	// Release previous process
 	path_prev = proc->wd;
 	proc->wd = NULL;
-	scheduler_page_clear(proc->pages);
+	scheduler_page_clear(proc);
 	task_release(proc);
 	proc->wd = path_prev;
 	proc->status = TASK_ST_RUNNING;
@@ -267,12 +284,15 @@ int syscall_execve(int pathp, int argvp, int envpp) {
 	ptent_stack.vaddr = 0xbfc00000;
 	page_dir_add_4MB_entry(ptent_stack.vaddr, ptent_stack.paddr,
 						   ptent_stack.pt_flags);
-	memcpy(proc->pages+0, &ptent_stack, sizeof(task_ptentry_t));
+	memcpy(tmp_pages+0, &ptent_stack, sizeof(task_ptentry_t));
+	memset(tmp_pages+1, 0, sizeof(task_ptentry_t));
+	proc->pages = tmp_pages;
 	proc->regs.esp -= 0x400000; // Offset 4MB
 	page_flush_tlb();
 
 	// Try to open ELF file for reading
-	fd = syscall_open(0xbfc00000, O_RDONLY, 0);	// Path stored at top of stack
+	
+	fd = syscall_open(0xbfc00000, FMODE_EXEC, 0); // Path stored at top of stack
 	if (fd < 0) {
 		page_alloc_free_4MB(ptent_stack.paddr);
 		syscall__exit(WEXITSTATUS(-1),0,0);
@@ -346,7 +366,7 @@ int syscall__exit(int status, int b, int c) {
 		// Parent is alive
 		if (parent->sigacts[SIGCHLD].flags & SA_NOCLDWAIT) {
 			// Do not notify parent
-			scheduler_page_clear(proc->pages);
+			scheduler_page_clear(proc);
 			task_release(proc);
 			// Restart parent `wait` in case this is the last child
 			syscall_kill(parent->pid, SIGCONT, 0);
@@ -361,7 +381,7 @@ int syscall__exit(int status, int b, int c) {
 		}
 	} else {
 		// Otherwise, just release the process
-		scheduler_page_clear(proc->pages);
+		scheduler_page_clear(proc);
 		task_release(proc);
 	}
 
@@ -603,7 +623,7 @@ void task_release(task_t *proc) {
 	// Mark program as dead
 	proc->status = TASK_ST_DEAD;
 	// Release all pages
-	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
+	for (i = 0; i < proc->page_limit; i++) {
 		if (!(proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT)) {
 			// End of page list
 			break;
@@ -619,6 +639,9 @@ void task_release(task_t *proc) {
 	}
 	page_flush_tlb();
 	// Release dynamic memory
+	if (proc->pages) {
+		kfree(proc->pages);
+	}
 	if (proc->wd) {
 		kfree(proc->wd);
 	}
@@ -664,7 +687,7 @@ int task_access_memory(uint32_t addr) {
 	task_t *proc;
 
 	proc = task_list + task_current_pid();
-	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
+	for (i = 0; i < proc->page_limit; i++) {
 		if (!(proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT))
 			break;
 		if (addr < proc->pages[i].vaddr)
@@ -691,7 +714,7 @@ int task_pf_copy_on_write(uint32_t addr) {
 	task_ptentry_t* page;
 
 	proc = task_list + task_current_pid();
-	for (i = 0; i < TASK_MAX_PAGE_MAPS; i++) {
+	for (i = 0; i < proc->page_limit; i++) {
 		if (addr < proc->pages[i].vaddr)
 			continue;
 		if (proc->pages[i].pt_flags & PAGE_DIR_ENT_4MB) {
@@ -827,12 +850,12 @@ int syscall_brk(int paddr, int b, int c){
 		while((proc->heap.prog_break - aligned_t_addr) > __4MB){
 			// deallocate 4MB pages, find that in process pages
 			temp_aligned = ((proc->heap.prog_break - 1)/__4MB)*__4MB;
-			for (i=0;i<TASK_MAX_PAGE_MAPS;++i){
+			for (i=0;i<proc->page_limit;++i){
 				if (proc->pages[i].vaddr == temp_aligned){
 					break;
 				}
 			}
-			if (i > TASK_MAX_PAGE_MAPS){
+			if (i > proc->page_limit){
 				// very bad thing happened
 				printf("Page missing!");
 				return -1;
@@ -845,6 +868,7 @@ int syscall_brk(int paddr, int b, int c){
 			proc->heap.prog_break = proc->pages[i].vaddr;
 		}
 		proc->heap.prog_break = (uint32_t)paddr;
+		page_flush_tlb();
 		return 0;
 	}
 
@@ -864,14 +888,14 @@ int syscall_brk(int paddr, int b, int c){
 		new_ptentry.pt_flags = PAGE_DIR_ENT_PRESENT | PAGE_DIR_ENT_RDWR | PAGE_DIR_ENT_USER | PAGE_DIR_ENT_4MB;
 		new_ptentry.priv_flags = 0;
 		// add that in pages of process
-		for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
+		for (i=0; i<proc->page_limit; ++i){
 			if (proc->pages[i].pt_flags & PAGE_DIR_ENT_PRESENT) continue;
 			// else found a empty spot
 			memcpy(&proc->pages[i], &new_ptentry, sizeof(task_ptentry_t));
 			break;
 		}
 		// check for loop fail
-	 	if (i>=TASK_MAX_PAGE_MAPS){
+	 	if (i>=proc->page_limit){
 	 		// guess no space left in pages ha, remember to deallocate
 	 		page_alloc_free_4MB(ret_alloc);
 	 		errno = ENOMEM;
@@ -882,6 +906,7 @@ int syscall_brk(int paddr, int b, int c){
 		// update every data
 		// add to the start of new 4MB page
 		proc->heap.prog_break = new_ptentry.vaddr + __4MB;
+		page_flush_tlb();
 	}
 	// now there's something less than 4MB left
 	proc->heap.prog_break = (uint32_t)paddr;

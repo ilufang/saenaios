@@ -23,7 +23,6 @@
 
 #define TASK_MAX_PROC		64	///< Maximum of concurrently-scheduled tasks
 #define TASK_MAX_OPEN_FILES	16		///< Per-process limit of concurrent open files
-#define TASK_MAX_PAGE_MAPS	16		///< Maximum pages a process may request
 
 #define TASK_PTENT_CPONWR	0x1		///< Current page is copy-on-write
 
@@ -61,7 +60,8 @@ typedef struct s_task {
 
 	file_t *files[TASK_MAX_OPEN_FILES]; ///< File descriptor pool
 
-	task_ptentry_t pages[TASK_MAX_PAGE_MAPS]; ///< Mapped pages
+	task_ptentry_t *pages;	///< Mapped pages
+	int	page_limit;			///< Size of `pages`
 	uint32_t vidmap;		///< for the damn video map
 	uint32_t vidpage_index;	///< for the damn video map
 

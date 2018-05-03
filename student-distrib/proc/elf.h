@@ -51,9 +51,24 @@ typedef struct elf_pheader_s {
 /**
  *	Load ELF segments from a file into current process
  *
+ *	@note The existing process page table buffer will be replaced if it exists
+ *		  the contents will be copied, but the memory will not be released. If
+ *		  the process pages is clean, setting pages to NULL is recommended.
+ *		  Otherwise, setting pages to a statically-allocated buffer is
+ *		  recommended. If a kmalloc'ed buffer has to be used, you need to keep
+ *		  a pointer to it and manually free it after the call.
+ *
  *	@param fd: the file descriptor of the ELF file opened for reading
  *	@return 0 on success, or the negative of an errno on failure.
  */
 int elf_load(int fd);
+
+/**
+ *	Check ELF sanity
+ *
+ *	@param fd: the file descriptor of the ELF file
+ *	@return 0 on success, or the negative of an errno on failure.
+ */
+int elf_sanity(int fd);
 
 #endif

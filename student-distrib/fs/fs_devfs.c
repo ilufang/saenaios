@@ -172,7 +172,7 @@ ino_t devfs_i_op_lookup(inode_t* inode,const char* path){
 			return i;
 		}
 	}
-	return -ENXIO;
+	return -ENOENT;
 }
 
 int devfs_i_op_readlink(inode_t* inode, char* buf){

@@ -36,7 +36,24 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	flags++; // Newlib force us to do this...
 	proc = task_list + task_current_pid();
 
-	strcpy(path, proc->wd);
+	if (!pathaddr) {
+		return -EFAULT;
+	}
+	if (flags & FMODE_EXEC) {
+		switch (*(char *)pathaddr) {
+			case '.':
+				strcpy(path, proc->wd);
+				break;
+			case '/':
+				strcpy(path, "/");
+				break;
+			default:
+				// strcpy(path, "/bin");
+				strcpy(path, "/");
+		}
+	} else {
+		strcpy(path, proc->wd);
+	}
 	errno = -path_cd(path, (char *)pathaddr);
 	if (errno != 0) {
 		return -errno;
@@ -73,11 +90,14 @@ int syscall_open(int pathaddr, int flags, int mode) {
 		}
 	}
 	
-	if (mode & O_RDONLY) {
+	if (mode & FMODE_RD) {
 		perm_mask |= 4; // Read bit
 	}
-	if (mode & O_WRONLY) {
+	if (mode & FMODE_WR) {
 		perm_mask |= 2; // Write bit
+	}
+	if (mode & FMODE_EXEC) {
+		perm_mask |= 1; // Exec bit
 	}
 	errno = -file_permission(inode, proc->uid, proc->gid, perm_mask);
 	if (errno != 0) {
@@ -170,7 +190,7 @@ int syscall_read(int fd, int bufaddr, int count) {
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
-	if (!(file->mode & O_RDONLY)) {
+	if (!(file->mode & FMODE_RD)) {
 		// Not opened for reading
 		return -EBADF;
 	}
@@ -207,7 +227,7 @@ int syscall_write(int fd, int bufaddr, int count) {
 	if (!file || fd >= TASK_MAX_OPEN_FILES || fd < 0) {
 		return -EBADF;
 	}
-	if (!(file->mode & O_WRONLY)) {
+	if (!(file->mode & FMODE_WR)) {
 		// Not opened for writing
 		return -EBADF;
 	}
@@ -290,7 +310,7 @@ file_t *vfs_open_file(inode_t *inode, int mode) {
 		errno = EFAULT;
 		return NULL;
 	}
-	if (!(mode & (O_RDONLY | O_WRONLY))) {
+	if (!(mode & (FMODE_RD | FMODE_WR))) {
 		errno = EINVAL;
 		return NULL;
 	}

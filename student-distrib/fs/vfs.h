@@ -21,6 +21,10 @@
 
 #define MP3FS_IDENTIFIER 0xecebcafe ///< MP3FS RTC symlink identifier
 
+#define FMODE_RD	1
+#define FMODE_WR	2
+#define FMODE_EXEC	4
+
 // Forward declarations
 struct s_file;
 struct s_inode;

@@ -91,7 +91,7 @@ int syscall_ece391_vidmap(int start_addr_in, int b, int c){
 	}
 	// add it in process pages
 	int i;
-	for (i=0; i<TASK_MAX_PAGE_MAPS; ++i){
+	for (i=0; i<proc->page_limit; ++i){
 		if (!(proc->pages[i].pt_flags & PAGE_TAB_ENT_PRESENT)){
 			proc->pages[i].vaddr = VIDMAP_START;
 			proc->pages[i].paddr = VIDMEM_START;
@@ -99,7 +99,7 @@ int syscall_ece391_vidmap(int start_addr_in, int b, int c){
 			break;
 		}
 	}
-	if (i >= TASK_MAX_PAGE_MAPS){
+	if (i >= proc->page_limit){
 		return -1;
 	}
 
