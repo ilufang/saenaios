@@ -33,6 +33,7 @@ int syscall_open(int pathaddr, int flags, int mode) {
 	file_t *file;
 	int perm_mask = 0;
 
+	flags++; // Newlib force us to do this...
 	proc = task_list + task_current_pid();
 
 	strcpy(path, proc->wd);

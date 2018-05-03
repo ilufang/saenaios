@@ -555,7 +555,7 @@ int syscall_getcwd(int bufp, int size, int c) {
 	proc = task_list + task_current_pid();
 	len = strlen(proc->wd) + 1;
 	
-	if (len > c) {
+	if (len > size) {
 		return -ERANGE;
 	}
 	
