@@ -1,85 +1,79 @@
-LOGISTICS
------
-ECE 391 MP3 
+Illinix391-SaenaiOS
+===================
 
-Checkpoint 1 due Monday 3/12/2017, 6pm in GitLab
+ECE 391 SP18 MP3 by Group 39 "Blessing Hardware".
 
-Checkpoint 2 due Tuesday 3/27/2017, 6pm in GitLab
+*&copy; 2018 by Fang Lu, Xutao Jiang, Xi Chen, Yiyi Wang*
 
-Checkpoint 3 due Monday 4/9/2017, 6pm in GitLab
+Illinix391-SaenaiOS is a UNIX-like operating system from the UIUC ECE 391 8-week
+course project. We got 1st place in the Spring 2018 ECE 391 Design Competition.
+The system features partial POSIX-compliant system calls.
 
-Checkpoint 4 due Tuesday 4/16/2017, 6pm in GitLab
+*The project has ended and is no longer maintained. You are welcome to discuss
+or fork the project, but the developers make no promise to any responses or
+bug fixes.*
 
-Checkpoint 5 due Monday 4/30/2017, 6pm in GitLab
+Compiling
+---------
 
+To build the kernel, invoke `make` in the `student-distrib` folder. You will
+need a i386-elf-gcc toolchain to do that. (The gcc from the ECE391 devel VM
+will suffice. You just need to make a symlink or modify the `CC` variable in the
+Makefile).
 
-ACADEMIC INTEGRITY
------
-Please review the University of Illinois Student Code before starting,
-particularly all subsections of Article 1, Part 4 Academic Integrity and Procedure [here](http://studentcode.illinois.edu/article1_part4_1-401.html).
+If the previous step complains about no rule to make libext4.a, you can get one
+by invoking `make` in the `fuse-lwext4/lwext4/src` folder.
 
-**§ 1‑402 Academic Integrity Infractions**
+To create the bootable image, invoke `makeos.sh` in the root directory. To do
+this, your system must have a `mount` utility that supports ext2, and you will
+need root privileges to perform that `mount`.
 
-(a).	Cheating. No student shall use or attempt to use in any academic exercise materials, information, study aids, or electronic data that the student knows or should know is unauthorized. Instructors are strongly encouraged to make in advance a clear statement of their policies and procedures concerning the use of shared study aids, examination files, and related materials and forms of assistance. Such advance notification is especially important in the case of take-home examinations. During any examination, students should assume that external assistance (e.g., books, notes, calculators, and communications with others) is prohibited unless specifically authorized by the Instructor. A violation of this section includes but is not limited to:
+If the previous step complains about missing `mp3.img`, you can retrieve a
+template from ECE391 Staff by invoking `git checkout initial mp3.img` under the
+`student-distrib` directory. Note that the template image contains GRUB, and
+will make the OS GPL licensed.
 
-(1)	Allowing others to conduct research or prepare any work for a student without prior authorization from the Instructor, including using the services of commercial term paper companies. 
+Running
+-------
 
-(2)	Submitting substantial portions of the same academic work for credit more than once or by more than one student without authorization from the Instructors to whom the work is being submitted. 
+The resulting mp3.img is a raw disk image. To run in QEMU, invoke
 
-(3) Working with another person without authorization to satisfy an individual assignment.
+```
+qemu-system-i386 -hda "student-distrib/mp3.img" -m 256 -name SaenaiOS
+```
 
-(b) Plagiarism. No student shall represent the words, work, or ideas of another as his or her own in any academic endeavor. A violation of this section includes but is not limited to:
+To run in VMWare, you can convert the image to VMDK with QEMU-img:
 
-(1)	Copying: Submitting the work of another as one’s own. 
+```
+qemu-img convert -f raw -O vmdk mp3.img mp3.vmdk
+```
 
-(2)	Direct Quotation: Every direct quotation must be identified by quotation marks or by appropriate indentation and must be promptly cited. Proper citation style for many academic departments is outlined in such manuals as the MLA Handbook or K.L. Turabian’s A Manual for Writers of Term Papers, Theses and Dissertations. These and similar publications are available in the University bookstore or library. The actual source from which cited information was obtained should be acknowledged.
+The img file could also be burnt into a USB stick for booting in a physical
+BIOS-capable machine. However, ATA disk driver will not work unless you burnt
+the image into an actual hard disk connected on an IDE bus.
 
-(3)	Paraphrase: Prompt acknowledgment is required when material from another source is paraphrased or summarized in whole or in part. This is true even if the student’s words differ substantially from those of the source. A citation acknowledging only a directly quoted statement does not suffice as an acknowledgment of any preceding or succeeding paraphrased material. 
+Documentation
+-------------
 
-(4)	Borrowed Facts or Information: Information obtained in one’s reading or research that is not common knowledge must be acknowledged. Examples of common knowledge might include the names of leaders of prominent nations, basic scientific laws, etc. Materials that contribute only to one’s general understanding of the subject may be acknowledged in a bibliography and need not be immediately cited. One citation is usually sufficient to acknowledge indebtedness when a number of connected sentences in the paper draw their special information from one source.
+The documentation of the project can be generated using doxygen. To do that,
+invoke `doxygen` under `student-distrib` and `libc`.
 
-(c) Fabrication. No student shall falsify or invent any information or citation in an academic endeavor. A violation of this section includes but is not limited to:
+A copy of the HTML doxygen output is hosted here:
+[kernel](https://fanglu2.web.engr.illinois.edu/ece391/kernel/files.html),
+[libc](https://fanglu2.web.engr.illinois.edu/ece391/libc/files.html)
 
-(1)	Using invented information in any laboratory experiment or other academic endeavor without notice to and authorization from the Instructor or examiner. It would be improper, for example, to analyze one sample in an experiment and covertly invent data based on that single experiment for several more required analyses. 
+License
+-------
 
-(2)	Altering the answers given for an exam after the examination has been graded. 
+The kernel of SaenaiOS is licensed under the MIT License. However, components in
+some submodules (like gcc and newlib) are licensed under the GPL. If you choose
+to distribute the operating system with these toolchains bundled, the OS would
+be licensed under the GPL. Specifically, the `mp3.img` disk image contains a
+copy of GRUB, which is GPLv3. Thus using the `debug.sh` script will make the
+OS bootable image GPL. Please refer to the `LICENSE` file of this repo and its
+submodules for detailed license text.
 
-(3)	Providing false or misleading information for the purpose of gaining an academic advantage.
-
-(d)	Facilitating Infractions of Academic Integrity. No student shall help or attempt to help another to commit an infraction of academic integrity, where one knows or should know that through one’s acts or omissions such an infraction may be facilitated. A violation of this section includes but is not limited to:
-
-(1)	Allowing another to copy from one’s work. 
-
-(2)	Taking an exam by proxy for someone else. This is an infraction of academic integrity on the part of both the student enrolled in the course and the proxy or substitute. 
-
-(3)	Removing an examination or quiz from a classroom, faculty office, or other facility without authorization.
-
-(e)	Bribes, Favors, and Threats. No student shall bribe or attempt to bribe, promise favors to or make threats against any person with the intent to affect a record of a grade or evaluation of academic performance. This includes conspiracy with another person who then takes the action on behalf of the student.
-
-(f)	Academic Interference. No student shall tamper with, alter, circumvent, or destroy any educational material or resource in a manner that deprives any other student of fair access or reasonable use of that material or resource. 
-
-(1)	Educational resources include but are not limited to computer facilities, electronic data, required/reserved readings, reference works, or other library materials. 
-
-(2)	Academic interference also includes acts in which the student committing the infraction personally benefits from the interference, regardless of the effect on other students.
-
-
-LEGAL
------
-Permission to use, copy, modify, and distribute this software and its
-documentation for any purpose, without fee, and without written agreement is
-hereby granted, provided that the above copyright notice and the following
-two paragraphs appear in all copies of this software.
-
-IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO
-ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION,
-EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
-
-THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE
-
-PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND NEITHER THE AUTHOR NOR
-THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE,
-SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
+**Additional Notes to Future ECE391 Students:** Please refer to the Student Code
+for academic integrity requirements. You may use code from this project freely
+under the license terms, but it is your responsibility to ensure that such use
+meets the originality requirements from your course and department.
